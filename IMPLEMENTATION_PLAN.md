@@ -44,6 +44,7 @@ Each task is built using **Claude Code CLI** (native Opus 4.6). The workflow for
 - **NEVER move to the next task** without Prashant's approval.
 - **Always push after each task.** Prashant can review the code on GitHub at any time.
 - **Commit message format:** `[P1-T3] Set up basic navigation: HomeView → GameView`
+- **Simulator verification after each phase.** At each phase checkpoint, build and run the app on the iOS Simulator (`xcodebuild` or `open` in Xcode), take a screenshot if possible, and include simulator results in the summary sent to Prashant. Use: `xcrun simctl boot "iPhone 16 Pro"` + `xcodebuild -scheme FloodIt -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build` to verify.
 
 ### Claude Code Invocation
 ```bash
