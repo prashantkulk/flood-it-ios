@@ -9,6 +9,7 @@ final class FloodCellNode: SKNode {
     private(set) var gameColor: GameColor
 
     // Layer nodes
+    private var glowNode: SKSpriteNode!
     private var bodyNode: SKSpriteNode!
 
     let cornerFraction: CGFloat = 0.30
@@ -25,8 +26,16 @@ final class FloodCellNode: SKNode {
 
     private func buildLayers() {
         let sz = CGSize(width: cellSize, height: cellSize)
+        let glowSize = CGSize(width: cellSize * 1.45, height: cellSize * 1.45)
 
-        // Body — rounded rect with solid color (gradient in T2)
+        // Glow — oversized radial gradient behind cell
+        glowNode = SKSpriteNode(color: .clear, size: glowSize)
+        glowNode.zPosition = -2
+        glowNode.alpha = 0.6
+        glowNode.blendMode = .add
+        addChild(glowNode)
+
+        // Body — gradient fill
         bodyNode = SKSpriteNode(color: .clear, size: sz)
         bodyNode.zPosition = 0
         addChild(bodyNode)
@@ -36,6 +45,12 @@ final class FloodCellNode: SKNode {
         self.gameColor = color
         let sz = CGSize(width: cellSize, height: cellSize)
         let cornerRadius = cellSize * cornerFraction
+
+        // Glow texture
+        let glowSize = CGSize(width: cellSize * 1.45, height: cellSize * 1.45)
+        let glowTex = CellTextureCache.glow(for: color, size: glowSize)
+        glowNode.texture = glowTex
+        glowNode.size = glowSize
 
         // Gradient body texture (light → dark, top-left to bottom-right)
         let bodyTex = CellTextureCache.gradient(for: color, size: sz, cornerRadius: cornerRadius)

@@ -24,7 +24,37 @@ enum CellTextureCache {
         return tex
     }
 
+    static func glow(for gameColor: GameColor, size: CGSize) -> SKTexture {
+        let key = "glow_\(gameColor.rawValue)_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let tex = SKTexture(image: drawGlow(color: gameColor.uiLightColor, size: size))
+        cache[key] = tex
+        return tex
+    }
+
     // MARK: - Renderers
+
+    private static func drawGlow(color: UIColor, size: CGSize) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { ctx in
+            let cgCtx = ctx.cgContext
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let radius = size.width / 2
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+            color.getRed(&r, green: &g, blue: &b, alpha: nil)
+            let cs = CGColorSpaceCreateDeviceRGB()
+            let colors = [
+                UIColor(red: r, green: g, blue: b, alpha: 0.55).cgColor,
+                UIColor(red: r, green: g, blue: b, alpha: 0.0).cgColor
+            ] as CFArray
+            let locs: [CGFloat] = [0, 1]
+            if let gradient = CGGradient(colorsSpace: cs, colors: colors, locations: locs) {
+                cgCtx.drawRadialGradient(gradient,
+                    startCenter: center, startRadius: 0,
+                    endCenter: center, endRadius: radius,
+                    options: [])
+            }
+        }
+    }
 
     private static func drawGradient(light: UIColor, dark: UIColor, size: CGSize, cornerRadius: CGFloat) -> UIImage {
         UIGraphicsImageRenderer(size: size).image { ctx in
