@@ -105,8 +105,23 @@ final class FloodCellNode: SKNode {
         highlightNode.size = sz
     }
 
-    /// Mark cell as flooded or not (used for breathing animation in T9).
+    private var isFlooded = false
+
+    /// Start or stop breathing animation for flooded cells.
+    /// Flooded cells gently oscillate 2% scale over 3s cycle.
     func setFlooded(_ flooded: Bool) {
-        // Breathing animation will be added in T9
+        guard flooded != isFlooded else { return }
+        isFlooded = flooded
+        if flooded {
+            let half: TimeInterval = 1.5
+            let up = SKAction.scale(to: 1.02, duration: half)
+            up.timingMode = .easeInEaseOut
+            let down = SKAction.scale(to: 0.98, duration: half)
+            down.timingMode = .easeInEaseOut
+            run(SKAction.repeatForever(SKAction.sequence([up, down])), withKey: "breathe")
+        } else {
+            removeAction(forKey: "breathe")
+            run(SKAction.scale(to: 1.0, duration: 0.15))
+        }
     }
 }
