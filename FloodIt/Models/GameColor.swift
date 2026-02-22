@@ -1,4 +1,5 @@
 import SwiftUI
+import SpriteKit
 
 /// The 5 game colors used in Flood It, each with gradient and shadow colors.
 enum GameColor: Int, CaseIterable {
@@ -27,6 +28,17 @@ enum GameColor: Int, CaseIterable {
         case .emerald:  return Color(hex: 0x27AE60)
         case .sapphire: return Color(hex: 0x1A6BC4)
         case .violet:   return Color(hex: 0x8E44AD)
+        }
+    }
+
+    /// SKColor for SpriteKit rendering (uses the light gradient color).
+    var skColor: SKColor {
+        switch self {
+        case .coral:    return SKColor(red: 0xFF/255, green: 0x6B/255, blue: 0x6B/255, alpha: 1)
+        case .amber:    return SKColor(red: 0xFF/255, green: 0xD9/255, blue: 0x3D/255, alpha: 1)
+        case .emerald:  return SKColor(red: 0x6B/255, green: 0xCB/255, blue: 0x77/255, alpha: 1)
+        case .sapphire: return SKColor(red: 0x4D/255, green: 0x96/255, blue: 0xFF/255, alpha: 1)
+        case .violet:   return SKColor(red: 0xC7/255, green: 0x7D/255, blue: 0xFF/255, alpha: 1)
         }
     }
 

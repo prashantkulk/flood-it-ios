@@ -2,18 +2,26 @@ import SwiftUI
 import SpriteKit
 
 struct GameView: View {
-    var body: some View {
-        GeometryReader { geometry in
-            SpriteView(scene: makeScene(size: geometry.size))
-                .ignoresSafeArea()
-        }
-        .background(Color(red: 0.06, green: 0.06, blue: 0.12))
+    @StateObject private var gameState: GameState
+
+    private let scene: GameScene
+    private let seed: UInt64
+
+    init(seed: UInt64 = 42) {
+        self.seed = seed
+        let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
+        let totalMoves = 30
+        _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: totalMoves))
+
+        let gameScene = GameScene(size: UIScreen.main.bounds.size)
+        gameScene.scaleMode = .resizeFill
+        gameScene.configure(with: board)
+        self.scene = gameScene
     }
 
-    private func makeScene(size: CGSize) -> GameScene {
-        let scene = GameScene(size: size)
-        scene.scaleMode = .resizeFill
-        return scene
+    var body: some View {
+        SpriteView(scene: scene)
+            .ignoresSafeArea()
     }
 }
 
