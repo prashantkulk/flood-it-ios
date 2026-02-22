@@ -25,8 +25,8 @@ struct FloodBoard {
         return cells[row][col]
     }
 
-    /// Computes the current flood region — all cells connected to top-left sharing its color.
-    func floodRegion() -> Set<CellPosition> {
+    /// Computed property: all cells connected to top-left sharing its color (BFS).
+    var floodRegion: Set<CellPosition> {
         let targetColor = cells[0][0]
         var visited = Set<CellPosition>()
         var queue = [CellPosition(row: 0, col: 0)]
@@ -48,7 +48,7 @@ struct FloodBoard {
     /// Performs a flood fill with the given color.
     /// Changes the entire flood region to the new color, then absorbs all adjacent cells matching it.
     mutating func flood(color newColor: GameColor) {
-        let currentRegion = floodRegion()
+        let currentRegion = floodRegion
         // Change all cells in the current flood region to the new color
         for pos in currentRegion {
             cells[pos.row][pos.col] = newColor

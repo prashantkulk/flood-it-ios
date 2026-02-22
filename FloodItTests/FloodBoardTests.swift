@@ -42,12 +42,44 @@ final class FloodBoardTests: XCTestCase {
             [.emerald, .emerald, .emerald],
         ]
         let board = FloodBoard(gridSize: 3, cells: cells)
-        let region = board.floodRegion()
+        let region = board.floodRegion
         XCTAssertEqual(region.count, 4)
         XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
         XCTAssertTrue(region.contains(CellPosition(row: 0, col: 1)))
         XCTAssertTrue(region.contains(CellPosition(row: 1, col: 0)))
         XCTAssertTrue(region.contains(CellPosition(row: 1, col: 1)))
+    }
+
+    // MARK: - P2-T3: floodRegion computed property
+
+    func testFloodRegionGrowsAfterFlood() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        let regionBefore = board.floodRegion
+        XCTAssertEqual(regionBefore.count, 1) // Just top-left
+
+        board.flood(color: .amber)
+        let regionAfter = board.floodRegion
+        // Should now include (0,0), (0,1), (1,0) — all amber connected to top-left
+        XCTAssertEqual(regionAfter.count, 3)
+        XCTAssertTrue(regionAfter.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(regionAfter.contains(CellPosition(row: 0, col: 1)))
+        XCTAssertTrue(regionAfter.contains(CellPosition(row: 1, col: 0)))
+    }
+
+    func testFloodRegionInitialSingleCell() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .sapphire],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let region = board.floodRegion
+        XCTAssertEqual(region.count, 1)
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
     }
 
     // MARK: - P2-T1: generateBoard
@@ -99,7 +131,7 @@ final class FloodBoardTests: XCTestCase {
         var board = FloodBoard(gridSize: 3, cells: cells)
         // Flood with emerald — should absorb all connected emerald cells
         board.flood(color: .emerald)
-        let region = board.floodRegion()
+        let region = board.floodRegion
         // Should have absorbed (0,0), (0,1), (0,2), (1,0), (1,1) — all emerald connected
         XCTAssertEqual(region.count, 5)
     }
@@ -118,7 +150,7 @@ final class FloodBoardTests: XCTestCase {
         // (0,0) becomes sapphire. Then absorb adjacent sapphire: (0,2) is sapphire but not adjacent to (0,0).
         // Actually (0,1) is amber, (1,0) is amber. No adjacent sapphire. Region stays 1.
         XCTAssertEqual(board.color(atRow: 0, col: 0), .sapphire)
-        let region = board.floodRegion()
+        let region = board.floodRegion
         XCTAssertEqual(region.count, 1)
     }
 
