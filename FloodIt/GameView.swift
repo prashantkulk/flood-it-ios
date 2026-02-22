@@ -25,6 +25,13 @@ struct GameView: View {
                 .ignoresSafeArea()
 
             VStack {
+                // Move counter
+                Text("Moves: \(gameState.movesRemaining)")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.top, 60)
+                    .accessibilityIdentifier("moveCounter")
+
                 Spacer()
 
                 // Color buttons
