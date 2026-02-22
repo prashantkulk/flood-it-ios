@@ -24,14 +24,20 @@ struct GameView: View {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
 
-            // Glassmorphism container behind the board
+            // Subtle border frame around the board area (no fill, just a thin luminous border)
             GeometryReader { geo in
-                let boardSize = geo.size.width - 16
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                let boardSize = geo.size.width - 12
+                RoundedRectangle(cornerRadius: 22)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.12),
+                                Color.white.opacity(0.04)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
                     )
                     .frame(width: boardSize, height: boardSize)
                     .position(x: geo.size.width / 2, y: geo.size.height / 2 + 20)
