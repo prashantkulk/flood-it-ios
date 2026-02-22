@@ -77,6 +77,39 @@ Each cell is rendered as a **raised platform** using layered visual elements:
 
 All 5 layers are rendered in SpriteKit as a custom `FloodCell` SKSpriteNode subclass. No actual 3D engine is needed — this is pure 2D compositing that reads as 3D.
 
+### 3.4 Inner Glow / Soft Neon Aura
+Each cell emits a subtle, color-matched glow that bleeds slightly beyond its borders — like a gemstone lit from within. This is NOT harsh neon. It's a soft, warm halo that gives the entire board a luminous quality. Implemented via SKEffectNode with Gaussian blur on an oversized colored layer behind each cell, or pre-rendered glow textures per color for performance.
+
+### 3.5 Cell Shape
+Cells use a **generous corner radius** (~30% of cell size). This creates a soft, modern, touchable feel — like iOS app icons. Not sharp squares. Rounded, friendly, premium.
+
+### 3.6 Grid Gaps
+~4px gaps between cells, transparent to the dark background beneath. This breathing room makes each cell feel distinct, the dark gaps create a natural grid, and the glow effect from adjacent cells subtly overlaps in the gap space, creating visual richness.
+
+### 3.7 Glassmorphism Board Container
+The grid sits on a **frosted glass panel** — a semi-transparent blurred container with a subtle white border (1px, 15% opacity). The dark gradient background shows through softly. This is the iOS design language (Control Center, widgets). SwiftUI `.ultraThinMaterial` or equivalent.
+
+### 3.8 Dynamic Gradient Background
+The background is NOT static. It's a slowly-shifting gradient that responds to the dominant flood color:
+- At game start: neutral dark gradient (dark navy to charcoal)
+- As the flood grows: background subtly shifts to match the flood color (deeply desaturated, dark)
+- At 80%+ flood: background is clearly tinted, creating an immersive "inside the color" feeling
+- Transition: 0.5s animated shift when the dominant color changes
+
+### 3.9 Ambient Floating Particles
+Tiny, barely-visible sparkle particles drift slowly across the background — like dust motes in a sunbeam. Low birth rate (~3-5 per second), slow movement, fade in and out. Color-matched to dominant board color. Single `SKEmitterNode`. Adds depth and life without distraction.
+
+### 3.10 Flooded Region Breathing Animation
+Cells in the player's flood region have a gentle idle animation — a slow, continuous 2% scale oscillation (1.0 → 1.02 → 1.0, 3-second cycle). Unconquered cells remain static. This makes the flooded region feel like a living organism, and creates a subconscious visual contrast that drives the desire to flood more.
+
+### 3.11 Color Buttons as Floating Orbs
+The 5 color buttons are NOT flat circles. They are **glowing orbs** — spheres with:
+- Radial gradient (lighter center, darker edge)
+- Outer glow halo (color-matched, soft blur)
+- Drop shadow beneath (floating above the UI)
+- Active/selected orb pulses gently (1.0 → 1.05 → 1.0, 1.5s cycle)
+- Tap state: squish + bounce as defined in Section 4.1
+
 ---
 
 ## 4. Touch Interaction & Feedback

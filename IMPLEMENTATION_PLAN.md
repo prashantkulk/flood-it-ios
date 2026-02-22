@@ -128,22 +128,27 @@ Phases are sequential. Each phase ends with a **checkpoint** — a simulator-ver
 
 ---
 
-## Phase 4: The 3D Cell Aesthetic
-**Goal:** Cells look like raised 3D platforms with gradients, shadows, highlights, and bevels.
+## Phase 4: Premium Visual Overhaul
+**Goal:** Transform the flat grid into a visually stunning, premium-feeling game board. This is the biggest visual leap in the entire project — the board should look screenshot-worthy and App Store-ready after this phase.
 
 | ID | Task | JTBD | Status | Verify |
 |---|---|---|---|---|
-| P4-T1 | Create `FloodCellNode` (custom SKNode subclass) with layered rendering: base shadow, gradient body, top highlight, edge bevel, gloss dot | The premium visual that differentiates the app | TODO | Simulator: cells look raised/3D |
-| P4-T2 | Implement gradient rendering for each GameColor (use SKTexture or CIFilter for gradient fill) | Cells need gradient, not flat color | TODO | Simulator: each color shows rich gradient |
-| P4-T3 | Implement cell shadow layer (soft blur, offset, color-matched) | Depth illusion | TODO | Simulator: visible shadow beneath each cell |
-| P4-T4 | Implement top highlight overlay (white-to-transparent gradient, top 30%) | Light simulation | TODO | Simulator: cells appear lit from above |
-| P4-T5 | Implement edge bevel (white top/left border, dark bottom/right) | Button-like 3D edge | TODO | Simulator: cells have subtle bevel |
-| P4-T6 | Implement gloss dot (small white circle, top-left corner) | Glass-like reflection | TODO | Simulator: tiny highlight visible |
-| P4-T7 | Ensure all 5 colors render correctly with full 3D treatment | Consistency across palette | TODO | Simulator: all colors look premium |
-| P4-T8 | Performance test: 15×15 grid (225 cells × 5 layers) renders at 60fps | Must not lag on older devices | TODO | Instruments: 60fps on iPhone 12 equivalent |
+| P4-T1 | Create `FloodCellNode` (custom SKNode subclass) with layered rendering: base shadow, gradient body, top highlight, edge bevel, gloss dot — use generous corner radius (~30% of cell size) for soft, modern, touchable feel (iOS app icon shape) | Premium 3D raised cell look | TODO | Simulator: cells look raised, glossy, rounded |
+| P4-T2 | Implement gradient rendering for each GameColor (use SKTexture or CIFilter for gradient fill). Each color uses its rich gradient pair from PRODUCT_SPEC Section 3.2 | Cells need gradient, not flat color | TODO | Simulator: each color shows rich gradient |
+| P4-T3 | Implement color-matched soft glow/aura behind each cell — a subtle blurred halo that bleeds slightly beyond cell borders. Use SKEffectNode with Gaussian blur on an oversized colored layer, OR pre-render glow textures per color for performance. Cells should look like gemstones lit from within | Cells feel alive and luminous | TODO | Simulator: visible soft glow around each cell |
+| P4-T4 | Implement cell shadow layer (soft blur, offset 2px down+right, color-matched shadow from PRODUCT_SPEC) | Depth illusion — cells float above background | TODO | Simulator: visible shadow beneath each cell |
+| P4-T5 | Implement top highlight overlay (white-to-transparent gradient, top 30%) + edge bevel (white top/left, dark bottom/right) + gloss dot (8px white circle, top-left, 25% opacity) | Light simulation, button-like 3D edge, glass reflection | TODO | Simulator: cells appear lit from above with bevel and gloss |
+| P4-T6 | Increase grid gap to ~4px between cells (transparent to dark background). Each cell should breathe and feel distinct | Visual breathing room, clean grid aesthetic | TODO | Simulator: cells have clear gaps, grid reads as a game board |
+| P4-T7 | Implement dynamic gradient background: background shifts color to subtly match the dominant flood color (deeply desaturated and dark). Slow animated transition over 0.5s when flood color changes | Board feels immersive and alive | TODO | Simulator: background tint shifts as player floods |
+| P4-T8 | Add ambient floating particles: tiny, barely-visible sparkle particles drift slowly across the background. Low birth rate, slow movement, fade in/out. Color-matched to dominant board color. Single SKEmitterNode | Depth and life without distraction | TODO | Simulator: subtle sparkles visible on dark background |
+| P4-T9 | Implement flooded region idle animation: cells in the flood region have a very gentle breathing animation — slow 2% scale oscillation (1.0 → 1.02 → 1.0, 3-second cycle). Unconquered cells are static. This makes the flooded region feel like a living organism | Flooded area feels alive, creates desire to flood more | TODO | Simulator: flooded cells gently pulse, unconquered cells are still |
+| P4-T10 | Redesign color buttons as floating glowing orbs: radial gradient (lighter center, darker edge) + outer glow halo + shadow beneath. Active/selected orb pulses gently. Buttons should look like they float above the UI | Premium button aesthetic that matches the board | TODO | Simulator: color buttons look like glowing spheres |
+| P4-T11 | Add glassmorphism container for the board: semi-transparent frosted glass panel behind the grid using SwiftUI `.ultraThinMaterial` or equivalent. Subtle white border. Dark gradient background shows through softly | iOS-native premium feel, visual depth | TODO | Simulator: board sits on a frosted glass panel |
+| P4-T12 | Ensure all 5 colors render correctly with full premium treatment (glow, gradient, shadow, bevel, corner radius) | Consistency across palette | TODO | Simulator: all colors look premium |
+| P4-T13 | Performance test: 15×15 grid (225 cells × all layers + glow + particles) renders at 60fps. If glow is expensive, use pre-rendered cached textures per color instead of real-time blur | Must not lag on older devices | TODO | Instruments: 60fps on iPhone 12 equivalent |
 
 ### Checkpoint P4 ✅
-**Simulator:** Board looks visually stunning. Cells appear raised, glossy, and physical. Screenshot-worthy.
+**Simulator:** Board looks STUNNING. Cells are rounded, glowing, 3D. Background shifts with flood color. Floating particles add depth. Color buttons are glowing orbs on frosted glass. Screenshot-worthy — the kind of visual that makes someone stop scrolling in the App Store.
 
 ---
 
@@ -320,7 +325,7 @@ Phases are sequential. Each phase ends with a **checkpoint** — a simulator-ver
 | P1 | Project setup & skeleton | 8 | 3 unit |
 | P2 | Core game logic | 8 | 12+ unit |
 | P3 | Basic board rendering | 8 | 1 UI |
-| P4 | 3D cell aesthetic | 8 | 1 perf |
+| P4 | Premium visual overhaul (3D cells, glow, particles, glassmorphism, dynamic bg) | 13 | 1 perf |
 | P5 | Flood animation | 7 | 1 perf |
 | P6 | Touch feedback & haptics | 6 | — |
 | P7 | Win/lose sequences | 10 | 2 unit |
