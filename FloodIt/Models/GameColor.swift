@@ -53,6 +53,17 @@ enum GameColor: Int, CaseIterable {
         }
     }
 
+    /// UIColor shadow color for SpriteKit drop shadow rendering.
+    var uiShadowColor: UIColor {
+        switch self {
+        case .coral:    return UIColor(red: 192/255, green: 57/255, blue: 43/255, alpha: 0.5)
+        case .amber:    return UIColor(red: 224/255, green: 168/255, blue: 0/255, alpha: 0.45)
+        case .emerald:  return UIColor(red: 39/255, green: 174/255, blue: 96/255, alpha: 0.45)
+        case .sapphire: return UIColor(red: 26/255, green: 107/255, blue: 196/255, alpha: 0.5)
+        case .violet:   return UIColor(red: 142/255, green: 68/255, blue: 173/255, alpha: 0.5)
+        }
+    }
+
     /// UIColor version of lightColor for Core Graphics rendering.
     var uiLightColor: UIColor {
         switch self {

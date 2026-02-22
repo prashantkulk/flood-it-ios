@@ -32,6 +32,15 @@ enum CellTextureCache {
         return tex
     }
 
+    static func shadow(for gameColor: GameColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let key = "shadow_\(gameColor.rawValue)_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let shadowColor = gameColor.uiShadowColor
+        let tex = SKTexture(image: drawRoundedRect(color: shadowColor, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
     // MARK: - Renderers
 
     private static func drawGlow(color: UIColor, size: CGSize) -> UIImage {

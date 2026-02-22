@@ -10,6 +10,7 @@ final class FloodCellNode: SKNode {
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
+    private var shadowNode: SKSpriteNode!
     private var bodyNode: SKSpriteNode!
 
     let cornerFraction: CGFloat = 0.30
@@ -35,6 +36,13 @@ final class FloodCellNode: SKNode {
         glowNode.blendMode = .add
         addChild(glowNode)
 
+        // Shadow — offset below body, color-matched
+        shadowNode = SKSpriteNode(color: .clear, size: sz)
+        shadowNode.zPosition = -1
+        shadowNode.position = CGPoint(x: 2, y: -2)
+        shadowNode.alpha = 0.7
+        addChild(shadowNode)
+
         // Body — gradient fill
         bodyNode = SKSpriteNode(color: .clear, size: sz)
         bodyNode.zPosition = 0
@@ -51,6 +59,11 @@ final class FloodCellNode: SKNode {
         let glowTex = CellTextureCache.glow(for: color, size: glowSize)
         glowNode.texture = glowTex
         glowNode.size = glowSize
+
+        // Shadow texture (color-matched, soft)
+        let shadowTex = CellTextureCache.shadow(for: color, size: sz, cornerRadius: cornerRadius)
+        shadowNode.texture = shadowTex
+        shadowNode.size = sz
 
         // Gradient body texture (light → dark, top-left to bottom-right)
         let bodyTex = CellTextureCache.gradient(for: color, size: sz, cornerRadius: cornerRadius)
