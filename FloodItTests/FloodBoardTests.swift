@@ -115,6 +115,56 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
     }
 
+    // MARK: - P2-T6: cellsAbsorbedBy(color:)
+
+    func testCellsAbsorbedByReturnsCorrectWaves() {
+        // Board:
+        // C A A
+        // E A E
+        // E E E
+        // Flood region is just (0,0) = coral
+        // Flooding with amber should absorb: wave1 = (0,1), (1,1) [adjacent to flood region]
+        //                                    wave2 = (0,2) [adjacent to wave1]
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.emerald, .amber, .emerald],
+            [.emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        let waves = board.cellsAbsorbedBy(color: .amber)
+        XCTAssertEqual(waves.count, 2)
+        // Wave 1: cells directly adjacent to flood region matching amber
+        let wave1Set = Set(waves[0])
+        XCTAssertTrue(wave1Set.contains(CellPosition(row: 0, col: 1)))
+        // Wave 2: cells adjacent to wave 1 matching amber
+        let wave2Set = Set(waves[1])
+        XCTAssertTrue(wave2Set.contains(CellPosition(row: 0, col: 2)) || wave2Set.contains(CellPosition(row: 1, col: 1)))
+        // Total absorbed should be 3 amber cells
+        let totalAbsorbed = waves.flatMap { $0 }.count
+        XCTAssertEqual(totalAbsorbed, 3)
+    }
+
+    func testCellsAbsorbedByNoMatchReturnsEmpty() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let waves = board.cellsAbsorbedBy(color: .emerald)
+        XCTAssertTrue(waves.isEmpty)
+    }
+
+    func testCellsAbsorbedByPreservesBoard() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let _ = board.cellsAbsorbedBy(color: .amber)
+        // Board should not be modified
+        XCTAssertEqual(board.cells[0][0], .coral)
+    }
+
     // MARK: - P2-T1: generateBoard
 
     func testSameSeedSameBoard() {

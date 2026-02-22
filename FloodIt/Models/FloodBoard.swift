@@ -77,6 +77,52 @@ struct FloodBoard {
         }
     }
 
+    /// Returns cells that would be absorbed by flooding with the given color,
+    /// grouped by BFS distance from the flood boundary.
+    /// Each inner array is a "wave" of cells at the same distance.
+    /// Only returns newly absorbed cells (not the existing flood region).
+    func cellsAbsorbedBy(color newColor: GameColor) -> [[CellPosition]] {
+        let currentRegion = floodRegion
+        // Find boundary cells of the current region (cells adjacent to non-region cells)
+        var boundary = [CellPosition]()
+        for pos in currentRegion {
+            for neighbor in neighbors(of: pos) {
+                if !currentRegion.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                    boundary.append(neighbor)
+                }
+            }
+        }
+
+        if boundary.isEmpty { return [] }
+
+        // BFS from boundary cells outward, collecting waves by distance
+        var visited = currentRegion
+        var currentWave = Set<CellPosition>()
+        for pos in boundary {
+            if !visited.contains(pos) {
+                visited.insert(pos)
+                currentWave.insert(pos)
+            }
+        }
+
+        var waves = [[CellPosition]]()
+        while !currentWave.isEmpty {
+            waves.append(Array(currentWave))
+            var nextWave = Set<CellPosition>()
+            for pos in currentWave {
+                for neighbor in neighbors(of: pos) {
+                    if !visited.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                        visited.insert(neighbor)
+                        nextWave.insert(neighbor)
+                    }
+                }
+            }
+            currentWave = nextWave
+        }
+
+        return waves
+    }
+
     /// Generates a board with random colors using a seeded random number generator.
     /// Same seed always produces the same board.
     static func generateBoard(size: Int, colors: [GameColor] = GameColor.allCases, seed: UInt64) -> FloodBoard {
