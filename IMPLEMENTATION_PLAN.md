@@ -305,8 +305,8 @@ Phases are sequential. Each phase ends with a **checkpoint** — a simulator-ver
 | P13-T4 | Write App Store description and keywords | Discoverability | TODO | Copy reviewed |
 | P13-T5 | Full regression test: play through levels 1–20, daily challenge, win/lose sequences, all animations | Nothing broken | TODO | Manual test on simulator + device |
 | P13-T6 | Performance profiling: 60fps on all screens, memory usage < 150MB | Ship quality | TODO | Instruments: all metrics pass |
-| P13-T7 | Archive, sign, upload to App Store Connect | Ship it | TODO | Build uploaded |
-| P13-T8 | TestFlight distribution to Prashant for final review | Last check | TODO | TestFlight build available |
+| P13-T7 | Archive, sign, upload to App Store Connect (same pipeline as ClassNotes: `xcodebuild archive` → `codesign` → `xcodebuild -exportArchive` with `-allowProvisioningUpdates`) | Ship it | TODO | Build uploaded to App Store Connect |
+| P13-T8 | Verify build appears in TestFlight, distribute to Prashant for final review | Last check | TODO | TestFlight build installable on Prashant's device |
 
 ### Checkpoint P13 ✅
 **TestFlight:** Complete app, ready for App Store review.
