@@ -49,4 +49,34 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(region.contains(CellPosition(row: 1, col: 0)))
         XCTAssertTrue(region.contains(CellPosition(row: 1, col: 1)))
     }
+
+    // MARK: - P2-T1: generateBoard
+
+    func testSameSeedSameBoard() {
+        let board1 = FloodBoard.generateBoard(size: 9, seed: 42)
+        let board2 = FloodBoard.generateBoard(size: 9, seed: 42)
+        XCTAssertEqual(board1.cells, board2.cells)
+    }
+
+    func testDifferentSeedDifferentBoard() {
+        let board1 = FloodBoard.generateBoard(size: 9, seed: 42)
+        let board2 = FloodBoard.generateBoard(size: 9, seed: 99)
+        XCTAssertNotEqual(board1.cells, board2.cells)
+    }
+
+    func testGenerateBoardUsesAllColors() {
+        let board = FloodBoard.generateBoard(size: 9, seed: 12345)
+        let allColors = Set(board.cells.flatMap { $0 })
+        // With 81 cells and 5 colors, extremely likely all colors appear
+        XCTAssertEqual(allColors.count, 5)
+    }
+
+    func testGenerateBoardCorrectSize() {
+        let board = FloodBoard.generateBoard(size: 5, seed: 1)
+        XCTAssertEqual(board.gridSize, 5)
+        XCTAssertEqual(board.cells.count, 5)
+        for row in board.cells {
+            XCTAssertEqual(row.count, 5)
+        }
+    }
 }

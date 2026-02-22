@@ -45,6 +45,23 @@ struct FloodBoard {
         return visited
     }
 
+    /// Generates a board with random colors using a seeded random number generator.
+    /// Same seed always produces the same board.
+    static func generateBoard(size: Int, colors: [GameColor] = GameColor.allCases, seed: UInt64) -> FloodBoard {
+        precondition(size > 0, "Board size must be positive")
+        precondition(!colors.isEmpty, "Must have at least one color")
+        var rng = SeededRandomNumberGenerator(seed: seed)
+        var cells = [[GameColor]]()
+        for _ in 0..<size {
+            var row = [GameColor]()
+            for _ in 0..<size {
+                row.append(colors[Int.random(in: 0..<colors.count, using: &rng)])
+            }
+            cells.append(row)
+        }
+        return FloodBoard(gridSize: size, cells: cells)
+    }
+
     /// Returns the 4-directional neighbors of a cell position within bounds.
     private func neighbors(of position: CellPosition) -> [CellPosition] {
         let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -61,4 +78,22 @@ struct FloodBoard {
 struct CellPosition: Hashable {
     let row: Int
     let col: Int
+}
+
+/// A deterministic random number generator seeded with a UInt64.
+struct SeededRandomNumberGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        self.state = seed
+    }
+
+    mutating func next() -> UInt64 {
+        // SplitMix64 algorithm
+        state &+= 0x9e3779b97f4a7c15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xbf58476d1ce4e5b9
+        z = (z ^ (z >> 27)) &* 0x94d049bb133111eb
+        return z ^ (z >> 31)
+    }
 }
