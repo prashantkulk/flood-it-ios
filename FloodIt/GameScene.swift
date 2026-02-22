@@ -1,71 +1,70 @@
 import SpriteKit
+import UIKit
 
 class GameScene: SKScene {
-    private var cellNodes: [[SKSpriteNode]] = []
+    private var cellNodes: [[FloodCellNode]] = []
     private var board: FloodBoard?
     private let gridPadding: CGFloat = 16
+    private var gridGap: CGFloat = 1
 
-    /// Configure the scene with a board and render the grid.
     func configure(with board: FloodBoard) {
         self.board = board
-        renderBoard()
+        if size.width > 0 {
+            renderBoard()
+        }
     }
 
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 1)
         scaleMode = .resizeFill
-
         if board != nil {
             renderBoard()
         }
     }
 
-    /// Updates cell colors to match current board state.
+    // MARK: - Board Rendering
+
     func updateColors(from board: FloodBoard) {
         self.board = board
+        let floodKeys = Set(board.floodRegion.map { "\($0.row),\($0.col)" })
         for row in 0..<board.gridSize {
             for col in 0..<board.gridSize {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
-                cellNodes[row][col].color = board.cells[row][col].skColor
+                let node = cellNodes[row][col]
+                let cell = board.cells[row][col]
+                if node.gameColor != cell {
+                    node.applyColor(cell)
+                }
+                node.setFlooded(floodKeys.contains("\(row),\(col)"))
             }
         }
     }
 
     private func renderBoard() {
         guard let board = board else { return }
-
-        // Remove existing cell nodes
-        for row in cellNodes {
-            for node in row {
-                node.removeFromParent()
-            }
-        }
+        for row in cellNodes { for node in row { node.removeFromParent() } }
         cellNodes.removeAll()
 
-        let gridSize = board.gridSize
-        let sceneWidth = size.width
-        let availableWidth = sceneWidth - (gridPadding * 2)
-        let cellSize = availableWidth / CGFloat(gridSize)
-        let spacing: CGFloat = 1
-        let actualCellSize = cellSize - spacing
+        let n = board.gridSize
+        let sceneW = size.width
+        let available = sceneW - gridPadding * 2
+        let cellSize = (available - CGFloat(n - 1) * gridGap) / CGFloat(n)
+        let gridWidth = CGFloat(n) * cellSize + CGFloat(n - 1) * gridGap
+        let gridHeight = CGFloat(n) * cellSize + CGFloat(n - 1) * gridGap
+        let originX = (sceneW - gridWidth) / 2
+        let originY = (size.height - gridHeight) / 2 + 40
 
-        // Center the grid vertically — offset upward to leave room for buttons below
-        let gridHeight = CGFloat(gridSize) * cellSize
-        let gridOriginY = (size.height - gridHeight) / 2 + 40
-
-        for row in 0..<gridSize {
-            var rowNodes: [SKSpriteNode] = []
-            for col in 0..<gridSize {
+        let floodKeys = Set(board.floodRegion.map { "\($0.row),\($0.col)" })
+        for row in 0..<n {
+            var rowNodes: [FloodCellNode] = []
+            for col in 0..<n {
                 let color = board.cells[row][col]
-                let node = SKSpriteNode(color: color.skColor, size: CGSize(width: actualCellSize, height: actualCellSize))
-
-                // Position: SpriteKit has (0,0) at bottom-left
-                // Row 0 = top of grid → highest y
-                let x = gridPadding + CGFloat(col) * cellSize + cellSize / 2
-                let y = gridOriginY + CGFloat(gridSize - 1 - row) * cellSize + cellSize / 2
+                let node = FloodCellNode(color: color, cellSize: cellSize)
+                let x = originX + CGFloat(col) * (cellSize + gridGap) + cellSize / 2
+                let y = originY + CGFloat(n - 1 - row) * (cellSize + gridGap) + cellSize / 2
                 node.position = CGPoint(x: x, y: y)
                 node.name = "cell_\(row)_\(col)"
-
+                node.setFlooded(floodKeys.contains("\(row),\(col)"))
                 addChild(node)
                 rowNodes.append(node)
             }

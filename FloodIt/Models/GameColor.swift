@@ -52,6 +52,28 @@ enum GameColor: Int, CaseIterable {
         case .violet:   return Color(red: 142/255, green: 68/255, blue: 173/255, opacity: 0.4)
         }
     }
+
+    /// UIColor version of lightColor for Core Graphics rendering.
+    var uiLightColor: UIColor {
+        switch self {
+        case .coral:    return UIColor(red: 0xFF/255, green: 0x6B/255, blue: 0x6B/255, alpha: 1)
+        case .amber:    return UIColor(red: 0xFF/255, green: 0xD9/255, blue: 0x3D/255, alpha: 1)
+        case .emerald:  return UIColor(red: 0x6B/255, green: 0xCB/255, blue: 0x77/255, alpha: 1)
+        case .sapphire: return UIColor(red: 0x4D/255, green: 0x96/255, blue: 0xFF/255, alpha: 1)
+        case .violet:   return UIColor(red: 0xC7/255, green: 0x7D/255, blue: 0xFF/255, alpha: 1)
+        }
+    }
+
+    /// UIColor version of darkColor for Core Graphics rendering.
+    var uiDarkColor: UIColor {
+        switch self {
+        case .coral:    return UIColor(red: 0xC0/255, green: 0x39/255, blue: 0x2B/255, alpha: 1)
+        case .amber:    return UIColor(red: 0xE0/255, green: 0xA8/255, blue: 0x00/255, alpha: 1)
+        case .emerald:  return UIColor(red: 0x27/255, green: 0xAE/255, blue: 0x60/255, alpha: 1)
+        case .sapphire: return UIColor(red: 0x1A/255, green: 0x6B/255, blue: 0xC4/255, alpha: 1)
+        case .violet:   return UIColor(red: 0x8E/255, green: 0x44/255, blue: 0xAD/255, alpha: 1)
+        }
+    }
 }
 
 // MARK: - Color hex initializer
