@@ -1,9 +1,9 @@
 import SwiftUI
 import SpriteKit
+import UIKit
 
 struct GameView: View {
     @StateObject private var gameState: GameState
-
     private let scene: GameScene
     private let seed: UInt64
 
@@ -72,18 +72,7 @@ struct GameView: View {
                 HStack(spacing: 16) {
                     ForEach(GameColor.allCases, id: \.self) { color in
                         Button(action: {
-                            let result = gameState.performFlood(color: color)
-                            if result.waves.isEmpty {
-                                // No absorption — just update colors directly (e.g. same color tap or region-only change)
-                                scene.updateColors(from: gameState.board)
-                            } else {
-                                scene.animateFlood(
-                                    board: gameState.board,
-                                    waves: result.waves,
-                                    newColor: color,
-                                    previousColors: result.previousColors
-                                )
-                            }
+                            tapColorButton(color)
                         }) {
                             ZStack {
                                 // Outer glow halo
@@ -124,6 +113,7 @@ struct GameView: View {
                             }
                             .shadow(color: color.shadowColor, radius: 8, x: 0, y: 4)
                         }
+                        .buttonStyle(OrbPressStyle())
                         .accessibilityIdentifier("colorButton_\(color.rawValue)")
                     }
                 }
@@ -187,10 +177,38 @@ struct GameView: View {
         }
     }
 
+    private func tapColorButton(_ color: GameColor) {
+        let result = gameState.performFlood(color: color)
+        if result.waves.isEmpty {
+            scene.updateColors(from: gameState.board)
+        } else {
+            scene.animateFlood(
+                board: gameState.board,
+                waves: result.waves,
+                newColor: color,
+                previousColors: result.previousColors
+            )
+        }
+    }
+
     private func resetGame() {
         let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
         gameState.reset(board: board, totalMoves: 30)
         scene.configure(with: board)
+    }
+}
+
+/// Button style that scales down on press (0.88x) and bounces back on release (1.05x → 1.0x).
+struct OrbPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
+            .animation(
+                configuration.isPressed
+                    ? .easeIn(duration: 0.08)
+                    : .spring(response: 0.25, dampingFraction: 0.5),
+                value: configuration.isPressed
+            )
     }
 }
 
