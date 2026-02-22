@@ -31,7 +31,8 @@ struct GameView: View {
                 HStack(spacing: 16) {
                     ForEach(GameColor.allCases, id: \.self) { color in
                         Button(action: {
-                            // Wiring in T3
+                            gameState.performFlood(color: color)
+                            scene.updateColors(from: gameState.board)
                         }) {
                             Circle()
                                 .fill(
