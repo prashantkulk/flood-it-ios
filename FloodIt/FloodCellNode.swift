@@ -105,6 +105,67 @@ final class FloodCellNode: SKNode {
         highlightNode.size = sz
     }
 
+    /// Smoothly crossfade from old color to new color over given duration.
+    /// Creates a temporary overlay with the old body texture and fades it out.
+    func crossfadeToColor(_ newColor: GameColor, duration: TimeInterval = 0.15) {
+        // Capture old body texture before changing
+        let oldBodyTex = bodyNode.texture
+        let oldGlowTex = glowNode.texture
+        let oldShadowTex = shadowNode.texture
+
+        // Apply new color underneath
+        applyColor(newColor)
+
+        guard let oldBody = oldBodyTex else { return }
+
+        // Create overlay with old body texture
+        let sz = CGSize(width: cellSize, height: cellSize)
+        let overlay = SKSpriteNode(texture: oldBody, size: sz)
+        overlay.zPosition = bodyNode.zPosition + 0.1
+        overlay.name = "crossfadeOverlay"
+        addChild(overlay)
+
+        // Also overlay old glow
+        if let oldGlow = oldGlowTex {
+            let glowSize = CGSize(width: cellSize * 1.45, height: cellSize * 1.45)
+            let glowOverlay = SKSpriteNode(texture: oldGlow, size: glowSize)
+            glowOverlay.zPosition = glowNode.zPosition + 0.1
+            glowOverlay.alpha = 0.6
+            glowOverlay.blendMode = .add
+            glowOverlay.name = "crossfadeGlowOverlay"
+            addChild(glowOverlay)
+            glowOverlay.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: duration),
+                SKAction.removeFromParent()
+            ]))
+        }
+
+        // Also overlay old shadow
+        if let oldShadow = oldShadowTex {
+            let shadowOverlay = SKSpriteNode(texture: oldShadow, size: sz)
+            shadowOverlay.zPosition = shadowNode.zPosition + 0.1
+            shadowOverlay.position = shadowNode.position
+            shadowOverlay.alpha = 0.7
+            shadowOverlay.name = "crossfadeShadowOverlay"
+            addChild(shadowOverlay)
+            shadowOverlay.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: duration),
+                SKAction.removeFromParent()
+            ]))
+        }
+
+        // Fade out the body overlay to reveal new color
+        overlay.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: duration),
+            SKAction.removeFromParent()
+        ]))
+    }
+
+    /// Remove any lingering crossfade overlays (used when snapping animation).
+    func removeCrossfadeOverlays() {
+        children.filter { $0.name?.hasPrefix("crossfade") == true }.forEach { $0.removeFromParent() }
+    }
+
     private var isFlooded = false
 
     /// Start or stop breathing animation for flooded cells.

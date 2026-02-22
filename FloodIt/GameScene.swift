@@ -164,6 +164,7 @@ class GameScene: SKScene {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
                 let node = cellNodes[row][col]
                 node.removeAction(forKey: "floodAnim")
+                node.removeCrossfadeOverlays()
                 let cell = board.cells[row][col]
                 if node.gameColor != cell {
                     node.applyColor(cell)
@@ -263,9 +264,9 @@ class GameScene: SKScene {
                 let flashDown = SKAction.fadeAlpha(to: 1.0, duration: 0.14)
                 let flash = SKAction.sequence([flashUp, flashDown])
 
-                // Color change at pop moment
+                // Color crossfade at pop moment (150ms blend)
                 let colorChange = SKAction.run { [weak node] in
-                    node?.applyColor(newColor)
+                    node?.crossfadeToColor(newColor, duration: 0.15)
                 }
 
                 // Combined: wait → (color change + pop + flash simultaneously)
