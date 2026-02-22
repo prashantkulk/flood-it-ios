@@ -24,6 +24,20 @@ struct GameView: View {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
 
+            // Glassmorphism container behind the board
+            GeometryReader { geo in
+                let boardSize = geo.size.width - 16
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                    )
+                    .frame(width: boardSize, height: boardSize)
+                    .position(x: geo.size.width / 2, y: geo.size.height / 2 + 20)
+                    .allowsHitTesting(false)
+            }
+
             VStack {
                 // Top bar: move counter + restart
                 HStack {
