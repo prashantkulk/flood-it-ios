@@ -45,6 +45,12 @@ struct FloodBoard {
         return visited
     }
 
+    /// Returns true when all cells on the board are the same color.
+    var isComplete: Bool {
+        let firstColor = cells[0][0]
+        return cells.allSatisfy { row in row.allSatisfy { $0 == firstColor } }
+    }
+
     /// Performs a flood fill with the given color.
     /// Changes the entire flood region to the new color, then absorbs all adjacent cells matching it.
     mutating func flood(color newColor: GameColor) {

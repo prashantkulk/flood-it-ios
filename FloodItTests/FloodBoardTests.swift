@@ -50,6 +50,39 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(region.contains(CellPosition(row: 1, col: 1)))
     }
 
+    // MARK: - P2-T4: isComplete
+
+    func testIsCompleteOnFullBoard() {
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .coral],
+            [.coral, .coral, .coral],
+            [.coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        XCTAssertTrue(board.isComplete)
+    }
+
+    func testIsCompleteOnPartialBoard() {
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .coral],
+            [.coral, .amber, .coral],
+            [.coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        XCTAssertFalse(board.isComplete)
+    }
+
+    func testIsCompleteAfterFloodingEntireBoard() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells)
+        XCTAssertFalse(board.isComplete)
+        board.flood(color: .amber)
+        XCTAssertTrue(board.isComplete)
+    }
+
     // MARK: - P2-T3: floodRegion computed property
 
     func testFloodRegionGrowsAfterFlood() {
