@@ -25,12 +25,26 @@ struct GameView: View {
                 .ignoresSafeArea()
 
             VStack {
-                // Move counter
-                Text("Moves: \(gameState.movesRemaining)")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white)
-                    .padding(.top, 60)
-                    .accessibilityIdentifier("moveCounter")
+                // Top bar: move counter + restart
+                HStack {
+                    Text("Moves: \(gameState.movesRemaining)")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .accessibilityIdentifier("moveCounter")
+
+                    Spacer()
+
+                    Button(action: {
+                        resetGame()
+                    }) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .accessibilityIdentifier("restartButton")
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 60)
 
                 Spacer()
 
