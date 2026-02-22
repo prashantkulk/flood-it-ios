@@ -147,6 +147,33 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Animation State
+
+    private var isAnimating = false
+    private var pendingFlood: (() -> Void)?
+
+    /// Immediately finish any running flood animation.
+    func snapAnimationToEnd() {
+        guard isAnimating else { return }
+        isAnimating = false
+        // Remove all flood animation actions from cell nodes and snap to final state
+        guard let board = board else { return }
+        let floodKeys = Set(board.floodRegion.map { "\($0.row),\($0.col)" })
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let node = cellNodes[row][col]
+                node.removeAction(forKey: "floodAnim")
+                let cell = board.cells[row][col]
+                if node.gameColor != cell {
+                    node.applyColor(cell)
+                }
+                node.setFlooded(floodKeys.contains("\(row),\(col)"))
+                node.setScale(node.action(forKey: "breathe") != nil ? node.xScale : 1.0)
+            }
+        }
+    }
+
     // MARK: - Board Rendering
 
     func updateColors(from board: FloodBoard) {
@@ -166,6 +193,102 @@ class GameScene: SKScene {
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor)
         updateParticleColor(for: floodColor)
+    }
+
+    /// Animate the flood with staggered waves. Flood region cells change instantly;
+    /// absorbed cells animate wave-by-wave with pop + crossfade.
+    func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], completion: (() -> Void)? = nil) {
+        self.board = board
+
+        // If currently animating, snap to end first
+        if isAnimating {
+            snapAnimationToEnd()
+        }
+
+        // Instantly update the existing flood region cells (color change, no pop)
+        let floodKeys = Set(board.floodRegion.map { "\($0.row),\($0.col)" })
+        let absorbedSet = Set(waves.flatMap { $0 })
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let pos = CellPosition(row: row, col: col)
+                let node = cellNodes[row][col]
+                // Skip absorbed cells — they'll be animated
+                if absorbedSet.contains(pos) { continue }
+                let cell = board.cells[row][col]
+                if node.gameColor != cell {
+                    node.applyColor(cell)
+                }
+                node.setFlooded(floodKeys.contains("\(row),\(col)"))
+            }
+        }
+
+        // Update background and particles
+        updateBackground(for: newColor)
+        updateParticleColor(for: newColor)
+
+        guard !waves.isEmpty else {
+            completion?()
+            return
+        }
+
+        isAnimating = true
+        let waveDelay: TimeInterval = 0.03  // 30ms per wave
+
+        // Calculate total animation duration for completion callback
+        let totalWaves = waves.count
+        let lastWaveStart = Double(totalWaves - 1) * waveDelay
+        let perCellDuration: TimeInterval = 0.15
+
+        for (waveIndex, wave) in waves.enumerated() {
+            let delay = Double(waveIndex) * waveDelay
+            for pos in wave {
+                guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+                let node = cellNodes[pos.row][pos.col]
+
+                // Build the animation sequence for this cell
+                let waitAction = SKAction.wait(forDuration: delay)
+
+                // Pop: scale 0.85 → 1.05 → 1.0 with spring feel
+                let shrink = SKAction.scale(to: 0.85, duration: 0.04)
+                shrink.timingMode = .easeIn
+                let overshoot = SKAction.scale(to: 1.05, duration: 0.08)
+                overshoot.timingMode = .easeOut
+                let settle = SKAction.scale(to: 1.0, duration: 0.06)
+                settle.timingMode = .easeInEaseOut
+                let popSequence = SKAction.sequence([shrink, overshoot, settle])
+
+                // Color crossfade: create overlay for old color, fade it out
+                let colorChange = SKAction.run { [weak node] in
+                    node?.applyColor(newColor)
+                }
+
+                // Combined: wait → (color change + pop simultaneously)
+                let animGroup = SKAction.group([popSequence, colorChange])
+                let fullSequence = SKAction.sequence([waitAction, animGroup])
+
+                node.run(fullSequence, withKey: "floodAnim")
+            }
+        }
+
+        // Schedule completion after all waves finish
+        let totalDuration = lastWaveStart + perCellDuration + 0.05
+        let completionAction = SKAction.sequence([
+            SKAction.wait(forDuration: totalDuration),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                self.isAnimating = false
+                // Ensure all absorbed cells are marked flooded
+                for wave in waves {
+                    for pos in wave {
+                        guard pos.row < self.cellNodes.count, pos.col < self.cellNodes[pos.row].count else { continue }
+                        self.cellNodes[pos.row][pos.col].setFlooded(true)
+                    }
+                }
+                completion?()
+            }
+        ])
+        run(completionAction, withKey: "floodCompletion")
     }
 
     private func renderBoard() {

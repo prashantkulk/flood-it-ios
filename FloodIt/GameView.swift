@@ -72,8 +72,18 @@ struct GameView: View {
                 HStack(spacing: 16) {
                     ForEach(GameColor.allCases, id: \.self) { color in
                         Button(action: {
-                            gameState.performFlood(color: color)
-                            scene.updateColors(from: gameState.board)
+                            let result = gameState.performFlood(color: color)
+                            if result.waves.isEmpty {
+                                // No absorption — just update colors directly (e.g. same color tap or region-only change)
+                                scene.updateColors(from: gameState.board)
+                            } else {
+                                scene.animateFlood(
+                                    board: gameState.board,
+                                    waves: result.waves,
+                                    newColor: color,
+                                    previousColors: result.previousColors
+                                )
+                            }
                         }) {
                             ZStack {
                                 // Outer glow halo
