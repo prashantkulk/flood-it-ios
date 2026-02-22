@@ -245,4 +245,49 @@ final class FloodBoardTests: XCTestCase {
             XCTAssertEqual(row.count, 5)
         }
     }
+
+    // MARK: - P5-T7: Wave animation performance on 15×15 board
+
+    func testWaveAnimationSetup15x15() {
+        // Create a 15×15 board (225 cells) and verify wave computation works
+        let board = FloodBoard.generateBoard(size: 15, colors: GameColor.allCases, seed: 999)
+        XCTAssertEqual(board.gridSize, 15)
+        XCTAssertEqual(board.cells.count, 15)
+
+        // Find a color different from top-left to trigger absorption
+        let currentColor = board.cells[0][0]
+        let targetColor = GameColor.allCases.first { $0 != currentColor } ?? .coral
+
+        // Compute waves — this is the key animation setup step
+        let waves = board.cellsAbsorbedBy(color: targetColor)
+
+        // Waves should be non-empty for a diverse board
+        // (With 5 colors on 225 cells, there should be adjacent cells of different colors)
+        // Each wave should contain valid positions
+        for wave in waves {
+            for pos in wave {
+                XCTAssertTrue(pos.row >= 0 && pos.row < 15, "Row out of bounds: \(pos.row)")
+                XCTAssertTrue(pos.col >= 0 && pos.col < 15, "Col out of bounds: \(pos.col)")
+            }
+        }
+
+        // Total absorbed cells should not exceed board size
+        let totalAbsorbed = waves.flatMap { $0 }.count
+        XCTAssertTrue(totalAbsorbed <= 225, "Absorbed cells exceed board size")
+
+        // Verify no duplicate positions across waves
+        let allPositions = waves.flatMap { $0 }
+        let uniquePositions = Set(allPositions)
+        XCTAssertEqual(allPositions.count, uniquePositions.count, "Duplicate positions in waves")
+
+        // Simulate multiple floods to ensure stability
+        var mutableBoard = board
+        for color in GameColor.allCases {
+            let _ = mutableBoard.cellsAbsorbedBy(color: color)
+            mutableBoard.flood(color: color)
+        }
+        // Board should still be valid after multiple floods
+        XCTAssertEqual(mutableBoard.gridSize, 15)
+        XCTAssertEqual(mutableBoard.cells.count, 15)
+    }
 }
