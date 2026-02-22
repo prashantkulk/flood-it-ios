@@ -58,6 +58,31 @@ struct GameView: View {
                 .padding(.bottom, 40)
             }
 
+            // Lose overlay
+            if gameState.gameStatus == .lost {
+                Color.black.opacity(0.6)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 24) {
+                    Text("Out of Moves")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Button(action: {
+                        resetGame()
+                    }) {
+                        Text("Try Again")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                            .padding(.horizontal, 48)
+                            .padding(.vertical, 14)
+                            .background(.white)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityIdentifier("tryAgainButton")
+                }
+            }
+
             // Win overlay
             if gameState.gameStatus == .won {
                 Color.black.opacity(0.6)
