@@ -243,6 +243,10 @@ class GameScene: SKScene {
 
         for (waveIndex, wave) in waves.enumerated() {
             let delay = Double(waveIndex) * waveDelay
+
+            // Ripple ring at wave centroid
+            spawnRippleRing(for: wave, delay: delay, color: newColor)
+
             for pos in wave {
                 guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
                 let node = cellNodes[pos.row][pos.col]
@@ -295,6 +299,48 @@ class GameScene: SKScene {
             }
         ])
         run(completionAction, withKey: "floodCompletion")
+    }
+
+    // MARK: - Ripple Ring Effect
+
+    private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor) {
+        guard !wave.isEmpty else { return }
+
+        // Calculate centroid of this wave's cells
+        var sumX: CGFloat = 0
+        var sumY: CGFloat = 0
+        var count: CGFloat = 0
+        for pos in wave {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let node = cellNodes[pos.row][pos.col]
+            sumX += node.position.x
+            sumY += node.position.y
+            count += 1
+        }
+        guard count > 0 else { return }
+        let centroid = CGPoint(x: sumX / count, y: sumY / count)
+
+        // Create ring shape
+        let initialRadius: CGFloat = 8
+        let ring = SKShapeNode(circleOfRadius: initialRadius)
+        ring.strokeColor = color.skColor.withAlphaComponent(0.5)
+        ring.fillColor = .clear
+        ring.lineWidth = 2.0
+        ring.position = centroid
+        ring.zPosition = 4
+        ring.alpha = 0.6
+        ring.setScale(1.0)
+        ring.name = "rippleRing"
+        addChild(ring)
+
+        // Animate: wait → expand + fade out → remove
+        let wait = SKAction.wait(forDuration: delay)
+        let expand = SKAction.scale(to: 4.0, duration: 0.35)
+        expand.timingMode = .easeOut
+        let fadeOut = SKAction.fadeOut(withDuration: 0.35)
+        let animGroup = SKAction.group([expand, fadeOut])
+        let sequence = SKAction.sequence([wait, animGroup, SKAction.removeFromParent()])
+        ring.run(sequence)
     }
 
     private func renderBoard() {
