@@ -41,3 +41,14 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: FloodIt
+  FloodItUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - FloodItUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prashantkulk.floodit.uitests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FloodIt
