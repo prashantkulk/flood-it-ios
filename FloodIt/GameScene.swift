@@ -5,7 +5,7 @@ class GameScene: SKScene {
     private var cellNodes: [[FloodCellNode]] = []
     private var board: FloodBoard?
     private let gridPadding: CGFloat = 16
-    private var gridGap: CGFloat = 1
+    private var gridGap: CGFloat = 4
 
     func configure(with board: FloodBoard) {
         self.board = board
