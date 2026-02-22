@@ -48,23 +48,51 @@ struct GameView: View {
 
                 Spacer()
 
-                // Color buttons
+                // Color buttons — glowing orbs
                 HStack(spacing: 16) {
                     ForEach(GameColor.allCases, id: \.self) { color in
                         Button(action: {
                             gameState.performFlood(color: color)
                             scene.updateColors(from: gameState.board)
                         }) {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [color.lightColor, color.darkColor],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
+                            ZStack {
+                                // Outer glow halo
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            colors: [color.lightColor.opacity(0.4), color.lightColor.opacity(0)],
+                                            center: .center,
+                                            startRadius: 10,
+                                            endRadius: 36
+                                        )
                                     )
-                                )
-                                .frame(width: 52, height: 52)
-                                .shadow(color: color.shadowColor, radius: 4, x: 0, y: 2)
+                                    .frame(width: 64, height: 64)
+
+                                // Orb body — radial gradient (lighter center, darker edge)
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            colors: [color.lightColor, color.darkColor],
+                                            center: .init(x: 0.4, y: 0.35),
+                                            startRadius: 2,
+                                            endRadius: 28
+                                        )
+                                    )
+                                    .frame(width: 48, height: 48)
+
+                                // Gloss highlight
+                                Circle()
+                                    .fill(
+                                        RadialGradient(
+                                            colors: [.white.opacity(0.45), .white.opacity(0)],
+                                            center: .init(x: 0.35, y: 0.3),
+                                            startRadius: 0,
+                                            endRadius: 14
+                                        )
+                                    )
+                                    .frame(width: 48, height: 48)
+                            }
+                            .shadow(color: color.shadowColor, radius: 8, x: 0, y: 4)
                         }
                         .accessibilityIdentifier("colorButton_\(color.rawValue)")
                     }
