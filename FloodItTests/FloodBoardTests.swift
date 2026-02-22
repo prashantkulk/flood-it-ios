@@ -71,6 +71,57 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(allColors.count, 5)
     }
 
+    // MARK: - P2-T2: flood(color:)
+
+    func testFloodChangesRegionColor() {
+        // Top-left is coral, adjacent (0,1) is amber, (1,0) is emerald
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.emerald, .amber, .emerald],
+            [.emerald, .emerald, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        board.flood(color: .amber)
+        // Top-left should now be amber
+        XCTAssertEqual(board.color(atRow: 0, col: 0), .amber)
+        // (0,1) was amber and adjacent — should be absorbed into flood region
+        XCTAssertEqual(board.color(atRow: 0, col: 1), .amber)
+        // (1,1) was also amber and adjacent to (0,1) — should be absorbed too
+        XCTAssertEqual(board.color(atRow: 1, col: 1), .amber)
+    }
+
+    func testFloodAbsorbsAdjacentCells() {
+        let cells: [[GameColor]] = [
+            [.coral, .emerald, .emerald],
+            [.emerald, .emerald, .sapphire],
+            [.sapphire, .sapphire, .sapphire],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        // Flood with emerald — should absorb all connected emerald cells
+        board.flood(color: .emerald)
+        let region = board.floodRegion()
+        // Should have absorbed (0,0), (0,1), (0,2), (1,0), (1,1) — all emerald connected
+        XCTAssertEqual(region.count, 5)
+    }
+
+    func testFloodDoesNotAbsorbDisconnected() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .sapphire],
+            [.amber, .amber, .sapphire],
+            [.sapphire, .sapphire, .coral],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        // Flood with sapphire — only (0,0) changes; (2,2) is coral but not connected
+        board.flood(color: .sapphire)
+        // Check that disconnected coral at (2,2) is still coral... wait, we flooded sapphire
+        // Let me think: top-left was coral. We flood sapphire. Region is just (0,0).
+        // (0,0) becomes sapphire. Then absorb adjacent sapphire: (0,2) is sapphire but not adjacent to (0,0).
+        // Actually (0,1) is amber, (1,0) is amber. No adjacent sapphire. Region stays 1.
+        XCTAssertEqual(board.color(atRow: 0, col: 0), .sapphire)
+        let region = board.floodRegion()
+        XCTAssertEqual(region.count, 1)
+    }
+
     func testGenerateBoardCorrectSize() {
         let board = FloodBoard.generateBoard(size: 5, seed: 1)
         XCTAssertEqual(board.gridSize, 5)

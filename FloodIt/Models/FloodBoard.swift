@@ -45,6 +45,32 @@ struct FloodBoard {
         return visited
     }
 
+    /// Performs a flood fill with the given color.
+    /// Changes the entire flood region to the new color, then absorbs all adjacent cells matching it.
+    mutating func flood(color newColor: GameColor) {
+        let currentRegion = floodRegion()
+        // Change all cells in the current flood region to the new color
+        for pos in currentRegion {
+            cells[pos.row][pos.col] = newColor
+        }
+        // BFS to absorb adjacent cells that match the new color
+        var queue = Array(currentRegion)
+        var absorbed = currentRegion
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            for neighbor in neighbors(of: current) {
+                if !absorbed.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                    absorbed.insert(neighbor)
+                    queue.append(neighbor)
+                }
+            }
+        }
+        // Mark all absorbed cells with the new color (they already match, but ensures consistency)
+        for pos in absorbed {
+            cells[pos.row][pos.col] = newColor
+        }
+    }
+
     /// Generates a board with random colors using a seeded random number generator.
     /// Same seed always produces the same board.
     static func generateBoard(size: Int, colors: [GameColor] = GameColor.allCases, seed: UInt64) -> FloodBoard {
