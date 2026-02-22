@@ -12,6 +12,9 @@ final class FloodCellNode: SKNode {
     private var glowNode: SKSpriteNode!
     private var shadowNode: SKSpriteNode!
     private var bodyNode: SKSpriteNode!
+    private var highlightNode: SKSpriteNode!
+    private var bevelNode: SKShapeNode!
+    private var glossNode: SKShapeNode!
 
     let cornerFraction: CGFloat = 0.30
 
@@ -47,6 +50,32 @@ final class FloodCellNode: SKNode {
         bodyNode = SKSpriteNode(color: .clear, size: sz)
         bodyNode.zPosition = 0
         addChild(bodyNode)
+
+        let cornerRadius = cellSize * cornerFraction
+
+        // Top highlight — white-to-transparent at top 30%
+        highlightNode = SKSpriteNode(color: .clear, size: sz)
+        highlightNode.zPosition = 1
+        addChild(highlightNode)
+
+        // Edge bevel — white top/left, dark bottom/right
+        let bevelRect = CGRect(x: -cellSize / 2, y: -cellSize / 2, width: cellSize, height: cellSize)
+        let bevelPath = UIBezierPath(roundedRect: bevelRect, cornerRadius: cornerRadius)
+        bevelNode = SKShapeNode(path: bevelPath.cgPath)
+        bevelNode.fillColor = .clear
+        bevelNode.lineWidth = 1.0
+        bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.22)
+        bevelNode.zPosition = 2
+        addChild(bevelNode)
+
+        // Gloss dot — small white circle in top-left
+        let glossRadius = cellSize * 0.09
+        glossNode = SKShapeNode(circleOfRadius: glossRadius)
+        glossNode.fillColor = UIColor.white.withAlphaComponent(0.25)
+        glossNode.strokeColor = .clear
+        glossNode.position = CGPoint(x: -cellSize * 0.28, y: cellSize * 0.28)
+        glossNode.zPosition = 3
+        addChild(glossNode)
     }
 
     func applyColor(_ color: GameColor) {
@@ -69,6 +98,11 @@ final class FloodCellNode: SKNode {
         let bodyTex = CellTextureCache.gradient(for: color, size: sz, cornerRadius: cornerRadius)
         bodyNode.texture = bodyTex
         bodyNode.size = sz
+
+        // Highlight texture
+        let highlightTex = CellTextureCache.highlight(size: sz, cornerRadius: cornerRadius)
+        highlightNode.texture = highlightTex
+        highlightNode.size = sz
     }
 
     /// Mark cell as flooded or not (used for breathing animation in T9).

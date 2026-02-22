@@ -41,7 +41,36 @@ enum CellTextureCache {
         return tex
     }
 
+    static func highlight(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let key = "highlight_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let tex = SKTexture(image: drawHighlight(size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
     // MARK: - Renderers
+
+    private static func drawHighlight(size: CGSize, cornerRadius: CGFloat) -> UIImage {
+        UIGraphicsImageRenderer(size: size).image { ctx in
+            let cgCtx = ctx.cgContext
+            let path = UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: cornerRadius)
+            path.addClip()
+            let cs = CGColorSpaceCreateDeviceRGB()
+            let colors = [
+                UIColor.white.withAlphaComponent(0.38).cgColor,
+                UIColor.white.withAlphaComponent(0.0).cgColor
+            ] as CFArray
+            let locs: [CGFloat] = [0, 1]
+            if let g = CGGradient(colorsSpace: cs, colors: colors, locations: locs) {
+                // White-to-transparent covering top 30%
+                cgCtx.drawLinearGradient(g,
+                    start: CGPoint(x: size.width / 2, y: size.height),
+                    end: CGPoint(x: size.width / 2, y: size.height * 0.65),
+                    options: [])
+            }
+        }
+    }
 
     private static func drawGlow(color: UIColor, size: CGSize) -> UIImage {
         UIGraphicsImageRenderer(size: size).image { ctx in
