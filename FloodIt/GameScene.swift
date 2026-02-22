@@ -156,7 +156,12 @@ class GameScene: SKScene {
     func snapAnimationToEnd() {
         guard isAnimating else { return }
         isAnimating = false
-        // Remove all flood animation actions from cell nodes and snap to final state
+        removeAction(forKey: "floodCompletion")
+
+        // Remove ripple rings and sparkles
+        children.filter { $0.name == "rippleRing" || $0.name == "sparkle" }.forEach { $0.removeFromParent() }
+
+        // Snap all cell nodes to final state
         guard let board = board else { return }
         let floodKeys = Set(board.floodRegion.map { "\($0.row),\($0.col)" })
         for row in 0..<board.gridSize {
@@ -169,8 +174,8 @@ class GameScene: SKScene {
                 if node.gameColor != cell {
                     node.applyColor(cell)
                 }
+                node.alpha = 1.0
                 node.setFlooded(floodKeys.contains("\(row),\(col)"))
-                node.setScale(node.action(forKey: "breathe") != nil ? node.xScale : 1.0)
             }
         }
     }
