@@ -37,8 +37,8 @@ final class FloodCellNode: SKNode {
         let sz = CGSize(width: cellSize, height: cellSize)
         let cornerRadius = cellSize * cornerFraction
 
-        // Solid rounded rect body
-        let bodyTex = CellTextureCache.solid(color: color.uiLightColor, size: sz, cornerRadius: cornerRadius)
+        // Gradient body texture (light → dark, top-left to bottom-right)
+        let bodyTex = CellTextureCache.gradient(for: color, size: sz, cornerRadius: cornerRadius)
         bodyNode.texture = bodyTex
         bodyNode.size = sz
     }
