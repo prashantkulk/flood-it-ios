@@ -281,6 +281,12 @@ class GameScene: SKScene {
             }
         }
 
+        // Large cluster particle burst: 5+ cells absorbed → sparkle burst
+        let totalAbsorbed = waves.flatMap { $0 }.count
+        if totalAbsorbed >= 5 {
+            spawnParticleBurst(for: waves, color: newColor)
+        }
+
         // Schedule completion after all waves finish
         let totalDuration = lastWaveStart + perCellDuration + 0.05
         let completionAction = SKAction.sequence([
@@ -341,6 +347,65 @@ class GameScene: SKScene {
         let animGroup = SKAction.group([expand, fadeOut])
         let sequence = SKAction.sequence([wait, animGroup, SKAction.removeFromParent()])
         ring.run(sequence)
+    }
+
+    // MARK: - Particle Burst Effect
+
+    private func spawnParticleBurst(for waves: [[CellPosition]], color: GameColor) {
+        // Calculate centroid of ALL absorbed cells
+        let allCells = waves.flatMap { $0 }
+        var sumX: CGFloat = 0
+        var sumY: CGFloat = 0
+        var count: CGFloat = 0
+        for pos in allCells {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let node = cellNodes[pos.row][pos.col]
+            sumX += node.position.x
+            sumY += node.position.y
+            count += 1
+        }
+        guard count > 0 else { return }
+        let centroid = CGPoint(x: sumX / count, y: sumY / count)
+
+        // Spawn 8-12 sparkle dots
+        let particleCount = Int.random(in: 8...12)
+        let sparkleColor = color.uiLightColor
+
+        // Delay burst until midway through animation
+        let burstDelay = Double(waves.count / 2) * 0.03
+
+        for _ in 0..<particleCount {
+            let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...4))
+            dot.fillColor = sparkleColor
+            dot.strokeColor = .clear
+            dot.position = centroid
+            dot.zPosition = 6
+            dot.alpha = 0
+            dot.blendMode = .add
+            dot.name = "sparkle"
+            addChild(dot)
+
+            // Random direction and distance
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let distance = CGFloat.random(in: 30...80)
+            let dx = cos(angle) * distance
+            let dy = sin(angle) * distance
+
+            let wait = SKAction.wait(forDuration: burstDelay)
+            let fadeIn = SKAction.fadeAlpha(to: CGFloat.random(in: 0.6...1.0), duration: 0.05)
+            let move = SKAction.moveBy(x: dx, y: dy, duration: CGFloat.random(in: 0.3...0.5))
+            move.timingMode = .easeOut
+            let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+            let shrink = SKAction.scale(to: 0.2, duration: 0.3)
+
+            let anim = SKAction.sequence([
+                wait,
+                fadeIn,
+                SKAction.group([move, SKAction.sequence([SKAction.wait(forDuration: 0.15), fadeOut]), shrink]),
+                SKAction.removeFromParent()
+            ])
+            dot.run(anim)
+        }
     }
 
     private func renderBoard() {
