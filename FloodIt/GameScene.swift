@@ -258,13 +258,18 @@ class GameScene: SKScene {
                 settle.timingMode = .easeInEaseOut
                 let popSequence = SKAction.sequence([shrink, overshoot, settle])
 
-                // Color crossfade: create overlay for old color, fade it out
+                // Brief brightness flash during pop
+                let flashUp = SKAction.fadeAlpha(to: 0.8, duration: 0.04)
+                let flashDown = SKAction.fadeAlpha(to: 1.0, duration: 0.14)
+                let flash = SKAction.sequence([flashUp, flashDown])
+
+                // Color change at pop moment
                 let colorChange = SKAction.run { [weak node] in
                     node?.applyColor(newColor)
                 }
 
-                // Combined: wait → (color change + pop simultaneously)
-                let animGroup = SKAction.group([popSequence, colorChange])
+                // Combined: wait → (color change + pop + flash simultaneously)
+                let animGroup = SKAction.group([popSequence, colorChange, flash])
                 let fullSequence = SKAction.sequence([waitAction, animGroup])
 
                 node.run(fullSequence, withKey: "floodAnim")
