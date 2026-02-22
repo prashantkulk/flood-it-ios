@@ -11,6 +11,9 @@ class GameScene: SKScene {
     private var bgCurrent: SKSpriteNode?
     private var bgNext: SKSpriteNode?
 
+    // Ambient particles
+    private var particleEmitter: SKEmitterNode?
+
     func configure(with board: FloodBoard) {
         self.board = board
         if size.width > 0 {
@@ -22,6 +25,7 @@ class GameScene: SKScene {
         backgroundColor = SKColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 1)
         scaleMode = .resizeFill
         setupDynamicBackground()
+        setupParticles()
         if board != nil {
             renderBoard()
         }
@@ -93,6 +97,56 @@ class GameScene: SKScene {
         return SKTexture(image: img)
     }
 
+    // MARK: - Ambient Floating Particles
+
+    private func setupParticles() {
+        let e = SKEmitterNode()
+        e.particleTexture = makeParticleTexture()
+        e.particleBirthRate = 1.2
+        e.particleLifetime = 8.0
+        e.particleLifetimeRange = 3.0
+        e.particlePositionRange = CGVector(dx: size.width * 0.9, dy: 0)
+        e.position = CGPoint(x: size.width / 2, y: -5)
+        e.emissionAngle = .pi / 2
+        e.emissionAngleRange = .pi / 5
+        e.particleSpeed = 28
+        e.particleSpeedRange = 18
+        e.particleScale = 0.35
+        e.particleScaleRange = 0.25
+        e.particleAlpha = 0.0
+        e.particleAlphaSpeed = 0
+        let alphaSeq = SKKeyframeSequence(
+            keyframeValues: [Float(0.0), Float(0.30), Float(0.30), Float(0.0)],
+            times: [0.0, 0.15, 0.85, 1.0]
+        )
+        e.particleAlphaSequence = alphaSeq
+        e.particleColor = UIColor(red: 0.5, green: 0.65, blue: 1.0, alpha: 1.0)
+        e.particleColorBlendFactor = 1.0
+        e.particleBlendMode = .add
+        e.zPosition = 5
+        addChild(e)
+        particleEmitter = e
+    }
+
+    private func makeParticleTexture() -> SKTexture {
+        let radius: CGFloat = 4
+        let sz = CGSize(width: radius * 2, height: radius * 2)
+        let img = UIGraphicsImageRenderer(size: sz).image { ctx in
+            UIColor.white.setFill()
+            ctx.cgContext.fillEllipse(in: CGRect(origin: .zero, size: sz))
+        }
+        return SKTexture(image: img)
+    }
+
+    func updateParticleColor(for color: GameColor?) {
+        guard let e = particleEmitter else { return }
+        if let c = color {
+            e.particleColor = c.uiLightColor
+        } else {
+            e.particleColor = UIColor(red: 0.5, green: 0.65, blue: 1.0, alpha: 1.0)
+        }
+    }
+
     // MARK: - Board Rendering
 
     func updateColors(from board: FloodBoard) {
@@ -111,6 +165,7 @@ class GameScene: SKScene {
         }
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor)
+        updateParticleColor(for: floodColor)
     }
 
     private func renderBoard() {
@@ -146,5 +201,6 @@ class GameScene: SKScene {
 
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor, animated: false)
+        updateParticleColor(for: floodColor)
     }
 }
