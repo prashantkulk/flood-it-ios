@@ -7,7 +7,7 @@ class GameState: ObservableObject {
     @Published private(set) var movesMade: Int
     @Published private(set) var gameStatus: GameStatus
 
-    let totalMoves: Int
+    private(set) var totalMoves: Int
 
     enum GameStatus {
         case playing
@@ -16,6 +16,15 @@ class GameState: ObservableObject {
     }
 
     init(board: FloodBoard, totalMoves: Int) {
+        self.board = board
+        self.totalMoves = totalMoves
+        self.movesRemaining = totalMoves
+        self.movesMade = 0
+        self.gameStatus = .playing
+    }
+
+    /// Resets the game with a new board and move budget.
+    func reset(board: FloodBoard, totalMoves: Int) {
         self.board = board
         self.totalMoves = totalMoves
         self.movesRemaining = totalMoves

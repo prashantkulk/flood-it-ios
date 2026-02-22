@@ -57,7 +57,43 @@ struct GameView: View {
                 }
                 .padding(.bottom, 40)
             }
+
+            // Win overlay
+            if gameState.gameStatus == .won {
+                Color.black.opacity(0.6)
+                    .ignoresSafeArea()
+
+                VStack(spacing: 24) {
+                    Text("You Won!")
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+
+                    Text("Moves used: \(gameState.movesMade)")
+                        .font(.system(size: 18, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
+
+                    Button(action: {
+                        // Next level — for now just restart
+                        resetGame()
+                    }) {
+                        Text("Next")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                            .padding(.horizontal, 48)
+                            .padding(.vertical, 14)
+                            .background(.white)
+                            .clipShape(Capsule())
+                    }
+                    .accessibilityIdentifier("nextButton")
+                }
+            }
         }
+    }
+
+    private func resetGame() {
+        let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
+        gameState.reset(board: board, totalMoves: 30)
+        scene.configure(with: board)
     }
 }
 
