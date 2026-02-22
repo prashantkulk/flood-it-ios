@@ -30,3 +30,14 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
     dependencies:
       - sdk: SpriteKit.framework
+  FloodItTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - FloodItTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.prashantkulk.floodit.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: FloodIt
