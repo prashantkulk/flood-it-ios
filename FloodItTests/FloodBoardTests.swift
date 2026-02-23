@@ -1184,4 +1184,70 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(mutableBoard.gridSize, 15)
         XCTAssertEqual(mutableBoard.cells.count, 15)
     }
+
+    // MARK: - P17-T2 Void Board Shapes
+
+    /// Verify L-shaped board: voids form a rectangle in the top-right.
+    func testVoidLShapeBoard() {
+        let n = 5
+        let cells = Array(repeating: Array(repeating: GameColor.coral, count: n), count: n)
+        var board = FloodBoard(gridSize: n, cells: cells)
+        // Make top-right 3x2 block void to create an L-shape
+        for row in 0..<2 {
+            for col in 3..<n {
+                board.setCellType(.void, atRow: row, col: col)
+            }
+        }
+        // Void cells should not be playable
+        XCTAssertFalse(board.isPlayable(at: CellPosition(row: 0, col: 3)))
+        XCTAssertFalse(board.isPlayable(at: CellPosition(row: 1, col: 4)))
+        // Non-void cells should be playable
+        XCTAssertTrue(board.isPlayable(at: CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(board.isPlayable(at: CellPosition(row: 4, col: 4)))
+        // Board completion should ignore voids
+        XCTAssertTrue(board.isComplete, "All playable cells are coral, should be complete")
+    }
+
+    /// Verify donut board: center cells are void, creating a ring shape.
+    func testVoidDonutBoard() {
+        let n = 5
+        let cells = Array(repeating: Array(repeating: GameColor.emerald, count: n), count: n)
+        var board = FloodBoard(gridSize: n, cells: cells)
+        // Void out center 3x3
+        for row in 1...3 {
+            for col in 1...3 {
+                board.setCellType(.void, atRow: row, col: col)
+            }
+        }
+        // Center should not be playable
+        XCTAssertFalse(board.isPlayable(at: CellPosition(row: 2, col: 2)))
+        // Edge cells should be playable
+        XCTAssertTrue(board.isPlayable(at: CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(board.isPlayable(at: CellPosition(row: 4, col: 4)))
+        // All playable cells are emerald, so complete
+        XCTAssertTrue(board.isComplete)
+    }
+
+    /// Verify diamond board: corners are void, leaving a diamond shape.
+    func testVoidDiamondBoard() {
+        let n = 5
+        let cells = Array(repeating: Array(repeating: GameColor.sapphire, count: n), count: n)
+        var board = FloodBoard(gridSize: n, cells: cells)
+        let center = n / 2
+        for row in 0..<n {
+            for col in 0..<n {
+                let dist = abs(row - center) + abs(col - center)
+                if dist > center {
+                    board.setCellType(.void, atRow: row, col: col)
+                }
+            }
+        }
+        // Corners should be void
+        XCTAssertFalse(board.isPlayable(at: CellPosition(row: 0, col: 0)))
+        XCTAssertFalse(board.isPlayable(at: CellPosition(row: 4, col: 4)))
+        // Center should be playable
+        XCTAssertTrue(board.isPlayable(at: CellPosition(row: 2, col: 2)))
+        // All playable cells are same color
+        XCTAssertTrue(board.isComplete)
+    }
 }

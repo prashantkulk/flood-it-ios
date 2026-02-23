@@ -8,6 +8,7 @@ final class FloodCellNode: SKNode {
     let cellSize: CGFloat
     private(set) var gameColor: GameColor
     private(set) var isStone = false
+    private(set) var isVoid = false
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -80,7 +81,7 @@ final class FloodCellNode: SKNode {
     }
 
     func applyColor(_ color: GameColor) {
-        guard !isStone else { return }
+        guard !isStone && !isVoid else { return }
         self.gameColor = color
         let sz = CGSize(width: cellSize, height: cellSize)
         let cornerRadius = cellSize * cornerFraction
@@ -121,10 +122,17 @@ final class FloodCellNode: SKNode {
         bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.10)
     }
 
+    /// Configure this cell as a void: completely hidden so the dark background shows through.
+    func configureAsVoid() {
+        isVoid = true
+        isHidden = true
+        alpha = 0
+    }
+
     /// Smoothly crossfade from old color to new color over given duration.
     /// Creates a temporary overlay with the old body texture and fades it out.
     func crossfadeToColor(_ newColor: GameColor, duration: TimeInterval = 0.15) {
-        guard !isStone else { return }
+        guard !isStone && !isVoid else { return }
         // Capture old body texture before changing
         let oldBodyTex = bodyNode.texture
         let oldGlowTex = glowNode.texture

@@ -230,7 +230,7 @@ class GameScene: SKScene {
                 let node = cellNodes[row][col]
                 node.removeAction(forKey: "floodAnim")
                 node.removeCrossfadeOverlays()
-                guard !node.isStone else { continue }
+                guard !node.isStone && !node.isVoid else { continue }
                 let cell = board.cells[row][col]
                 if node.gameColor != cell {
                     node.applyColor(cell)
@@ -297,7 +297,7 @@ class GameScene: SKScene {
             for col in 0..<board.gridSize {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
                 let node = cellNodes[row][col]
-                guard !node.isStone else { continue }
+                guard !node.isStone && !node.isVoid else { continue }
                 let cell = board.cells[row][col]
                 if node.gameColor != cell {
                     node.applyColor(cell)
@@ -1541,6 +1541,8 @@ class GameScene: SKScene {
                 switch cellType {
                 case .stone:
                     node.configureAsStone()
+                case .void:
+                    node.configureAsVoid()
                 default:
                     break
                 }
