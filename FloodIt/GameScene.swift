@@ -307,6 +307,10 @@ class GameScene: SKScene {
         let lastWaveStart = Double(totalWaves - 1) * waveDelay
         let perCellDuration: TimeInterval = 0.15
 
+        // P14-T8: Scale ripple rings larger for big absorptions
+        let precomputedTotal = waves.flatMap { $0 }.count
+        let rippleScale: CGFloat = precomputedTotal >= 10 ? 6.0 : 4.0
+
         for (waveIndex, wave) in waves.enumerated() {
             let delay = Double(waveIndex) * waveDelay
 
@@ -318,7 +322,7 @@ class GameScene: SKScene {
             }
 
             // Ripple ring at wave centroid
-            spawnRippleRing(for: wave, delay: delay, color: newColor)
+            spawnRippleRing(for: wave, delay: delay, color: newColor, expandScale: rippleScale)
 
             for pos in wave {
                 guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
@@ -358,6 +362,11 @@ class GameScene: SKScene {
         let totalAbsorbed = waves.flatMap { $0 }.count
         if totalAbsorbed >= 5 {
             spawnParticleBurst(for: waves, color: newColor)
+        }
+
+        // MARK: P14-T8 Tiered particles
+        if totalAbsorbed >= 20 {
+            spawnScreenFlash()
         }
 
         // Schedule completion after all waves finish
@@ -669,7 +678,7 @@ class GameScene: SKScene {
 
     // MARK: - Ripple Ring Effect
 
-    private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor) {
+    private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor, expandScale: CGFloat = 4.0) {
         guard !wave.isEmpty else { return }
 
         // Calculate centroid of this wave's cells
@@ -701,7 +710,7 @@ class GameScene: SKScene {
 
         // Animate: wait → expand + fade out → remove
         let wait = SKAction.wait(forDuration: delay)
-        let expand = SKAction.scale(to: 4.0, duration: 0.35)
+        let expand = SKAction.scale(to: expandScale, duration: 0.35)
         expand.timingMode = .easeOut
         let fadeOut = SKAction.fadeOut(withDuration: 0.35)
         let animGroup = SKAction.group([expand, fadeOut])
@@ -856,6 +865,21 @@ class GameScene: SKScene {
                 SKAction.removeFromParent()
             ]))
         }
+    }
+
+    /// Full-screen white flash for 20+ cell absorptions.
+    private func spawnScreenFlash() {
+        let flash = SKSpriteNode(color: .white, size: size)
+        flash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        flash.zPosition = 15
+        flash.alpha = 0.15
+        flash.name = "screenFlash"
+        addChild(flash)
+
+        flash.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.15),
+            SKAction.removeFromParent()
+        ]))
     }
 
     /// Calculate centroid of cell positions in scene coordinates.
