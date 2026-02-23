@@ -13,6 +13,9 @@ struct GameView: View {
     @State private var showWinCard: Bool = false
     @State private var winCardOffset: CGFloat = 600
     @State private var starScales: [CGFloat] = [0, 0, 0]
+    @State private var showLoseCard: Bool = false
+    @State private var loseCardOffset: CGFloat = 600
+    @Environment(\.dismiss) private var dismiss
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -40,12 +43,20 @@ struct GameView: View {
                             // Stagger star reveals after card slides in
                             let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
                             for i in 0..<stars {
-                                let delay = 0.5 + Double(i) * 0.3  // 500ms after card + 300ms between stars
+                                let delay = 0.5 + Double(i) * 0.3
                                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
                                         starScales[i] = 1.0
                                     }
                                 }
+                            }
+                        }
+                    }
+                    scene.onLoseAnimationComplete = {
+                        DispatchQueue.main.async {
+                            showLoseCard = true
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
+                                loseCardOffset = 0
                             }
                         }
                     }
@@ -178,28 +189,55 @@ struct GameView: View {
             }
 
             // Lose overlay
-            if gameState.gameStatus == .lost {
-                Color.black.opacity(0.6)
+            if showLoseCard {
+                Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .transition(.opacity)
 
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     Text("Out of Moves")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Button(action: {
-                        resetGame()
-                    }) {
-                        Text("Try Again")
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                            .padding(.horizontal, 48)
-                            .padding(.vertical, 14)
-                            .background(.white)
-                            .clipShape(Capsule())
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            resetGame()
+                        }) {
+                            Text("Try Again")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
+                        }
+                        .accessibilityIdentifier("tryAgainButton")
+
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("Quit")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .accessibilityIdentifier("quitButton")
                     }
-                    .accessibilityIdentifier("tryAgainButton")
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                 }
+                .padding(.vertical, 32)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: 300)
+                .background(
+                    RoundedRectangle(cornerRadius: 28)
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .offset(y: loseCardOffset)
             }
 
             // Win score card overlay
@@ -320,11 +358,18 @@ struct GameView: View {
                 isWinningMove: willComplete
             )
         }
+
+        // Trigger lose animation if game just ended
+        if gameState.gameStatus == .lost {
+            scene.animateLose()
+        }
     }
 
     private func resetGame() {
         showWinCard = false
         winCardOffset = 600
+        showLoseCard = false
+        loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
         let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)

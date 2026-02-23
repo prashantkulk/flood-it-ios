@@ -508,6 +508,61 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Lose Animation
+
+    /// Callback invoked after the lose animation sequence finishes.
+    var onLoseAnimationComplete: (() -> Void)?
+
+    /// Lose animation: non-flooded cells fade to 40%, then board shakes.
+    func animateLose() {
+        guard let board = board else {
+            onLoseAnimationComplete?()
+            return
+        }
+
+        let floodRegion = board.floodRegion
+
+        // Phase 1: Fade non-flooded cells to 40%
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let pos = CellPosition(row: row, col: col)
+                if !floodRegion.contains(pos) {
+                    cellNodes[row][col].run(SKAction.fadeAlpha(to: 0.4, duration: 0.3), withKey: "loseFade")
+                }
+            }
+        }
+
+        // Phase 2: Board shake after fade (3 cycles, 4px amplitude, 300ms total)
+        let shakeCount = 3
+        let shakeDuration: TimeInterval = 0.3 / Double(shakeCount * 2)
+        let amplitude: CGFloat = 4
+        var shakeActions = [SKAction]()
+        for _ in 0..<shakeCount {
+            shakeActions.append(SKAction.moveBy(x: amplitude, y: 0, duration: shakeDuration))
+            shakeActions.append(SKAction.moveBy(x: -amplitude * 2, y: 0, duration: shakeDuration))
+            shakeActions.append(SKAction.moveBy(x: amplitude, y: 0, duration: shakeDuration * 0.5))
+        }
+        let shakeSeq = SKAction.sequence(shakeActions)
+
+        // Apply shake to all cell nodes via a container approach (move each node)
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.3),  // Wait for fade
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                for row in self.cellNodes {
+                    for node in row {
+                        node.run(shakeSeq, withKey: "loseShake")
+                    }
+                }
+            },
+            SKAction.wait(forDuration: 0.35),
+            SKAction.run { [weak self] in
+                self?.onLoseAnimationComplete?()
+            }
+        ]), withKey: "loseAnimation")
+    }
+
     // MARK: - Ripple Ring Effect
 
     private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor) {
