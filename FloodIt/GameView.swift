@@ -217,8 +217,14 @@ struct GameView: View {
     }
 
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    private let warningHaptic = UINotificationFeedbackGenerator()
 
     private func tapColorButton(_ color: GameColor) {
+        let currentColor = gameState.board.cells[0][0]
+        if color == currentColor {
+            warningHaptic.notificationOccurred(.warning)
+            return
+        }
         lightHaptic.impactOccurred()
         let result = gameState.performFlood(color: color)
         if result.waves.isEmpty {
