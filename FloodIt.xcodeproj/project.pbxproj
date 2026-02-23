@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		037793C1BE645D26E26CF2BB /* SpriteKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BCF99913BD3C7862D1B9375 /* SpriteKit.framework */; };
+		04E8B76A5E951A4BA89C6E4C /* AdManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B1C4F9E33BBB493212EFB67 /* AdManager.swift */; };
 		095D4A20C9A725BDE61AA04D /* LevelDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59573EBC83D60DD6AC557035 /* LevelDataTests.swift */; };
 		0990A1E674E4A19B60CA3C65 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA548063A2EC30039D99EA8B /* GameState.swift */; };
 		1001691068C391E05E401A2A /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = F918AB9DF05A021F6EBAB27F /* GameScene.swift */; };
@@ -76,6 +77,7 @@
 		579F7662A95924876B7DA014 /* GameStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateTests.swift; sourceTree = "<group>"; };
 		591C4E16DDC7F5F2BDA6A01B /* FloodItUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FloodItUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		59573EBC83D60DD6AC557035 /* LevelDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelDataTests.swift; sourceTree = "<group>"; };
+		5B1C4F9E33BBB493212EFB67 /* AdManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdManager.swift; sourceTree = "<group>"; };
 		641849E0784D325ECA815052 /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		719DA29BAA32D456DF985F32 /* FloodSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolver.swift; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 		BDAF9400817FE3B9824D2867 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				5B1C4F9E33BBB493212EFB67 /* AdManager.swift */,
 				C760E6F7ACEAB69A77F5DA1E /* DailyChallenge.swift */,
 				2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */,
 				9AF544722E8B237E330C0C0C /* FloodCell.swift */,
@@ -325,6 +328,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04E8B76A5E951A4BA89C6E4C /* AdManager.swift in Sources */,
 				1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */,
 				D3F75FD0CE7284C8004A243A /* ContentView.swift in Sources */,
 				A340ADEE53D5E5BB8B72ED12 /* DailyChallenge.swift in Sources */,
