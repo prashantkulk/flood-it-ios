@@ -7,6 +7,8 @@ struct SettingsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var progress = ProgressStore.shared
     @StateObject private var storeManager = StoreManager.shared
+    @State private var showRestoreAlert = false
+    @State private var restoreSuccess = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -118,6 +120,32 @@ struct SettingsView: View {
 
             // MARK: P12-T4 Remove Ads IAP
             removeAdsSection
+
+            // MARK: P12-T6 Restore Purchases
+            if case .purchased = storeManager.purchaseState {
+                // Already purchased, no need to show restore
+            } else {
+                Button(action: {
+                    Task {
+                        let success = await storeManager.restorePurchases()
+                        restoreSuccess = success
+                        showRestoreAlert = true
+                    }
+                }) {
+                    Text("Restore Purchases")
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .accessibilityIdentifier("restorePurchasesButton")
+                .alert(restoreSuccess ? "Restored!" : "No Purchases Found",
+                       isPresented: $showRestoreAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(restoreSuccess
+                         ? "Your ad-free purchase has been restored."
+                         : "No previous purchases were found for this account.")
+                }
+            }
 
             Button(action: { dismiss() }) {
                 Text("Done")
