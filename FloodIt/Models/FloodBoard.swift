@@ -4,25 +4,67 @@ import Foundation
 struct FloodBoard {
     let gridSize: Int
     private(set) var cells: [[GameColor]]
+    private(set) var cellTypes: [[CellType]]
+    private(set) var walls: Set<Wall>
 
     /// Initialize a board with a given size and pre-filled color grid.
-    init(gridSize: Int, cells: [[GameColor]]) {
+    init(gridSize: Int, cells: [[GameColor]], cellTypes: [[CellType]]? = nil, walls: Set<Wall> = []) {
         precondition(gridSize > 0, "Grid size must be positive")
         precondition(cells.count == gridSize, "Cell rows must match grid size")
         precondition(cells.allSatisfy({ $0.count == gridSize }), "Cell columns must match grid size")
         self.gridSize = gridSize
         self.cells = cells
+        self.cellTypes = cellTypes ?? Array(repeating: Array(repeating: CellType.normal, count: gridSize), count: gridSize)
+        self.walls = walls
     }
 
     /// Initialize a board with a given size, filled with a default color.
     init(gridSize: Int) {
         self.gridSize = gridSize
         self.cells = Array(repeating: Array(repeating: GameColor.coral, count: gridSize), count: gridSize)
+        self.cellTypes = Array(repeating: Array(repeating: CellType.normal, count: gridSize), count: gridSize)
+        self.walls = []
     }
 
     /// Returns the color at the given position.
     func color(atRow row: Int, col: Int) -> GameColor {
         return cells[row][col]
+    }
+
+    /// Returns the cell type at the given position.
+    func cellType(atRow row: Int, col: Int) -> CellType {
+        return cellTypes[row][col]
+    }
+
+    /// Sets the cell type at the given position.
+    mutating func setCellType(_ type: CellType, atRow row: Int, col: Int) {
+        cellTypes[row][col] = type
+    }
+
+    /// Adds a wall between two adjacent cells (adds both directions).
+    mutating func addWall(at position: CellPosition, direction: Direction) {
+        walls.insert(Wall(position: position, direction: direction))
+        let (dr, dc) = direction.delta
+        let neighborPos = CellPosition(row: position.row + dr, col: position.col + dc)
+        if neighborPos.row >= 0 && neighborPos.row < gridSize && neighborPos.col >= 0 && neighborPos.col < gridSize {
+            walls.insert(Wall(position: neighborPos, direction: direction.opposite))
+        }
+    }
+
+    /// Returns true if there is a wall between a cell and the given direction.
+    func hasWall(at position: CellPosition, direction: Direction) -> Bool {
+        return walls.contains(Wall(position: position, direction: direction))
+    }
+
+    /// Returns true if the cell is playable (not void, not stone for flood purposes).
+    func isPlayable(at position: CellPosition) -> Bool {
+        let type = cellTypes[position.row][position.col]
+        switch type {
+        case .void, .stone:
+            return false
+        default:
+            return true
+        }
     }
 
     /// Computed property: all cells connected to top-left sharing its color (BFS).
@@ -137,7 +179,7 @@ struct FloodBoard {
             }
             cells.append(row)
         }
-        return FloodBoard(gridSize: size, cells: cells)
+        return FloodBoard(gridSize: size, cells: cells, cellTypes: nil, walls: [])
     }
 
     /// Returns all non-flood-region cells grouped in BFS waves from the flood region boundary.
