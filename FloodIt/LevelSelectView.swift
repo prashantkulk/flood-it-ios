@@ -3,6 +3,11 @@ import SwiftUI
 struct LevelSelectView: View {
     @ObservedObject private var progress = ProgressStore.shared
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
+    private let currentPackStarsRequired = 50
+
+    private var isCurrentPackUnlocked: Bool {
+        progress.totalStars >= currentPackStarsRequired
+    }
 
     var body: some View {
         ZStack {
@@ -10,6 +15,24 @@ struct LevelSelectView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Total stars badge
+                HStack {
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.yellow)
+                        Text("\(progress.totalStars)")
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.white.opacity(0.1)))
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
                 // Pack header: Splash
                 packHeader(title: "Splash", subtitle: "Levels 1–50")
 
@@ -25,11 +48,17 @@ struct LevelSelectView: View {
 
                         // Current pack header (inline)
                         Section {
-                            ForEach(LevelStore.levels.dropFirst(50).prefix(50)) { level in
-                                NavigationLink(destination: GameView(levelNumber: level.id)) {
-                                    LevelCell(level: level, stars: progress.stars(for: level.id), isUnlocked: true)
+                            if isCurrentPackUnlocked {
+                                ForEach(LevelStore.levels.dropFirst(50).prefix(50)) { level in
+                                    NavigationLink(destination: GameView(levelNumber: level.id)) {
+                                        LevelCell(level: level, stars: progress.stars(for: level.id), isUnlocked: true)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
+                            } else {
+                                ForEach(LevelStore.levels.dropFirst(50).prefix(50)) { level in
+                                    LevelCell(level: level, stars: 0, isUnlocked: false)
+                                }
                             }
                         } header: {
                             HStack {
@@ -40,6 +69,19 @@ struct LevelSelectView: View {
                                     .font(.system(size: 14, weight: .medium, design: .rounded))
                                     .foregroundColor(.white.opacity(0.5))
                                 Spacer()
+                                if !isCurrentPackUnlocked {
+                                    HStack(spacing: 3) {
+                                        Text("\(currentPackStarsRequired)")
+                                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                                            .foregroundColor(.yellow)
+                                        Image(systemName: "star.fill")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.yellow)
+                                        Text("to unlock")
+                                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                }
                             }
                             .padding(.top, 24)
                             .padding(.bottom, 8)
@@ -79,9 +121,15 @@ struct LevelCell: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text("\(level.id)")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(isUnlocked ? .white : .white.opacity(0.3))
+            if isUnlocked {
+                Text("\(level.id)")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            } else {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.2))
+            }
 
             if stars > 0 {
                 HStack(spacing: 1) {
