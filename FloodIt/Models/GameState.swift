@@ -53,17 +53,18 @@ class GameState: ObservableObject {
         let cascadeWaves: [[CellPosition]]
         let previousColors: [CellPosition: GameColor]
         let cascadeCount: Int
+        let bonusMultiplier: Int
     }
 
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.
     /// Returns the waves of absorbed cells (empty if move is invalid), cascade waves, and previous colors.
     @discardableResult
     func performFlood(color: GameColor) -> FloodResult {
-        guard gameStatus == .playing else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0) }
+        guard gameStatus == .playing else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0, bonusMultiplier: 1) }
 
         // Don't waste a move if tapping the same color as current flood region
         let currentColor = board.cells[0][0]
-        guard color != currentColor else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0) }
+        guard color != currentColor else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0, bonusMultiplier: 1) }
 
         // Capture wave data and cascade waves BEFORE mutating
         let allWaves = board.cellsAbsorbedBy(color: color)
@@ -83,7 +84,11 @@ class GameState: ObservableObject {
         }
 
         // Count absorbed cells for combo tracking (initial + cascade)
-        let absorbedCount = allWaves.flatMap { $0 }.count
+        let allAbsorbed = allWaves.flatMap { $0 }
+        let absorbedCount = allAbsorbed.count
+
+        // Capture bonus multiplier BEFORE mutation (bonus cells become normal on absorption)
+        let bonusMultiplier = board.bonusMultiplier(for: allAbsorbed)
 
         board.flood(color: color)
         board.tickCountdowns(using: &countdownRng)
@@ -105,7 +110,8 @@ class GameState: ObservableObject {
         let comboMultiplier = comboCount >= 2 ? Double(comboCount) : 1.0
         let cascadeCount = cascadeWaves.count
         let cascadeMultiplier = cascadeCount > 0 ? pow(1.5, Double(cascadeCount)) : 1.0
-        scoreState.recordMove(cellsAbsorbed: absorbedCount, comboMultiplier: comboMultiplier, cascadeMultiplier: cascadeMultiplier)
+        let bonusMult = Double(bonusMultiplier)
+        scoreState.recordMove(cellsAbsorbed: absorbedCount, comboMultiplier: comboMultiplier, cascadeMultiplier: cascadeMultiplier * bonusMult)
 
         if board.isComplete {
             gameStatus = .won
@@ -115,7 +121,7 @@ class GameState: ObservableObject {
             gameStatus = .lost
         }
 
-        return FloodResult(waves: initialWaves, cascadeWaves: cascadeWaves, previousColors: previousColors, cascadeCount: cascadeCount)
+        return FloodResult(waves: initialWaves, cascadeWaves: cascadeWaves, previousColors: previousColors, cascadeCount: cascadeCount, bonusMultiplier: bonusMultiplier)
     }
 
     /// Returns the number of cells not in the flood region.

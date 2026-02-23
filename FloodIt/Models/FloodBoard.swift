@@ -97,6 +97,18 @@ struct FloodBoard {
         return visited
     }
 
+    /// Returns the highest bonus multiplier among the given positions.
+    /// If no bonus tiles are present, returns 1.
+    func bonusMultiplier(for positions: [CellPosition]) -> Int {
+        var maxBonus = 1
+        for pos in positions {
+            if case .bonus(let mult) = cellTypes[pos.row][pos.col] {
+                maxBonus = max(maxBonus, mult)
+            }
+        }
+        return maxBonus
+    }
+
     /// Returns true when all playable cells on the board are the same color.
     /// Stones and voids are excluded from the win check.
     var isComplete: Bool {

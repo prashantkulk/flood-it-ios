@@ -803,6 +803,58 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 2, col: 2)))
     }
 
+    // MARK: - P16-T8: Bonus tiles
+
+    func testBonusTileDoublesScore() {
+        // Single-wave absorption to avoid cascade multiplier
+        // Board: C A     (0,1) is bonus(x2)
+        //        E E
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .bonus(multiplier: 2)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+        let state = GameState(board: board, totalMoves: 10)
+
+        let result = state.performFlood(color: .amber)
+        // Absorbed 1 amber cell with x2 bonus
+        XCTAssertEqual(result.bonusMultiplier, 2)
+        // Score: 1 cell * 20 * 2 (bonus) = 40
+        XCTAssertEqual(state.scoreState.lastMoveScore, 40)
+    }
+
+    func testBonusTileTripleScore() {
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .bonus(multiplier: 3)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+        let state = GameState(board: board, totalMoves: 10)
+
+        let result = state.performFlood(color: .amber)
+        XCTAssertEqual(result.bonusMultiplier, 3)
+        // Score: 1 cell * 20 * 3 (bonus) = 60
+        XCTAssertEqual(state.scoreState.lastMoveScore, 60)
+    }
+
+    func testNoBonusTileDefaultMultiplier() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let state = GameState(board: board, totalMoves: 10)
+
+        let result = state.performFlood(color: .amber)
+        XCTAssertEqual(result.bonusMultiplier, 1)
+        // Score: 1 cell * 20 = 20
+        XCTAssertEqual(state.scoreState.lastMoveScore, 20)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
