@@ -25,12 +25,41 @@ struct LevelStore {
         return levels[number - 1]
     }
 
+    /// Onboarding configs for levels 1-5: (gridSize, colorCount, moveBudget)
+    private static let onboardingConfigs: [(gridSize: Int, colorCount: Int, moveBudget: Int)] = [
+        (3, 3, 10),   // Level 1: trivial
+        (4, 3, 12),   // Level 2
+        (5, 4, 15),   // Level 3
+        (7, 4, 20),   // Level 4
+        (9, 5, 25),   // Level 5
+    ]
+
     private static func generateAllLevels() -> [LevelData] {
         var result = [LevelData]()
 
         for i in 1...100 {
             let seed = UInt64(i * 31 + 7)  // deterministic seed per level
             let tier: LevelData.Tier = i <= 50 ? .splash : .current
+
+            // Onboarding: levels 1-5 have special configs
+            if i <= onboardingConfigs.count {
+                let config = onboardingConfigs[i - 1]
+                let colors = Array(GameColor.allCases.prefix(config.colorCount))
+                let board = FloodBoard.generateBoard(size: config.gridSize, colors: colors, seed: seed)
+                let optimalMoves = FloodSolver.solveMoveCount(board: board)
+
+                result.append(LevelData(
+                    id: i,
+                    seed: seed,
+                    gridSize: config.gridSize,
+                    colorCount: config.colorCount,
+                    optimalMoves: optimalMoves,
+                    moveBudget: config.moveBudget,
+                    tier: tier
+                ))
+                continue
+            }
+
             let gridSize = 9
             let colorCount = 5
             let colors = Array(GameColor.allCases.prefix(colorCount))
@@ -41,7 +70,7 @@ struct LevelStore {
             // Difficulty scaling: easier levels get more extra moves
             let extraMoves: Int
             switch i {
-            case 1...10:  extraMoves = 8   // easy
+            case 6...10:  extraMoves = 8   // easy
             case 11...30: extraMoves = 6
             case 31...50: extraMoves = 4   // medium
             case 51...70: extraMoves = 3

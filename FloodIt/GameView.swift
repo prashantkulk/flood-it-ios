@@ -155,7 +155,7 @@ struct GameView: View {
 
                 // Color buttons — glowing orbs
                 HStack(spacing: 16) {
-                    ForEach(GameColor.allCases, id: \.self) { color in
+                    ForEach(Array(GameColor.allCases.prefix(levelData.colorCount)), id: \.self) { color in
                         Button(action: {
                             tapColorButton(color)
                         }) {

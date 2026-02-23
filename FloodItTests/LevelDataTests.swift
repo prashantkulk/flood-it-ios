@@ -39,10 +39,10 @@ final class LevelDataTests: XCTestCase {
         }
     }
 
-    func testMoveBudgetIncludesExtraMoves() {
+    func testMoveBudgetExceedsOptimal() {
         for level in LevelStore.levels {
-            XCTAssertGreaterThan(level.moveBudget, level.optimalMoves,
-                "Level \(level.id) budget (\(level.moveBudget)) should exceed optimal (\(level.optimalMoves))")
+            XCTAssertGreaterThanOrEqual(level.moveBudget, level.optimalMoves,
+                "Level \(level.id) budget (\(level.moveBudget)) should be >= optimal (\(level.optimalMoves))")
         }
     }
 
@@ -53,9 +53,38 @@ final class LevelDataTests: XCTestCase {
         XCTAssertNil(LevelStore.level(101))
     }
 
-    func testAllLevelsHaveValidGridSize() {
-        for level in LevelStore.levels {
+    func testStandardLevelsHaveGridSize9() {
+        for level in LevelStore.levels.dropFirst(5) {
             XCTAssertEqual(level.gridSize, 9, "Level \(level.id) should have grid size 9")
+        }
+    }
+
+    // MARK: - P10-T6: Onboarding levels
+
+    func testOnboardingLevelsProgressiveSize() {
+        let expectedSizes = [3, 4, 5, 7, 9]
+        for (i, size) in expectedSizes.enumerated() {
+            let level = LevelStore.level(i + 1)!
+            XCTAssertEqual(level.gridSize, size, "Onboarding level \(i + 1) should have grid size \(size)")
+        }
+    }
+
+    func testOnboardingLevelsProgressiveColors() {
+        let expectedColors = [3, 3, 4, 4, 5]
+        for (i, count) in expectedColors.enumerated() {
+            let level = LevelStore.level(i + 1)!
+            XCTAssertEqual(level.colorCount, count, "Onboarding level \(i + 1) should have \(count) colors")
+        }
+    }
+
+    func testOnboardingLevelsAreSolvable() {
+        for i in 1...5 {
+            let level = LevelStore.level(i)!
+            let colors = Array(GameColor.allCases.prefix(level.colorCount))
+            let board = FloodBoard.generateBoard(size: level.gridSize, colors: colors, seed: level.seed)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Onboarding level \(i) not solvable within budget")
         }
     }
 }
