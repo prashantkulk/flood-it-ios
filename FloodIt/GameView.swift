@@ -10,6 +10,8 @@ struct GameView: View {
     @State private var moveCounterFlash: Bool = false
     @State private var moveCounterPulse: Bool = false
     @State private var isWinningMove: Bool = false
+    @State private var showWinCard: Bool = false
+    @State private var winCardOffset: CGFloat = 600
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -27,6 +29,16 @@ struct GameView: View {
         ZStack {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
+                .onAppear {
+                    scene.onWinAnimationComplete = { [self] in
+                        DispatchQueue.main.async {
+                            showWinCard = true
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
+                                winCardOffset = 0
+                            }
+                        }
+                    }
+                }
 
             // Subtle border frame around the board area (no fill, just a thin luminous border)
             GeometryReader { geo in
@@ -179,34 +191,83 @@ struct GameView: View {
                 }
             }
 
-            // Win overlay
-            if gameState.gameStatus == .won {
-                Color.black.opacity(0.6)
+            // Win score card overlay
+            if showWinCard {
+                Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .transition(.opacity)
 
-                VStack(spacing: 24) {
-                    Text("You Won!")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                VStack(spacing: 20) {
+                    Text("Solved!")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Text("Moves used: \(gameState.movesMade)")
-                        .font(.system(size: 18, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
-
-                    Button(action: {
-                        // Next level — for now just restart
-                        resetGame()
-                    }) {
-                        Text("Next")
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                            .padding(.horizontal, 48)
-                            .padding(.vertical, 14)
-                            .background(.white)
-                            .clipShape(Capsule())
+                    // Moves info
+                    HStack(spacing: 4) {
+                        Text("\(gameState.movesMade)")
+                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("/ \(gameState.totalMoves)")
+                            .font(.system(size: 24, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.6))
+                            .offset(y: 8)
                     }
-                    .accessibilityIdentifier("nextButton")
+
+                    Text("moves")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .offset(y: -10)
+
+                    // Star rating placeholder
+                    HStack(spacing: 8) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            Image(systemName: "star")
+                                .font(.system(size: 28))
+                                .foregroundColor(.white.opacity(0.3))
+                        }
+                    }
+                    .padding(.vertical, 4)
+
+                    // Buttons
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            resetGame()
+                        }) {
+                            Text("Next")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
+                        }
+                        .accessibilityIdentifier("nextButton")
+
+                        Button(action: {
+                            resetGame()
+                        }) {
+                            Text("Replay")
+                                .font(.system(size: 16, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .accessibilityIdentifier("replayButton")
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
                 }
+                .padding(.vertical, 32)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: 300)
+                .background(
+                    RoundedRectangle(cornerRadius: 28)
+                        .fill(.ultraThinMaterial)
+                        .environment(\.colorScheme, .dark)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                )
+                .offset(y: winCardOffset)
             }
         }
     }
@@ -249,6 +310,9 @@ struct GameView: View {
     }
 
     private func resetGame() {
+        showWinCard = false
+        winCardOffset = 600
+        isWinningMove = false
         let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
         gameState.reset(board: board, totalMoves: 30)
         scene.configure(with: board)
