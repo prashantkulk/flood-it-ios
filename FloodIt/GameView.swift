@@ -443,10 +443,14 @@ struct GameView: View {
             )
         }
 
-        // Update combo glow
+        // Update combo visuals
         if gameState.comboCount >= 3 {
             let intensity = gameState.comboCount >= 4 ? 2 : 1
             scene.showComboGlow(board: gameState.board, intensity: intensity)
+            // x3+ sparks
+            if gameState.comboCount >= 4 {
+                scene.spawnComboSparks(board: gameState.board)
+            }
         } else {
             scene.removeComboGlow()
         }

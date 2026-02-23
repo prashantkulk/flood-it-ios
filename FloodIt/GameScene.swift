@@ -787,6 +787,66 @@ class GameScene: SKScene {
         comboGlowNodes.removeAll()
     }
 
+    /// Spawn spark particles along the flood boundary for combo x3+.
+    func spawnComboSparks(board: FloodBoard) {
+        let region = board.floodRegion
+        var boundaryCells = [CellPosition]()
+        for pos in region {
+            let dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            for (dr, dc) in dirs {
+                let nr = pos.row + dr
+                let nc = pos.col + dc
+                guard nr >= 0, nr < board.gridSize, nc >= 0, nc < board.gridSize else { continue }
+                if !region.contains(CellPosition(row: nr, col: nc)) {
+                    boundaryCells.append(pos)
+                    break
+                }
+            }
+        }
+
+        // Spawn 2-3 sparks per boundary cell (capped at 30 total)
+        let sparkCount = min(boundaryCells.count * 2, 30)
+        let selectedCells = boundaryCells.shuffled().prefix(sparkCount)
+
+        for pos in selectedCells {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let cellNode = cellNodes[pos.row][pos.col]
+
+            let spark = SKShapeNode(circleOfRadius: CGFloat.random(in: 1.5...3.0))
+            let isGolden = Bool.random()
+            spark.fillColor = isGolden
+                ? SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+                : SKColor.white
+            spark.strokeColor = .clear
+            spark.position = cellNode.position
+            spark.zPosition = 8
+            spark.alpha = 0
+            spark.blendMode = .add
+            spark.name = "comboSpark"
+            addChild(spark)
+
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let distance = CGFloat.random(in: 15...40)
+            let dx = cos(angle) * distance
+            let dy = sin(angle) * distance
+
+            let fadeIn = SKAction.fadeAlpha(to: CGFloat.random(in: 0.7...1.0), duration: 0.05)
+            let move = SKAction.moveBy(x: dx, y: dy, duration: CGFloat.random(in: 0.3...0.6))
+            move.timingMode = .easeOut
+            let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+            let shrink = SKAction.scale(to: 0.1, duration: 0.4)
+
+            let delay = SKAction.wait(forDuration: Double.random(in: 0...0.15))
+            let anim = SKAction.sequence([
+                delay,
+                fadeIn,
+                SKAction.group([move, SKAction.sequence([SKAction.wait(forDuration: 0.2), fadeOut]), shrink]),
+                SKAction.removeFromParent()
+            ])
+            spark.run(anim)
+        }
+    }
+
     /// Fade out combo glow over a duration, then remove.
     func fadeOutComboGlow(duration: TimeInterval = 0.3) {
         let nodes = comboGlowNodes
