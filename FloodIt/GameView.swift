@@ -5,8 +5,8 @@ import UIKit
 struct GameView: View {
     @StateObject private var gameState: GameState
     private let scene: GameScene
-    private let levelNumber: Int
-    private let levelData: LevelData
+    @State private var currentLevelNumber: Int
+    @State private var currentLevelData: LevelData
     @State private var moveCounterScale: CGFloat = 1.0
     @State private var moveCounterFlash: Bool = false
     @State private var moveCounterPulse: Bool = false
@@ -20,9 +20,9 @@ struct GameView: View {
     @Environment(\.dismiss) private var dismiss
 
     init(levelNumber: Int = 1) {
-        self.levelNumber = levelNumber
+        _currentLevelNumber = State(initialValue: levelNumber)
         let data = LevelStore.level(levelNumber) ?? LevelStore.levels[0]
-        self.levelData = data
+        _currentLevelData = State(initialValue: data)
         let colors = Array(GameColor.allCases.prefix(data.colorCount))
         let board = FloodBoard.generateBoard(size: data.gridSize, colors: colors, seed: data.seed)
         _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: data.moveBudget))
@@ -47,7 +47,7 @@ struct GameView: View {
                             }
                             // Stagger star reveals after card slides in
                             let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
-                            ProgressStore.shared.updateStars(for: levelNumber, stars: stars)
+                            ProgressStore.shared.updateStars(for: currentLevelNumber, stars: stars)
                             ProgressStore.shared.recordPlay()
                             for i in 0..<stars {
                                 let delay = 0.5 + Double(i) * 0.3
@@ -155,7 +155,7 @@ struct GameView: View {
 
                 // Color buttons — glowing orbs
                 HStack(spacing: 16) {
-                    ForEach(Array(GameColor.allCases.prefix(levelData.colorCount)), id: \.self) { color in
+                    ForEach(Array(GameColor.allCases.prefix(currentLevelData.colorCount)), id: \.self) { color in
                         Button(action: {
                             tapColorButton(color)
                         }) {
@@ -346,7 +346,7 @@ struct GameView: View {
                     // Buttons
                     VStack(spacing: 12) {
                         Button(action: {
-                            resetGame()
+                            advanceToNextLevel()
                         }) {
                             Text("Next")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -508,6 +508,34 @@ struct GameView: View {
         scene.updateColors(from: gameState.board)
     }
 
+    private func advanceToNextLevel() {
+        let nextNumber = currentLevelNumber + 1
+        guard let nextData = LevelStore.level(nextNumber) else {
+            // No more levels, just dismiss
+            dismiss()
+            return
+        }
+
+        // Dismiss win card
+        showWinCard = false
+        winCardOffset = 600
+        isWinningMove = false
+        starScales = [0, 0, 0]
+
+        // Update level tracking
+        currentLevelNumber = nextNumber
+        currentLevelData = nextData
+
+        // Build new board
+        let colors = Array(GameColor.allCases.prefix(nextData.colorCount))
+        let newBoard = FloodBoard.generateBoard(size: nextData.gridSize, colors: colors, seed: nextData.seed)
+
+        // Transition animation: scatter out old cells, then scale in new ones
+        scene.transitionToNewBoard(newBoard) {
+            gameState.reset(board: newBoard, totalMoves: nextData.moveBudget)
+        }
+    }
+
     private func resetGame() {
         showWinCard = false
         winCardOffset = 600
@@ -515,9 +543,9 @@ struct GameView: View {
         loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
-        let colors = Array(GameColor.allCases.prefix(levelData.colorCount))
-        let board = FloodBoard.generateBoard(size: levelData.gridSize, colors: colors, seed: levelData.seed)
-        gameState.reset(board: board, totalMoves: levelData.moveBudget)
+        let colors = Array(GameColor.allCases.prefix(currentLevelData.colorCount))
+        let board = FloodBoard.generateBoard(size: currentLevelData.gridSize, colors: colors, seed: currentLevelData.seed)
+        gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)
     }
 }

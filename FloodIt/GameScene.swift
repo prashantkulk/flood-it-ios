@@ -182,6 +182,53 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Level Transition
+
+    /// Transition to a new board: scatter/shrink out current cells (300ms), then scale in new cells (300ms).
+    func transitionToNewBoard(_ newBoard: FloodBoard, onReset: @escaping () -> Void) {
+        let scatterDuration: TimeInterval = 0.3
+        let scaleInDuration: TimeInterval = 0.3
+
+        // Phase 1: Scatter/shrink out current cells
+        for row in cellNodes {
+            for node in row {
+                let randomDX = CGFloat.random(in: -60...60)
+                let randomDY = CGFloat.random(in: -60...60)
+                let scatter = SKAction.group([
+                    SKAction.moveBy(x: randomDX, y: randomDY, duration: scatterDuration),
+                    SKAction.scale(to: 0, duration: scatterDuration),
+                    SKAction.fadeOut(withDuration: scatterDuration)
+                ])
+                scatter.timingMode = .easeIn
+                node.run(scatter)
+            }
+        }
+
+        // Phase 2: After scatter completes, configure new board and scale in
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: scatterDuration),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                onReset()
+                self.configure(with: newBoard)
+
+                // Scale all new cells from 0 → 1
+                for row in self.cellNodes {
+                    for node in row {
+                        let targetScale = node.xScale
+                        node.setScale(0)
+                        node.alpha = 0
+                        let scaleIn = SKAction.scale(to: targetScale, duration: scaleInDuration)
+                        scaleIn.timingMode = .easeOut
+                        let fadeIn = SKAction.fadeIn(withDuration: scaleInDuration * 0.5)
+                        let delay = SKAction.wait(forDuration: Double.random(in: 0...0.1))
+                        node.run(SKAction.sequence([delay, SKAction.group([scaleIn, fadeIn])]))
+                    }
+                }
+            }
+        ]))
+    }
+
     // MARK: - Board Rendering
 
     func updateColors(from board: FloodBoard) {
