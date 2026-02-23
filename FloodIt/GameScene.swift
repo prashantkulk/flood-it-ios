@@ -768,6 +768,113 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Floating Score Text
+
+    /// Spawn floating '+N' text at the centroid of absorbed cells.
+    func spawnFloatingCellsText(waves: [[CellPosition]], cellsAbsorbed: Int) {
+        guard cellsAbsorbed > 0 else { return }
+        let allCells = waves.flatMap { $0 }
+        guard let centroid = centroidOf(positions: allCells) else { return }
+
+        let label = SKLabelNode(text: "+\(cellsAbsorbed)")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 18
+        label.fontColor = .white
+        label.position = centroid
+        label.zPosition = 12
+        label.alpha = 0
+        label.name = "floatingText"
+        addChild(label)
+
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+        let moveUp = SKAction.moveBy(x: 0, y: 40, duration: 0.8)
+        moveUp.timingMode = .easeOut
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        let anim = SKAction.sequence([
+            fadeIn,
+            SKAction.group([moveUp, SKAction.sequence([SKAction.wait(forDuration: 0.5), fadeOut])]),
+            SKAction.removeFromParent()
+        ])
+        label.run(anim)
+    }
+
+    /// Spawn floating '+X pts' text in gold, 0.15s after cells text.
+    func spawnFloatingPointsText(waves: [[CellPosition]], points: Int, multiplier: Double) {
+        guard points > 0 else { return }
+        let allCells = waves.flatMap { $0 }
+        guard let centroid = centroidOf(positions: allCells) else { return }
+
+        let label = SKLabelNode(text: "+\(points) pts")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = multiplier >= 1.5 ? 22 : 16
+        label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        label.position = CGPoint(x: centroid.x, y: centroid.y - 16)
+        label.zPosition = 12
+        label.alpha = 0
+        label.name = "floatingText"
+        addChild(label)
+
+        let delay = SKAction.wait(forDuration: 0.15)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+        let moveUp = SKAction.moveBy(x: 0, y: 60, duration: 1.0)
+        moveUp.timingMode = .easeOut
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        var actions: [SKAction] = [delay, fadeIn]
+
+        // Gold particle burst for high multiplier
+        if multiplier >= 1.5 {
+            let burstAction = SKAction.run { [weak self, weak label] in
+                guard let self = self, let pos = label?.position else { return }
+                self.spawnGoldBurst(at: pos)
+            }
+            actions.append(burstAction)
+        }
+
+        actions.append(SKAction.group([moveUp, SKAction.sequence([SKAction.wait(forDuration: 0.7), fadeOut])]))
+        actions.append(SKAction.removeFromParent())
+        label.run(SKAction.sequence(actions))
+    }
+
+    private func spawnGoldBurst(at position: CGPoint) {
+        for _ in 0..<6 {
+            let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 1.5...3.0))
+            dot.fillColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+            dot.strokeColor = .clear
+            dot.position = position
+            dot.zPosition = 11
+            dot.alpha = 0.8
+            dot.blendMode = .add
+            dot.name = "goldBurst"
+            addChild(dot)
+
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let dist = CGFloat.random(in: 10...25)
+            let move = SKAction.moveBy(x: cos(angle) * dist, y: sin(angle) * dist, duration: 0.3)
+            move.timingMode = .easeOut
+            dot.run(SKAction.sequence([
+                SKAction.group([move, SKAction.fadeOut(withDuration: 0.3)]),
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
+    /// Calculate centroid of cell positions in scene coordinates.
+    private func centroidOf(positions: [CellPosition]) -> CGPoint? {
+        guard !positions.isEmpty else { return nil }
+        var sumX: CGFloat = 0
+        var sumY: CGFloat = 0
+        var count: CGFloat = 0
+        for pos in positions {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let node = cellNodes[pos.row][pos.col]
+            sumX += node.position.x
+            sumY += node.position.y
+            count += 1
+        }
+        guard count > 0 else { return nil }
+        return CGPoint(x: sumX / count, y: sumY / count)
+    }
+
     // MARK: - Combo Glow
 
     private var comboGlowNodes: [SKShapeNode] = []

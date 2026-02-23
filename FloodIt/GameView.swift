@@ -622,6 +622,12 @@ struct GameView: View {
                 previousColors: result.previousColors,
                 isWinningMove: willComplete
             )
+            // MARK: P14-T5/T6 Floating text
+            if cellsAbsorbed > 0 {
+                scene.spawnFloatingCellsText(waves: result.waves, cellsAbsorbed: cellsAbsorbed)
+                let comboMult = gameState.comboCount >= 2 ? Double(gameState.comboCount) : 1.0
+                scene.spawnFloatingPointsText(waves: result.waves, points: gameState.scoreState.lastMoveScore, multiplier: comboMult)
+            }
         }
 
         // Update combo visuals
