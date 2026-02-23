@@ -5,7 +5,8 @@ import UIKit
 struct GameView: View {
     @StateObject private var gameState: GameState
     private let scene: GameScene
-    private let seed: UInt64
+    private let levelNumber: Int
+    private let levelData: LevelData
     @State private var moveCounterScale: CGFloat = 1.0
     @State private var moveCounterFlash: Bool = false
     @State private var moveCounterPulse: Bool = false
@@ -18,11 +19,13 @@ struct GameView: View {
     @State private var showSettings: Bool = false
     @Environment(\.dismiss) private var dismiss
 
-    init(seed: UInt64 = 42) {
-        self.seed = seed
-        let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
-        let totalMoves = 30
-        _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: totalMoves))
+    init(levelNumber: Int = 1) {
+        self.levelNumber = levelNumber
+        let data = LevelStore.level(levelNumber) ?? LevelStore.levels[0]
+        self.levelData = data
+        let colors = Array(GameColor.allCases.prefix(data.colorCount))
+        let board = FloodBoard.generateBoard(size: data.gridSize, colors: colors, seed: data.seed)
+        _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: data.moveBudget))
 
         let gameScene = GameScene(size: UIScreen.main.bounds.size)
         gameScene.scaleMode = .resizeFill
@@ -510,8 +513,9 @@ struct GameView: View {
         loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
-        let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
-        gameState.reset(board: board, totalMoves: 30)
+        let colors = Array(GameColor.allCases.prefix(levelData.colorCount))
+        let board = FloodBoard.generateBoard(size: levelData.gridSize, colors: colors, seed: levelData.seed)
+        gameState.reset(board: board, totalMoves: levelData.moveBudget)
         scene.configure(with: board)
     }
 }
@@ -531,5 +535,5 @@ struct OrbPressStyle: ButtonStyle {
 }
 
 #Preview {
-    GameView()
+    GameView(levelNumber: 1)
 }

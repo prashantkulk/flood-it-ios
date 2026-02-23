@@ -17,7 +17,7 @@ struct HomeView: View {
 
                     Spacer()
 
-                    NavigationLink(destination: GameView()) {
+                    NavigationLink(destination: LevelSelectView()) {
                         Text("Play")
                             .font(.system(size: 24, weight: .semibold, design: .rounded))
                             .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
