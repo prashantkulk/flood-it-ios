@@ -521,6 +521,52 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertFalse(allAbsorbed.contains(CellPosition(row: 0, col: 2)), "Stone should not be absorbed")
     }
 
+    // MARK: - P16-T3: Void cells
+
+    func testVoidCellsExcludedFromFlood() {
+        // Board: C C V    (V = void at (0,2))
+        //        C C E
+        //        E E E
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][2] = .void
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .coral],
+            [.coral, .coral, .emerald],
+            [.emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        let region = board.floodRegion
+        // Void at (0,2) should not be in the flood region even though same color
+        XCTAssertFalse(region.contains(CellPosition(row: 0, col: 2)))
+        XCTAssertEqual(region.count, 4) // (0,0),(0,1),(1,0),(1,1)
+    }
+
+    func testVoidCellsExcludedFromWinCheck() {
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[1][1] = .void
+        let cells: [[GameColor]] = [
+            [.coral, .coral],
+            [.coral, .amber],  // (1,1) is void — should be ignored
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+        XCTAssertTrue(board.isComplete, "Void cells should be excluded from win check")
+    }
+
+    func testVoidEnablesNonRectangularShapes() {
+        // L-shaped board: void out the top-right corner
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][2] = .void
+        types[1][2] = .void
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .amber],
+            [.coral, .coral, .amber],
+            [.coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        // All non-void cells are coral → should be complete
+        XCTAssertTrue(board.isComplete)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {

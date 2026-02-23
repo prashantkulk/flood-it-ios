@@ -206,6 +206,15 @@ struct FloodBoard {
     func allRemainingCellsInBFSOrder() -> [[CellPosition]] {
         let region = floodRegion
         var visited = region
+        // Mark voids and stones as already visited so they're excluded
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                let pos = CellPosition(row: row, col: col)
+                if !canFloodTraverse(pos) {
+                    visited.insert(pos)
+                }
+            }
+        }
         // Start from boundary of flood region
         var currentWave = Set<CellPosition>()
         for pos in region {
