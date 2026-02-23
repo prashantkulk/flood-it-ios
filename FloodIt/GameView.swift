@@ -10,6 +10,9 @@ struct GameView: View {
     @State private var moveCounterScale: CGFloat = 1.0
     @State private var moveCounterFlash: Bool = false
     @State private var moveCounterPulse: Bool = false
+    @State private var scoreCounterScale: CGFloat = 1.0
+    @State private var scoreCounterFlash: Bool = false
+    @State private var moveCounterGoldFlash: Bool = false
     @State private var isWinningMove: Bool = false
     @State private var showWinCard: Bool = false
     @State private var winCardOffset: CGFloat = 600
@@ -151,6 +154,12 @@ struct GameView: View {
                                 .blendMode(.sourceAtop)
                                 .allowsHitTesting(false)
                         )
+                        .overlay(
+                            Color(red: 1.0, green: 0.84, blue: 0.0)
+                                .opacity(moveCounterGoldFlash ? 0.7 : 0)
+                                .blendMode(.sourceAtop)
+                                .allowsHitTesting(false)
+                        )
                         .accessibilityIdentifier("moveCounter")
                         .onChange(of: gameState.movesRemaining) { newValue in
                             moveCounterFlash = true
@@ -179,7 +188,28 @@ struct GameView: View {
                     Text("\(gameState.scoreState.totalScore)")
                         .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
                         .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                        .scaleEffect(scoreCounterScale)
+                        .overlay(
+                            Color(red: 1.0, green: 0.84, blue: 0.0)
+                                .opacity(scoreCounterFlash ? 0.6 : 0)
+                                .blendMode(.sourceAtop)
+                                .allowsHitTesting(false)
+                        )
                         .accessibilityIdentifier("scoreCounter")
+                        .onChange(of: gameState.scoreState.totalScore) { _ in
+                            scoreCounterFlash = true
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                                scoreCounterScale = 1.3
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                    scoreCounterScale = 1.0
+                                }
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    scoreCounterFlash = false
+                                }
+                            }
+                        }
 
                     Spacer()
 
@@ -544,6 +574,23 @@ struct GameView: View {
 
         let prevCombo = gameState.comboCount
         let result = gameState.performFlood(color: color)
+
+        // MARK: P14-T4 Move counter gold flash for large absorptions
+        let cellsAbsorbed = result.waves.flatMap { $0 }.count
+        if cellsAbsorbed >= 10 {
+            moveCounterGoldFlash = true
+            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                moveCounterScale = 1.3
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    moveCounterScale = 1.0
+                }
+                withAnimation(.easeOut(duration: 0.2)) {
+                    moveCounterGoldFlash = false
+                }
+            }
+        }
 
         // Combo audio
         if gameState.comboCount >= 3 {
