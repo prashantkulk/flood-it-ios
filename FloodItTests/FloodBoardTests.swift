@@ -471,6 +471,56 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(pow(1.5, 3), 3.375, accuracy: 0.001)
     }
 
+    // MARK: - P16-T2: Stone blocks
+
+    func testStoneBlocksFlood() {
+        // Board: C A A
+        //        S A E   (S = stone at (1,0))
+        //        E E E
+        // Stone at (1,0) should block flood from reaching (2,0)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[1][0] = .stone
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.coral, .amber, .emerald],
+            [.coral, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        // Flood region is just (0,0) because stone at (1,0) blocks BFS
+        let region = board.floodRegion
+        XCTAssertEqual(region.count, 1)
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertFalse(region.contains(CellPosition(row: 1, col: 0)))
+    }
+
+    func testStoneExcludedFromWinCheck() {
+        // Board with all coral except one stone cell (which has amber color but is stone)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[1][1] = .stone
+        let cells: [[GameColor]] = [
+            [.coral, .coral],
+            [.coral, .amber],  // (1,1) is stone with amber — should be ignored for win check
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+        XCTAssertTrue(board.isComplete, "Stone cells should be excluded from win check")
+    }
+
+    func testStoneCellsAbsorbedBySkipsStones() {
+        // Stone cell should not be absorbed even if same color
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][2] = .stone
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],  // (0,2) is stone
+            [.emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        let waves = board.cellsAbsorbedBy(color: .amber)
+        let allAbsorbed = Set(waves.flatMap { $0 })
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 0, col: 1)))
+        XCTAssertFalse(allAbsorbed.contains(CellPosition(row: 0, col: 2)), "Stone should not be absorbed")
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {

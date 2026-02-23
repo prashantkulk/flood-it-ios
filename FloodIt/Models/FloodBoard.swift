@@ -67,6 +67,16 @@ struct FloodBoard {
         }
     }
 
+    /// Returns true if a cell can participate in flood BFS (not stone, not void).
+    func canFloodTraverse(_ pos: CellPosition) -> Bool {
+        switch cellTypes[pos.row][pos.col] {
+        case .stone, .void:
+            return false
+        default:
+            return true
+        }
+    }
+
     /// Computed property: all cells connected to top-left sharing its color (BFS).
     var floodRegion: Set<CellPosition> {
         let targetColor = cells[0][0]
@@ -77,7 +87,7 @@ struct FloodBoard {
         while !queue.isEmpty {
             let current = queue.removeFirst()
             for neighbor in neighbors(of: current) {
-                if !visited.contains(neighbor) && cells[neighbor.row][neighbor.col] == targetColor {
+                if !visited.contains(neighbor) && canFloodTraverse(neighbor) && cells[neighbor.row][neighbor.col] == targetColor {
                     visited.insert(neighbor)
                     queue.append(neighbor)
                 }
@@ -87,10 +97,19 @@ struct FloodBoard {
         return visited
     }
 
-    /// Returns true when all cells on the board are the same color.
+    /// Returns true when all playable cells on the board are the same color.
+    /// Stones and voids are excluded from the win check.
     var isComplete: Bool {
         let firstColor = cells[0][0]
-        return cells.allSatisfy { row in row.allSatisfy { $0 == firstColor } }
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                let pos = CellPosition(row: row, col: col)
+                if canFloodTraverse(pos) && cells[row][col] != firstColor {
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     /// Performs a flood fill with the given color.
@@ -107,7 +126,7 @@ struct FloodBoard {
         while !queue.isEmpty {
             let current = queue.removeFirst()
             for neighbor in neighbors(of: current) {
-                if !absorbed.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                if !absorbed.contains(neighbor) && canFloodTraverse(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
                     absorbed.insert(neighbor)
                     queue.append(neighbor)
                 }
@@ -129,7 +148,7 @@ struct FloodBoard {
         var boundary = [CellPosition]()
         for pos in currentRegion {
             for neighbor in neighbors(of: pos) {
-                if !currentRegion.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                if !currentRegion.contains(neighbor) && canFloodTraverse(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
                     boundary.append(neighbor)
                 }
             }
@@ -153,7 +172,7 @@ struct FloodBoard {
             var nextWave = Set<CellPosition>()
             for pos in currentWave {
                 for neighbor in neighbors(of: pos) {
-                    if !visited.contains(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
+                    if !visited.contains(neighbor) && canFloodTraverse(neighbor) && cells[neighbor.row][neighbor.col] == newColor {
                         visited.insert(neighbor)
                         nextWave.insert(neighbor)
                     }
