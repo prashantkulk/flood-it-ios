@@ -319,10 +319,12 @@ struct FloodBoard {
         return simulated.isComplete
     }
 
-    /// Returns the 4-directional neighbors of a cell position within bounds.
+    /// Returns the 4-directional neighbors of a cell position within bounds, respecting walls.
     private func neighbors(of position: CellPosition) -> [CellPosition] {
-        let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        return directions.compactMap { dr, dc in
+        return Direction.allCases.compactMap { dir in
+            // Check for wall in this direction
+            guard !hasWall(at: position, direction: dir) else { return nil }
+            let (dr, dc) = dir.delta
             let r = position.row + dr
             let c = position.col + dc
             guard r >= 0, r < gridSize, c >= 0, c < gridSize else { return nil }

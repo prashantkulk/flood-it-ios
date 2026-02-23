@@ -705,6 +705,56 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal, "Countdown should be defused when absorbed")
     }
 
+    // MARK: - P16-T6: Walls between cells
+
+    func testWallBlocksFloodBetweenAdjacentSameColorCells() {
+        // Board: C A     Wall between (0,0) and (0,1)
+        //        E E     and wall between (0,0) and (1,0)
+        // So (0,0) is completely isolated
+        let cells: [[GameColor]] = [
+            [.coral, .coral],
+            [.coral, .coral],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .east)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .south)
+
+        // Flood region is only (0,0) — walls block both neighbors
+        let region = board.floodRegion
+        XCTAssertEqual(region.count, 1, "Walls should block flood in both directions")
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+    }
+
+    func testWallBidirectional() {
+        // Adding wall at (0,0) east should also block from (0,1) west
+        let cells: [[GameColor]] = [
+            [.amber, .amber],
+            [.coral, .coral],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .east)
+
+        // Flood region starts at (0,0). Even though (0,1) is amber, wall blocks it.
+        let region = board.floodRegion
+        XCTAssertEqual(region.count, 1)
+        XCTAssertFalse(region.contains(CellPosition(row: 0, col: 1)))
+    }
+
+    func testWallDoesNotAffectOtherDirections() {
+        // Wall between (0,0) and (0,1) should not affect (0,0) south neighbor
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.coral, .amber],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .east)
+
+        let region = board.floodRegion
+        // (1,0) should still be reachable via south
+        XCTAssertTrue(region.contains(CellPosition(row: 1, col: 0)))
+        XCTAssertEqual(region.count, 2)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
