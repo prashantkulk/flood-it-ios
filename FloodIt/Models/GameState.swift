@@ -8,6 +8,7 @@ class GameState: ObservableObject {
     @Published private(set) var gameStatus: GameStatus
 
     private(set) var totalMoves: Int
+    private(set) var optimalMoves: Int = 0
 
     enum GameStatus {
         case playing
@@ -21,6 +22,7 @@ class GameState: ObservableObject {
         self.movesRemaining = totalMoves
         self.movesMade = 0
         self.gameStatus = .playing
+        self.optimalMoves = FloodSolver.solveMoveCount(board: board)
     }
 
     /// Resets the game with a new board and move budget.
@@ -30,6 +32,7 @@ class GameState: ObservableObject {
         self.movesRemaining = totalMoves
         self.movesMade = 0
         self.gameStatus = .playing
+        self.optimalMoves = FloodSolver.solveMoveCount(board: board)
     }
 
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.

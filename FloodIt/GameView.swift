@@ -218,12 +218,13 @@ struct GameView: View {
                         .foregroundColor(.white.opacity(0.5))
                         .offset(y: -10)
 
-                    // Star rating placeholder
+                    // Star rating
                     HStack(spacing: 8) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            Image(systemName: "star")
+                        let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
+                        ForEach(0..<3, id: \.self) { index in
+                            Image(systemName: index < stars ? "star.fill" : "star")
                                 .font(.system(size: 28))
-                                .foregroundColor(.white.opacity(0.3))
+                                .foregroundColor(index < stars ? .yellow : .white.opacity(0.3))
                         }
                     }
                     .padding(.vertical, 4)

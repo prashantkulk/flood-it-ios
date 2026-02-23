@@ -280,6 +280,31 @@ final class FloodBoardTests: XCTestCase {
         }
     }
 
+    // MARK: - P7-T7: Star rating
+
+    func testStarRating3Stars() {
+        // Within optimal + 1 → 3 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 10, optimalMoves: 10), 3)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 11, optimalMoves: 10), 3)
+    }
+
+    func testStarRating2Stars() {
+        // Within optimal + 3 but more than optimal + 1 → 2 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 12, optimalMoves: 10), 2)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 13, optimalMoves: 10), 2)
+    }
+
+    func testStarRating1Star() {
+        // More than optimal + 3 → 1 star
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10), 1)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 20, optimalMoves: 10), 1)
+    }
+
+    func testStarRatingBetterThanOptimal() {
+        // If player somehow beats the greedy solver → 3 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 8, optimalMoves: 10), 3)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
