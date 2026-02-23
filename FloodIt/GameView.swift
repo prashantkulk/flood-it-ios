@@ -6,6 +6,8 @@ struct GameView: View {
     @StateObject private var gameState: GameState
     private let scene: GameScene
     private let seed: UInt64
+    @State private var moveCounterScale: CGFloat = 1.0
+    @State private var moveCounterFlash: Bool = false
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -50,7 +52,28 @@ struct GameView: View {
                     Text("Moves: \(gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
+                        .scaleEffect(moveCounterScale)
+                        .overlay(
+                            Color.white
+                                .opacity(moveCounterFlash ? 0.6 : 0)
+                                .blendMode(.sourceAtop)
+                                .allowsHitTesting(false)
+                        )
                         .accessibilityIdentifier("moveCounter")
+                        .onChange(of: gameState.movesRemaining) { _ in
+                            moveCounterFlash = true
+                            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                                moveCounterScale = 1.2
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                                    moveCounterScale = 1.0
+                                }
+                                withAnimation(.easeOut(duration: 0.15)) {
+                                    moveCounterFlash = false
+                                }
+                            }
+                        }
 
                     Spacer()
 
