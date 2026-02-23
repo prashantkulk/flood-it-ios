@@ -296,6 +296,38 @@ final class SoundManager {
         }
     }
 
+    // MARK: - Cascade Audio
+
+    /// Cascade whoosh: rising sweep, slightly longer and brighter than cluster whoosh.
+    /// Pitch increases with cascade round.
+    func playCascadeWhoosh(round: Int = 0) {
+        let dur = 0.25
+        let basePitch = 600.0 + Double(round) * 200.0
+        playBuffer(duration: dur, volume: 0.18) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(sin(.pi * t / dur))
+            let freq = basePitch + 2500 * t / dur // rising sweep
+            let noise = Float.random(in: -1...1)
+            let carrier = Float(sin(2 * .pi * freq * t))
+            return noise * carrier * envelope
+        }
+    }
+
+    /// Crescendo bass swell for long cascade chains (3+): low sine building over 600ms.
+    func playCascadeBassSwell() {
+        let dur = 0.6
+        playBuffer(duration: dur, volume: 0.2) { i, sr in
+            let t = Double(i) / sr
+            let progress = t / dur
+            // Crescendo envelope: builds then gentle release
+            let envelope = Float(sin(.pi * progress) * progress)
+            let freq = 50 + 30 * sin(2 * .pi * 2 * t) // wobbling 50-80Hz
+            let sine = Float(sin(2 * .pi * freq * t))
+            let sub = Float(sin(2 * .pi * 35 * t)) * 0.3
+            return (sine + sub) * envelope
+        }
+    }
+
     // MARK: - Combo Audio
 
     /// Plip with longer reverb tail for combo x2+.

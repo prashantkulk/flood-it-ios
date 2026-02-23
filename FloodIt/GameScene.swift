@@ -399,8 +399,10 @@ class GameScene: SKScene {
             if isCascadeWave {
                 let pitchIndex = min(cascadeRound, cascadePitches.count - 1)
                 let pitch = cascadePitches[pitchIndex]
+                let round = cascadeRound
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
                     SoundManager.shared.playPlip(frequency: pitch)
+                    SoundManager.shared.playCascadeWhoosh(round: round)
                 }
             } else {
                 let pitchIndex = min(waveIndex, wavePitches.count - 1)
@@ -465,14 +467,22 @@ class GameScene: SKScene {
             spawnParticleBurst(for: waves, color: newColor)
         }
 
-        // Cascade gets extra particle bursts per round
+        // Cascade gets extra particle bursts per round + bass swell for long chains
         if hasCascade {
-            for cascadeIdx in 0..<(waves.count - cascadeStartIndex) {
+            let cascadeCount = waves.count - cascadeStartIndex
+            for cascadeIdx in 0..<cascadeCount {
                 let cascadeWave = waves[cascadeStartIndex + cascadeIdx]
                 let burstDelay = waveDelays[cascadeStartIndex + cascadeIdx]
                 DispatchQueue.main.asyncAfter(deadline: .now() + burstDelay) { [weak self] in
                     guard let self = self else { return }
                     self.spawnParticleBurst(for: [cascadeWave], color: newColor)
+                }
+            }
+            // Long chains (3+ cascade waves): crescendo bass swell
+            if cascadeCount >= 3 {
+                let bassDelay = waveDelays[cascadeStartIndex]
+                DispatchQueue.main.asyncAfter(deadline: .now() + bassDelay) {
+                    SoundManager.shared.playCascadeBassSwell()
                 }
             }
         }
