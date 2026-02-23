@@ -395,8 +395,10 @@ class GameScene: SKScene {
 
     /// Runs the full completion rush sequence: pulse → shimmer → confetti.
     private func runCompletionRush(completion: @escaping () -> Void) {
-        completionRushPulse {
-            completion()
+        completionRushPulse { [weak self] in
+            self?.completionRushShimmer {
+                completion()
+            }
         }
     }
 
@@ -419,6 +421,40 @@ class GameScene: SKScene {
             SKAction.wait(forDuration: 0.4),
             SKAction.run { completion() }
         ]), withKey: "rushPulse")
+    }
+
+    /// Phase 2: Light sweep from top-left to bottom-right in diagonal order.
+    /// Each cell briefly lightens (+40% brightness) with 15ms offset, then returns to normal.
+    private func completionRushShimmer(completion: @escaping () -> Void) {
+        guard let board = board else { completion(); return }
+        let n = board.gridSize
+        let shimmerDelay: TimeInterval = 0.015  // 15ms per diagonal
+
+        // Group cells by diagonal index (row + col)
+        var maxDiag = 0
+        for row in 0..<n {
+            for col in 0..<n {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let diag = row + col
+                if diag > maxDiag { maxDiag = diag }
+                let node = cellNodes[row][col]
+                let delay = Double(diag) * shimmerDelay
+
+                let wait = SKAction.wait(forDuration: delay)
+                let brighten = SKAction.fadeAlpha(to: 1.4, duration: 0.08)
+                brighten.timingMode = .easeOut
+                let restore = SKAction.fadeAlpha(to: 1.0, duration: 0.12)
+                restore.timingMode = .easeIn
+                let shimmer = SKAction.sequence([wait, brighten, restore])
+                node.run(shimmer, withKey: "winShimmer")
+            }
+        }
+
+        let totalDuration = Double(maxDiag) * shimmerDelay + 0.2 + 0.1
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: totalDuration),
+            SKAction.run { completion() }
+        ]), withKey: "rushShimmer")
     }
 
     // MARK: - Ripple Ring Effect
