@@ -360,31 +360,68 @@ class GameScene: SKScene {
         }
 
         let waveDelay: TimeInterval = 0.03  // 30ms per wave
+        let cascadePause: TimeInterval = 0.10  // 100ms pause before each cascade round
 
-        // Ascending pitch scale: C4 through C5 for waves 1-8+
+        // Ascending pitch scale: C4 through C5 for normal waves
         let wavePitches: [Double] = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]
+        // Cascade pitches start higher (C5 upward)
+        let cascadePitches: [Double] = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50]
 
-        // Calculate total animation duration for completion callback
-        let totalWaves = waves.count
-        let lastWaveStart = Double(totalWaves - 1) * waveDelay
         let perCellDuration: TimeInterval = 0.15
 
         // P14-T8: Scale ripple rings larger for big absorptions
         let precomputedTotal = waves.flatMap { $0 }.count
         let rippleScale: CGFloat = precomputedTotal >= 10 ? 6.0 : 4.0
 
+        // Compute cumulative delay for each wave, adding cascade pauses
+        var waveDelays = [TimeInterval]()
+        var cumulativeDelay: TimeInterval = 0
+        for waveIndex in 0..<waves.count {
+            if waveIndex > 0 && waveIndex == cascadeStartIndex {
+                // Add pause before first cascade wave
+                cumulativeDelay += cascadePause
+            } else if waveIndex > cascadeStartIndex && cascadeStartIndex > 0 {
+                // Add pause between cascade rounds
+                cumulativeDelay += cascadePause
+            }
+            waveDelays.append(cumulativeDelay)
+            cumulativeDelay += waveDelay
+        }
+
+        let hasCascade = cascadeStartIndex > 0 && cascadeStartIndex < waves.count
+
         for (waveIndex, wave) in waves.enumerated() {
-            let delay = Double(waveIndex) * waveDelay
+            let delay = waveDelays[waveIndex]
+            let isCascadeWave = hasCascade && waveIndex >= cascadeStartIndex
+            let cascadeRound = isCascadeWave ? waveIndex - cascadeStartIndex : 0
 
             // Play ascending pitch plip for this wave
-            let pitchIndex = min(waveIndex, wavePitches.count - 1)
-            let pitch = wavePitches[pitchIndex]
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                SoundManager.shared.playPlip(frequency: pitch)
+            if isCascadeWave {
+                let pitchIndex = min(cascadeRound, cascadePitches.count - 1)
+                let pitch = cascadePitches[pitchIndex]
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    SoundManager.shared.playPlip(frequency: pitch)
+                }
+            } else {
+                let pitchIndex = min(waveIndex, wavePitches.count - 1)
+                let pitch = wavePitches[pitchIndex]
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    SoundManager.shared.playPlip(frequency: pitch)
+                }
             }
 
-            // Ripple ring at wave centroid
-            spawnRippleRing(for: wave, delay: delay, color: newColor, expandScale: rippleScale)
+            // Ripple ring — cascade rounds get bigger rings
+            let cascadeRippleScale = isCascadeWave ? rippleScale * (1.0 + CGFloat(cascadeRound) * 0.3) : rippleScale
+            spawnRippleRing(for: wave, delay: delay, color: newColor, expandScale: cascadeRippleScale)
+
+            // Cascade rounds get escalating screen flash
+            if isCascadeWave {
+                let flashDelay = delay
+                let flashAlpha: CGFloat = min(0.15 + CGFloat(cascadeRound) * 0.08, 0.4)
+                DispatchQueue.main.asyncAfter(deadline: .now() + flashDelay) { [weak self] in
+                    self?.spawnCascadeFlash(alpha: flashAlpha)
+                }
+            }
 
             for pos in wave {
                 guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
@@ -393,17 +430,19 @@ class GameScene: SKScene {
                 // Build the animation sequence for this cell
                 let waitAction = SKAction.wait(forDuration: delay)
 
-                // Pop: scale 0.85 → 1.05 → 1.0 with spring feel
+                // Pop: cascade waves get bigger overshoot
+                let overshootScale: CGFloat = isCascadeWave ? 1.10 + CGFloat(cascadeRound) * 0.03 : 1.05
                 let shrink = SKAction.scale(to: 0.85, duration: 0.04)
                 shrink.timingMode = .easeIn
-                let overshoot = SKAction.scale(to: 1.05, duration: 0.08)
+                let overshoot = SKAction.scale(to: overshootScale, duration: 0.08)
                 overshoot.timingMode = .easeOut
                 let settle = SKAction.scale(to: 1.0, duration: 0.06)
                 settle.timingMode = .easeInEaseOut
                 let popSequence = SKAction.sequence([shrink, overshoot, settle])
 
-                // Brief brightness flash during pop
-                let flashUp = SKAction.fadeAlpha(to: 0.8, duration: 0.04)
+                // Brief brightness flash during pop — brighter for cascade
+                let flashBrightness: CGFloat = isCascadeWave ? 0.6 : 0.8
+                let flashUp = SKAction.fadeAlpha(to: flashBrightness, duration: 0.04)
                 let flashDown = SKAction.fadeAlpha(to: 1.0, duration: 0.14)
                 let flash = SKAction.sequence([flashUp, flashDown])
 
@@ -426,6 +465,18 @@ class GameScene: SKScene {
             spawnParticleBurst(for: waves, color: newColor)
         }
 
+        // Cascade gets extra particle bursts per round
+        if hasCascade {
+            for cascadeIdx in 0..<(waves.count - cascadeStartIndex) {
+                let cascadeWave = waves[cascadeStartIndex + cascadeIdx]
+                let burstDelay = waveDelays[cascadeStartIndex + cascadeIdx]
+                DispatchQueue.main.asyncAfter(deadline: .now() + burstDelay) { [weak self] in
+                    guard let self = self else { return }
+                    self.spawnParticleBurst(for: [cascadeWave], color: newColor)
+                }
+            }
+        }
+
         // MARK: P14-T8/T9 Tiered particles + camera shake
         if totalAbsorbed >= 20 {
             spawnScreenFlash()
@@ -433,7 +484,8 @@ class GameScene: SKScene {
         }
 
         // Schedule completion after all waves finish
-        let totalDuration = lastWaveStart + perCellDuration + 0.05
+        let lastDelay = waveDelays.last ?? 0
+        let totalDuration = lastDelay + perCellDuration + 0.05
         let completionAction = SKAction.sequence([
             SKAction.wait(forDuration: totalDuration),
             SKAction.run { [weak self] in
@@ -949,6 +1001,21 @@ class GameScene: SKScene {
         }
         actions.append(SKAction.move(to: center, duration: stepDuration * 0.5))
         cameraNode.run(SKAction.sequence(actions), withKey: "cameraShake")
+    }
+
+    /// Cascade-specific flash with configurable intensity.
+    private func spawnCascadeFlash(alpha: CGFloat) {
+        let flash = SKSpriteNode(color: SKColor(red: 1.0, green: 0.9, blue: 0.5, alpha: 1.0), size: size)
+        flash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        flash.zPosition = 15
+        flash.alpha = alpha
+        flash.name = "cascadeFlash"
+        addChild(flash)
+
+        flash.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.2),
+            SKAction.removeFromParent()
+        ]))
     }
 
     /// Full-screen white flash for 20+ cell absorptions.
