@@ -7,6 +7,7 @@ class GameState: ObservableObject {
     @Published private(set) var movesMade: Int
     @Published private(set) var gameStatus: GameStatus
     @Published private(set) var comboCount: Int = 0
+    let scoreState = ScoreState()
 
     private(set) var totalMoves: Int
     private(set) var optimalMoves: Int = 0
@@ -40,6 +41,7 @@ class GameState: ObservableObject {
         self.comboCount = 0
         self.maxCombo = 0
         self.colorHistory = []
+        self.scoreState.reset()
     }
 
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.
@@ -84,8 +86,16 @@ class GameState: ObservableObject {
             comboCount = 0
         }
 
+        // Record move score
+        let comboMultiplier = comboCount >= 2 ? Double(comboCount) : 1.0
+        let cascadeWaves = waves.count
+        let cascadeMultiplier = cascadeWaves >= 3 ? 1.0 + Double(cascadeWaves - 2) * 0.25 : 1.0
+        scoreState.recordMove(cellsAbsorbed: absorbedCount, comboMultiplier: comboMultiplier, cascadeMultiplier: cascadeMultiplier)
+
         if board.isComplete {
             gameStatus = .won
+            let isOptimalPlusOne = movesMade <= optimalMoves + 1
+            scoreState.recordEndBonus(movesRemaining: movesRemaining, isOptimalPlusOne: isOptimalPlusOne)
         } else if movesRemaining <= 0 {
             gameStatus = .lost
         }
