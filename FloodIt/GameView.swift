@@ -436,8 +436,9 @@ struct GameView: View {
                 SoundManager.shared.playBassThob()
             }
         }
-        // Combo break tink
-        if gameState.comboCount == 0 && prevCombo >= 3 {
+        // Combo break: tink + fade out visuals
+        let comboJustBroke = gameState.comboCount == 0 && prevCombo >= 3
+        if comboJustBroke {
             SoundManager.shared.playComboBreakTink()
         }
 
@@ -471,6 +472,10 @@ struct GameView: View {
                 scene.applyComboSaturation()
                 scene.comboScreenShake()
             }
+        } else if comboJustBroke {
+            // Animate combo visuals fading out
+            scene.fadeOutComboGlow(duration: 0.3)
+            scene.removeComboSaturation()
         } else {
             scene.removeComboGlow()
             scene.removeComboSaturation()
