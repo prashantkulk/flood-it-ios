@@ -599,6 +599,11 @@ struct GameView: View {
         scene.updateColors(from: gameState.board)
     }
 
+    // MARK: - P12-T2 Pack boundary interstitial
+
+    /// Pack boundaries where an interstitial ad should show (e.g., level 50 → 51).
+    private static let packBoundaries: Set<Int> = [50]
+
     private func advanceToNextLevel() {
         let nextNumber = currentLevelNumber + 1
         guard let nextData = LevelStore.level(nextNumber) else {
@@ -607,6 +612,26 @@ struct GameView: View {
             return
         }
 
+        // Check if crossing a pack boundary — show interstitial if not ad-free
+        if Self.packBoundaries.contains(currentLevelNumber) && !adManager.isAdFree {
+            showInterstitialThenAdvance(to: nextNumber, data: nextData)
+        } else {
+            performLevelTransition(to: nextNumber, data: nextData)
+        }
+    }
+
+    private func showInterstitialThenAdvance(to nextNumber: Int, data: LevelData) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            performLevelTransition(to: nextNumber, data: data)
+            return
+        }
+        adManager.showInterstitial(from: rootVC) { [self] _ in
+            performLevelTransition(to: nextNumber, data: data)
+        }
+    }
+
+    private func performLevelTransition(to nextNumber: Int, data: LevelData) {
         // Dismiss win card
         showWinCard = false
         winCardOffset = 600
@@ -615,15 +640,15 @@ struct GameView: View {
 
         // Update level tracking
         currentLevelNumber = nextNumber
-        currentLevelData = nextData
+        currentLevelData = data
 
         // Build new board
-        let colors = Array(GameColor.allCases.prefix(nextData.colorCount))
-        let newBoard = FloodBoard.generateBoard(size: nextData.gridSize, colors: colors, seed: nextData.seed)
+        let colors = Array(GameColor.allCases.prefix(data.colorCount))
+        let newBoard = FloodBoard.generateBoard(size: data.gridSize, colors: colors, seed: data.seed)
 
         // Transition animation: scatter out old cells, then scale in new ones
         scene.transitionToNewBoard(newBoard) {
-            gameState.reset(board: newBoard, totalMoves: nextData.moveBudget)
+            gameState.reset(board: newBoard, totalMoves: data.moveBudget)
         }
     }
 
