@@ -310,6 +310,29 @@ final class SoundManager {
         }
     }
 
+    /// Countdown explosion: low boom + noise burst.
+    func playCountdownExplosion() {
+        let dur = 0.25
+        playBuffer(duration: dur, volume: 0.25) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(exp(-t * 10))
+            let boom = Float(sin(2 * .pi * 80 * t)) * 0.6
+            let noise = Float.random(in: -1...1) * Float(exp(-t * 20)) * 0.4
+            return (boom + noise) * envelope
+        }
+    }
+
+    /// Defuse chime: short pleasant ascending tone.
+    func playDefuseChime() {
+        let dur = 0.15
+        playBuffer(duration: dur, volume: 0.20) { i, sr in
+            let t = Double(i) / sr
+            let freq = 600 + 400 * t / dur
+            let envelope = Float(exp(-t * 15))
+            return Float(sin(2 * .pi * freq * t)) * envelope
+        }
+    }
+
     // MARK: - Cascade Audio
 
     /// Cascade whoosh: rising sweep, slightly longer and brighter than cluster whoosh.

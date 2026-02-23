@@ -1517,6 +1517,7 @@ class GameScene: SKScene {
 
     /// Update obstacle overlays (ice layers, countdown numbers, etc.) based on board state.
     func updateObstacleOverlays(from board: FloodBoard) {
+        let floodRegion = board.floodRegion
         for row in 0..<board.gridSize {
             for col in 0..<board.gridSize {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
@@ -1529,14 +1530,95 @@ class GameScene: SKScene {
                     if node.iceLayers != layers {
                         node.updateIceLayers(layers)
                     }
+                case .countdown(let movesLeft):
+                    if node.countdownValue != movesLeft {
+                        node.updateCountdown(movesLeft)
+                    }
                 default:
                     // Cell was ice but is now normal (fully cracked)
                     if node.iceLayers > 0 {
                         node.updateIceLayers(0)
                     }
+                    // Cell was countdown — check if defused or exploded
+                    if node.countdownValue > 0 {
+                        let pos = CellPosition(row: row, col: col)
+                        if floodRegion.contains(pos) {
+                            // Defused — absorbed into flood region
+                            node.removeCountdownLabel()
+                            spawnDefusedText(at: node.position)
+                            SoundManager.shared.playDefuseChime()
+                        } else {
+                            // Exploded — countdown reached 0
+                            node.removeCountdownLabel()
+                            playCountdownExplosion(at: CellPosition(row: row, col: col))
+                        }
+                    }
                 }
             }
         }
+    }
+
+    /// Green "Defused!" text floating upward from the cell.
+    private func spawnDefusedText(at position: CGPoint) {
+        let label = SKLabelNode(text: "Defused!")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 14
+        label.fontColor = SKColor(red: 0.2, green: 0.9, blue: 0.2, alpha: 1.0)
+        label.position = position
+        label.zPosition = 12
+        label.alpha = 0
+        label.name = "defusedText"
+        addChild(label)
+
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+        let moveUp = SKAction.moveBy(x: 0, y: 40, duration: 0.8)
+        moveUp.timingMode = .easeOut
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        label.run(SKAction.sequence([
+            fadeIn,
+            SKAction.group([moveUp, SKAction.sequence([SKAction.wait(forDuration: 0.5), fadeOut])]),
+            SKAction.removeFromParent()
+        ]))
+    }
+
+    /// Red flash + 3x3 jitter for countdown explosion.
+    private func playCountdownExplosion(at pos: CellPosition) {
+        guard let board = board, pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { return }
+        let centerNode = cellNodes[pos.row][pos.col]
+
+        // Red flash on the cell
+        let flash = SKSpriteNode(color: .red, size: CGSize(width: centerNode.cellSize, height: centerNode.cellSize))
+        flash.position = centerNode.position
+        flash.zPosition = 10
+        flash.alpha = 0.6
+        flash.name = "explosionFlash"
+        addChild(flash)
+        flash.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.3),
+            SKAction.removeFromParent()
+        ]))
+
+        // Jitter 3x3 area
+        for dr in -1...1 {
+            for dc in -1...1 {
+                let r = pos.row + dr
+                let c = pos.col + dc
+                guard r >= 0, r < board.gridSize, c >= 0, c < board.gridSize else { continue }
+                guard r < cellNodes.count, c < cellNodes[r].count else { continue }
+                let node = cellNodes[r][c]
+                let origPos = node.position
+                let jitter = SKAction.sequence([
+                    SKAction.move(to: CGPoint(x: origPos.x + CGFloat.random(in: -3...3),
+                                              y: origPos.y + CGFloat.random(in: -3...3)), duration: 0.04),
+                    SKAction.move(to: CGPoint(x: origPos.x + CGFloat.random(in: -3...3),
+                                              y: origPos.y + CGFloat.random(in: -3...3)), duration: 0.04),
+                    SKAction.move(to: origPos, duration: 0.04)
+                ])
+                node.run(jitter, withKey: "explosionJitter")
+            }
+        }
+
+        SoundManager.shared.playCountdownExplosion()
     }
 
     private func renderBoard() {
@@ -1573,6 +1655,8 @@ class GameScene: SKScene {
                     node.configureAsVoid()
                 case .ice(let layers):
                     node.configureAsIce(layers: layers)
+                case .countdown(let movesLeft):
+                    node.configureAsCountdown(movesLeft: movesLeft)
                 default:
                     break
                 }

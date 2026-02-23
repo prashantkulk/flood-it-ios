@@ -11,6 +11,8 @@ final class FloodCellNode: SKNode {
     private(set) var isVoid = false
     private(set) var iceLayers: Int = 0
     private var iceOverlayNode: SKSpriteNode?
+    private(set) var countdownValue: Int = 0
+    private var countdownLabel: SKLabelNode?
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -184,6 +186,69 @@ final class FloodCellNode: SKNode {
             SKAction.fadeOut(withDuration: 0.2),
             SKAction.removeFromParent()
         ]))
+    }
+
+    /// Configure this cell with a countdown number overlay.
+    func configureAsCountdown(movesLeft: Int) {
+        countdownValue = movesLeft
+        let label = SKLabelNode(text: "\(movesLeft)")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = cellSize * 0.45
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.zPosition = 4
+        label.name = "countdownLabel"
+        addChild(label)
+        countdownLabel = label
+
+        if movesLeft == 1 {
+            startCountdownPulse()
+        }
+    }
+
+    /// Update countdown number, animating changes.
+    func updateCountdown(_ newValue: Int) {
+        guard newValue != countdownValue else { return }
+        countdownValue = newValue
+
+        if newValue <= 0 {
+            countdownLabel?.removeFromParent()
+            countdownLabel = nil
+        } else {
+            countdownLabel?.text = "\(newValue)"
+            if newValue == 1 {
+                startCountdownPulse()
+            } else {
+                stopCountdownPulse()
+            }
+        }
+    }
+
+    /// Remove the countdown label (for defused or exploded cells).
+    func removeCountdownLabel() {
+        countdownLabel?.removeAllActions()
+        countdownLabel?.removeFromParent()
+        countdownLabel = nil
+        countdownValue = 0
+    }
+
+    private func startCountdownPulse() {
+        guard let label = countdownLabel else { return }
+        let toRed = SKAction.run { label.fontColor = UIColor(red: 1.0, green: 0.2, blue: 0.2, alpha: 1.0) }
+        let scaleUp = SKAction.scale(to: 1.15, duration: 0.3)
+        scaleUp.timingMode = .easeInEaseOut
+        let toWhite = SKAction.run { label.fontColor = .white }
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.3)
+        scaleDown.timingMode = .easeInEaseOut
+        let pulse = SKAction.sequence([toRed, scaleUp, toWhite, scaleDown])
+        label.run(SKAction.repeatForever(pulse), withKey: "countdownPulse")
+    }
+
+    private func stopCountdownPulse() {
+        countdownLabel?.removeAction(forKey: "countdownPulse")
+        countdownLabel?.fontColor = .white
+        countdownLabel?.setScale(1.0)
     }
 
     /// Configure this cell as a void: completely hidden so the dark background shows through.
