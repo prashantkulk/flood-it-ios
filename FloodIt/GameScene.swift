@@ -252,6 +252,9 @@ class GameScene: SKScene {
 
         let waveDelay: TimeInterval = 0.03  // 30ms per wave
 
+        // Ascending pitch scale: C4 through C5 for waves 1-8+
+        let wavePitches: [Double] = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25]
+
         // Calculate total animation duration for completion callback
         let totalWaves = waves.count
         let lastWaveStart = Double(totalWaves - 1) * waveDelay
@@ -259,6 +262,13 @@ class GameScene: SKScene {
 
         for (waveIndex, wave) in waves.enumerated() {
             let delay = Double(waveIndex) * waveDelay
+
+            // Play ascending pitch plip for this wave
+            let pitchIndex = min(waveIndex, wavePitches.count - 1)
+            let pitch = wavePitches[pitchIndex]
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                SoundManager.shared.playPlip(frequency: pitch)
+            }
 
             // Ripple ring at wave centroid
             spawnRippleRing(for: wave, delay: delay, color: newColor)
