@@ -424,8 +424,9 @@ class GameScene: SKScene {
         }
     }
 
-    /// Phase 1: All cells scale to 1.15x then back to 1.0x over 400ms.
+    /// Phase 1: All cells scale to 1.15x then back to 1.0x over 400ms + chord swell.
     private func completionRushPulse(completion: @escaping () -> Void) {
+        SoundManager.shared.playChordSwell()
         let scaleUp = SKAction.scale(to: 1.15, duration: 0.2)
         scaleUp.timingMode = .easeInEaseOut
         let scaleDown = SKAction.scale(to: 1.0, duration: 0.2)
@@ -445,9 +446,9 @@ class GameScene: SKScene {
         ]), withKey: "rushPulse")
     }
 
-    /// Phase 2: Light sweep from top-left to bottom-right in diagonal order.
-    /// Each cell briefly lightens (+40% brightness) with 15ms offset, then returns to normal.
+    /// Phase 2: Light sweep + arpeggio sound.
     private func completionRushShimmer(completion: @escaping () -> Void) {
+        SoundManager.shared.playArpeggio()
         guard let board = board else { completion(); return }
         let n = board.gridSize
         let shimmerDelay: TimeInterval = 0.015  // 15ms per diagonal
@@ -479,8 +480,9 @@ class GameScene: SKScene {
         ]), withKey: "rushShimmer")
     }
 
-    /// Phase 3: Confetti burst — 60-80 colored rectangles shoot up from center, arc under gravity.
+    /// Phase 3: Confetti burst + sparkle sound.
     private func completionRushConfetti() {
+        SoundManager.shared.playConfettiSparkle()
         let center = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
         let count = Int.random(in: 60...80)
         let colors = GameColor.allCases

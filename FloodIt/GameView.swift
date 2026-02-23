@@ -48,6 +48,7 @@ struct GameView: View {
                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
                                         starScales[i] = 1.0
                                     }
+                                    SoundManager.shared.playStarChime(noteIndex: i)
                                 }
                             }
                         }
