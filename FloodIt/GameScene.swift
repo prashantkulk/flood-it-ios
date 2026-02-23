@@ -721,6 +721,85 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Combo Glow
+
+    private var comboGlowNodes: [SKShapeNode] = []
+
+    /// Show or update a pulsing golden glow on flood region boundary cells.
+    func showComboGlow(board: FloodBoard, intensity: Int) {
+        removeComboGlow()
+        guard intensity > 0 else { return }
+
+        let region = board.floodRegion
+        // Find boundary cells: flood region cells adjacent to non-region cells
+        var boundaryCells = Set<CellPosition>()
+        for pos in region {
+            let dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            for (dr, dc) in dirs {
+                let nr = pos.row + dr
+                let nc = pos.col + dc
+                guard nr >= 0, nr < board.gridSize, nc >= 0, nc < board.gridSize else { continue }
+                let neighbor = CellPosition(row: nr, col: nc)
+                if !region.contains(neighbor) {
+                    boundaryCells.insert(pos)
+                    break
+                }
+            }
+        }
+
+        let glowAlpha: CGFloat = intensity >= 2 ? 0.6 : 0.4
+        let glowScale: CGFloat = intensity >= 2 ? 1.6 : 1.4
+
+        for pos in boundaryCells {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let cellNode = cellNodes[pos.row][pos.col]
+
+            let n = board.gridSize
+            let sceneW = size.width
+            let available = sceneW - gridPadding * 2
+            let cellSize = (available - CGFloat(n - 1) * gridGap) / CGFloat(n)
+
+            let glow = SKShapeNode(circleOfRadius: cellSize / 2 * glowScale)
+            glow.fillColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+            glow.strokeColor = .clear
+            glow.alpha = glowAlpha
+            glow.position = cellNode.position
+            glow.zPosition = -0.5
+            glow.blendMode = .add
+            glow.name = "comboGlow"
+            addChild(glow)
+            comboGlowNodes.append(glow)
+
+            // Pulsing animation
+            let pulseUp = SKAction.fadeAlpha(to: glowAlpha, duration: 0.5)
+            pulseUp.timingMode = .easeInEaseOut
+            let pulseDown = SKAction.fadeAlpha(to: glowAlpha * 0.4, duration: 0.5)
+            pulseDown.timingMode = .easeInEaseOut
+            glow.run(SKAction.repeatForever(SKAction.sequence([pulseDown, pulseUp])), withKey: "comboPulse")
+        }
+    }
+
+    /// Remove all combo glow nodes.
+    func removeComboGlow() {
+        for node in comboGlowNodes {
+            node.removeFromParent()
+        }
+        comboGlowNodes.removeAll()
+    }
+
+    /// Fade out combo glow over a duration, then remove.
+    func fadeOutComboGlow(duration: TimeInterval = 0.3) {
+        let nodes = comboGlowNodes
+        comboGlowNodes.removeAll()
+        for node in nodes {
+            node.removeAllActions()
+            node.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: duration),
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
     // MARK: - Touch Highlighting
 
     private var highlightedCell: (row: Int, col: Int)?

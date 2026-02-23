@@ -443,6 +443,14 @@ struct GameView: View {
             )
         }
 
+        // Update combo glow
+        if gameState.comboCount >= 3 {
+            let intensity = gameState.comboCount >= 4 ? 2 : 1
+            scene.showComboGlow(board: gameState.board, intensity: intensity)
+        } else {
+            scene.removeComboGlow()
+        }
+
         // Trigger lose animation if game just ended
         if gameState.gameStatus == .lost {
             SoundManager.shared.playLoseTone()
