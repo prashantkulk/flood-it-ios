@@ -172,6 +172,17 @@ struct FloodBoard {
         return waves
     }
 
+    /// Returns cascade waves after the initial flood absorption.
+    /// The initial flood absorbs cells directly adjacent to the flood region boundary (wave 1).
+    /// Cascade waves are the subsequent BFS waves — cells reachable only through the initially
+    /// absorbed cells, representing chain reactions rippling through connected same-color pockets.
+    /// Returns an empty array if no cascade occurs (absorption is only 1 wave deep).
+    func cascadeWaves(after color: GameColor) -> [[CellPosition]] {
+        let allWaves = cellsAbsorbedBy(color: color)
+        guard allWaves.count > 1 else { return [] }
+        return Array(allWaves.dropFirst())
+    }
+
     /// Returns true if flooding with the given color would complete the board (all cells same color).
     func wouldComplete(color newColor: GameColor) -> Bool {
         var simulated = self

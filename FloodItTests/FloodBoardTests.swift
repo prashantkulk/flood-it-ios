@@ -340,6 +340,61 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 5), 2)
     }
 
+    // MARK: - P15-T1: Cascade detection
+
+    func testCascadeWavesDetectsChainReaction() {
+        // Board where flooding creates multi-wave absorption:
+        // A  B  B  B
+        // C  C  C  C
+        // C  C  C  C
+        // C  C  C  C
+        // Flood to B: wave 1 = (0,1), wave 2 = (0,2), wave 3 = (0,3)
+        // Cascade = waves 2 and 3
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 4, cells: cells)
+        let cascade = board.cascadeWaves(after: .amber)
+
+        // Should have 2 cascade waves (waves beyond the first direct absorption)
+        XCTAssertEqual(cascade.count, 2)
+
+        // Cascade wave 1 should contain (0,2) — adjacent to wave 1's (0,1)
+        let cascadeWave1 = Set(cascade[0])
+        XCTAssertTrue(cascadeWave1.contains(CellPosition(row: 0, col: 2)))
+
+        // Cascade wave 2 should contain (0,3) — adjacent to cascade wave 1's (0,2)
+        let cascadeWave2 = Set(cascade[1])
+        XCTAssertTrue(cascadeWave2.contains(CellPosition(row: 0, col: 3)))
+    }
+
+    func testCascadeWavesEmptyWhenNoCascade() {
+        // Board where flooding only has 1 wave (no cascade):
+        // A  B
+        // C  C
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let cascade = board.cascadeWaves(after: .amber)
+        XCTAssertTrue(cascade.isEmpty)
+    }
+
+    func testCascadeWavesEmptyWhenNoAbsorption() {
+        // Flooding with a color not adjacent to the flood region
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        let board = FloodBoard(gridSize: 2, cells: cells)
+        let cascade = board.cascadeWaves(after: .emerald)
+        XCTAssertTrue(cascade.isEmpty)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
