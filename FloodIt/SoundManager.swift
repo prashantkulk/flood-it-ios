@@ -59,11 +59,29 @@ final class SoundManager {
 
     private func setupAudioSession() {
         do {
+            // .ambient respects the hardware mute switch
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.ambient, mode: .default)
             try session.setActive(true)
         } catch {
             print("SoundManager: Audio session setup failed: \(error)")
+        }
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleInterruption),
+            name: AVAudioSession.interruptionNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleInterruption(notification: Notification) {
+        guard let info = notification.userInfo,
+              let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
+
+        if type == .ended {
+            try? engine.start()
         }
     }
 
