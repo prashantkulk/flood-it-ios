@@ -14,6 +14,9 @@ class GameScene: SKScene {
     // Ambient particles
     private var particleEmitter: SKEmitterNode?
 
+    // Camera for screen shake
+    private var cameraNode = SKCameraNode()
+
     func configure(with board: FloodBoard) {
         self.board = board
         if size.width > 0 {
@@ -24,6 +27,12 @@ class GameScene: SKScene {
     override func didMove(to view: SKView) {
         backgroundColor = SKColor(red: 0.06, green: 0.06, blue: 0.12, alpha: 1)
         scaleMode = .resizeFill
+
+        // Setup camera for screen shake
+        cameraNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        addChild(cameraNode)
+        camera = cameraNode
+
         setupDynamicBackground()
         setupParticles()
         if board != nil {
@@ -364,9 +373,10 @@ class GameScene: SKScene {
             spawnParticleBurst(for: waves, color: newColor)
         }
 
-        // MARK: P14-T8 Tiered particles
+        // MARK: P14-T8/T9 Tiered particles + camera shake
         if totalAbsorbed >= 20 {
             spawnScreenFlash()
+            cameraShake()
         }
 
         // Schedule completion after all waves finish
@@ -865,6 +875,27 @@ class GameScene: SKScene {
                 SKAction.removeFromParent()
             ]))
         }
+    }
+
+    /// Camera shake for large absorptions (20+ cells).
+    /// Random offset 2-3px, dampened over 0.15s (3-4 oscillations).
+    func cameraShake() {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+        let oscillations = 4
+        let totalDuration: TimeInterval = 0.15
+        let stepDuration = totalDuration / Double(oscillations * 2)
+
+        var actions = [SKAction]()
+        for i in 0..<oscillations {
+            let damping = 1.0 - Double(i) / Double(oscillations)
+            let amplitude = CGFloat(damping * Double.random(in: 2...3))
+            let dx = CGFloat.random(in: -1...1) * amplitude
+            let dy = CGFloat.random(in: -1...1) * amplitude
+            actions.append(SKAction.move(to: CGPoint(x: center.x + dx, y: center.y + dy), duration: stepDuration))
+            actions.append(SKAction.move(to: CGPoint(x: center.x - dx * 0.5, y: center.y - dy * 0.5), duration: stepDuration))
+        }
+        actions.append(SKAction.move(to: center, duration: stepDuration * 0.5))
+        cameraNode.run(SKAction.sequence(actions), withKey: "cameraShake")
     }
 
     /// Full-screen white flash for 20+ cell absorptions.
