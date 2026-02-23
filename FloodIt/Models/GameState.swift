@@ -71,4 +71,17 @@ class GameState: ObservableObject {
 
         return (waves, previousColors)
     }
+
+    /// Returns the number of cells not in the flood region.
+    var unfloodedCellCount: Int {
+        let total = board.gridSize * board.gridSize
+        return total - board.floodRegion.count
+    }
+
+    /// Grants extra moves, returning the game to playing state.
+    func grantExtraMoves(_ count: Int) {
+        movesRemaining += count
+        totalMoves += count
+        gameStatus = .playing
+    }
 }

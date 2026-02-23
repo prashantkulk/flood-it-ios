@@ -195,35 +195,82 @@ struct GameView: View {
                     .transition(.opacity)
 
                 VStack(spacing: 20) {
-                    Text("Out of Moves")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                    if almostCellCount > 0 {
+                        // "Almost!" variant for ≤2 remaining cells
+                        Text("SO CLOSE!")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
 
-                    VStack(spacing: 12) {
-                        Button(action: {
-                            resetGame()
-                        }) {
-                            Text("Try Again")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(.white)
-                                .clipShape(Capsule())
-                        }
-                        .accessibilityIdentifier("tryAgainButton")
+                        Text("Just \(almostCellCount) cell\(almostCellCount == 1 ? "" : "s") left!")
+                            .font(.system(size: 18, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.8))
 
-                        Button(action: {
-                            dismiss()
-                        }) {
-                            Text("Quit")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.7))
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                useExtraMoves()
+                            }) {
+                                Text("Extra Moves (+3)")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("extraMovesButton")
+
+                            Button(action: {
+                                resetGame()
+                            }) {
+                                Text("Try Again")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("tryAgainButton")
+
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Text("Quit")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            .accessibilityIdentifier("quitButton")
                         }
-                        .accessibilityIdentifier("quitButton")
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    } else {
+                        // Standard lose overlay
+                        Text("Out of Moves")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                resetGame()
+                            }) {
+                                Text("Try Again")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("tryAgainButton")
+
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Text("Quit")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("quitButton")
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
                 }
                 .padding(.vertical, 32)
                 .padding(.horizontal, 24)
@@ -323,6 +370,12 @@ struct GameView: View {
         }
     }
 
+    /// Number of unflooded cells if ≤2 (for "Almost!" mechanic), 0 otherwise.
+    private var almostCellCount: Int {
+        let count = gameState.unfloodedCellCount
+        return count <= 2 ? count : 0
+    }
+
     private var moveCounterColor: Color {
         if gameState.movesRemaining <= 2 { return .red }
         if gameState.movesRemaining <= 5 { return .orange }
@@ -362,7 +415,22 @@ struct GameView: View {
         // Trigger lose animation if game just ended
         if gameState.gameStatus == .lost {
             scene.animateLose()
+            // Pulse remaining cells if "almost" (≤2 unflooded)
+            if gameState.unfloodedCellCount <= 2 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    scene.pulseUnfloodedCells()
+                }
+            }
         }
+    }
+
+    private func useExtraMoves() {
+        showLoseCard = false
+        loseCardOffset = 600
+        gameState.grantExtraMoves(3)
+        // Restore cell alpha and stop pulsing
+        scene.stopPulseUnfloodedCells()
+        scene.updateColors(from: gameState.board)
     }
 
     private func resetGame() {

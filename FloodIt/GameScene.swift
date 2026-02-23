@@ -563,6 +563,41 @@ class GameScene: SKScene {
         ]), withKey: "loseAnimation")
     }
 
+    /// Pulse unflooded cells with a glow effect for the "Almost!" mechanic.
+    func pulseUnfloodedCells() {
+        guard let board = board else { return }
+        let floodRegion = board.floodRegion
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let pos = CellPosition(row: row, col: col)
+                if !floodRegion.contains(pos) {
+                    let node = cellNodes[row][col]
+                    // Restore alpha first
+                    node.run(SKAction.fadeAlpha(to: 1.0, duration: 0.15))
+                    // Pulsing scale
+                    let up = SKAction.scale(to: 1.2, duration: 0.4)
+                    up.timingMode = .easeInEaseOut
+                    let down = SKAction.scale(to: 0.9, duration: 0.4)
+                    down.timingMode = .easeInEaseOut
+                    node.run(SKAction.repeatForever(SKAction.sequence([up, down])), withKey: "almostPulse")
+                }
+            }
+        }
+    }
+
+    /// Stop pulsing unflooded cells.
+    func stopPulseUnfloodedCells() {
+        guard let board = board else { return }
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                cellNodes[row][col].removeAction(forKey: "almostPulse")
+                cellNodes[row][col].run(SKAction.scale(to: 1.0, duration: 0.15))
+            }
+        }
+    }
+
     // MARK: - Ripple Ring Effect
 
     private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor) {
