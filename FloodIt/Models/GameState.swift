@@ -11,6 +11,8 @@ class GameState: ObservableObject {
     private(set) var totalMoves: Int
     private(set) var optimalMoves: Int = 0
     private(set) var maxCombo: Int = 0
+    /// History of colors chosen (for share card).
+    private(set) var colorHistory: [GameColor] = []
 
     enum GameStatus {
         case playing
@@ -37,6 +39,7 @@ class GameState: ObservableObject {
         self.optimalMoves = FloodSolver.solveMoveCount(board: board)
         self.comboCount = 0
         self.maxCombo = 0
+        self.colorHistory = []
     }
 
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.
@@ -69,6 +72,7 @@ class GameState: ObservableObject {
         board.flood(color: color)
         movesMade += 1
         movesRemaining -= 1
+        colorHistory.append(color)
 
         // Update combo: >=4 cells absorbed increments, <4 resets
         if absorbedCount >= 4 {

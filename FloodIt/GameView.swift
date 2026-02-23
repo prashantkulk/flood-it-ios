@@ -17,6 +17,10 @@ struct GameView: View {
     @State private var showLoseCard: Bool = false
     @State private var loseCardOffset: CGFloat = 600
     @State private var showSettings: Bool = false
+    /// Whether this is a daily challenge game.
+    let isDailyChallenge: Bool
+    /// The daily challenge date string (shown on screen).
+    let dailyChallengeDate: String?
     @Environment(\.dismiss) private var dismiss
 
     init(levelNumber: Int = 1) {
@@ -31,6 +35,27 @@ struct GameView: View {
         gameScene.scaleMode = .resizeFill
         gameScene.configure(with: board)
         self.scene = gameScene
+        self.isDailyChallenge = false
+        self.dailyChallengeDate = nil
+    }
+
+    init(dailyChallengeDate date: Date) {
+        let board = DailyChallenge.generateBoard(for: date)
+        let budget = DailyChallenge.moveBudget(for: date)
+        _currentLevelNumber = State(initialValue: -1) // sentinel for daily
+        let data = LevelData(id: -1, seed: DailyChallenge.seed(for: date), gridSize: 9, colorCount: 5, optimalMoves: FloodSolver.solveMoveCount(board: board), moveBudget: budget, tier: .splash)
+        _currentLevelData = State(initialValue: data)
+        _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: budget))
+
+        let gameScene = GameScene(size: UIScreen.main.bounds.size)
+        gameScene.scaleMode = .resizeFill
+        gameScene.configure(with: board)
+        self.scene = gameScene
+        self.isDailyChallenge = true
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        self.dailyChallengeDate = formatter.string(from: date)
     }
 
     var body: some View {
@@ -47,7 +72,19 @@ struct GameView: View {
                             }
                             // Stagger star reveals after card slides in
                             let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
-                            ProgressStore.shared.updateStars(for: currentLevelNumber, stars: stars)
+                            if isDailyChallenge {
+                                let dateStr = DailyChallenge.dateString(for: Date())
+                                let result = DailyResult(
+                                    dateString: dateStr,
+                                    movesUsed: gameState.movesMade,
+                                    moveBudget: gameState.totalMoves,
+                                    starsEarned: stars,
+                                    colorsUsed: gameState.colorHistory.prefix(5).map { $0.rawValue }
+                                )
+                                ProgressStore.shared.saveDailyResult(result)
+                            } else {
+                                ProgressStore.shared.updateStars(for: currentLevelNumber, stars: stars)
+                            }
                             ProgressStore.shared.recordPlay()
                             for i in 0..<stars {
                                 let delay = 0.5 + Double(i) * 0.3
@@ -92,6 +129,14 @@ struct GameView: View {
 
             VStack {
                 // Top bar: move counter + restart
+                if isDailyChallenge, let dateStr = dailyChallengeDate {
+                    Text(dateStr)
+                        .font(.system(size: 14, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 44)
+                }
+
                 HStack {
                     Text("Moves: \(gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -345,27 +390,42 @@ struct GameView: View {
 
                     // Buttons
                     VStack(spacing: 12) {
-                        Button(action: {
-                            advanceToNextLevel()
-                        }) {
-                            Text("Next")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(.white)
-                                .clipShape(Capsule())
-                        }
-                        .accessibilityIdentifier("nextButton")
+                        if isDailyChallenge {
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Text("Done")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("doneButton")
+                        } else {
+                            Button(action: {
+                                advanceToNextLevel()
+                            }) {
+                                Text("Next")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("nextButton")
 
-                        Button(action: {
-                            resetGame()
-                        }) {
-                            Text("Replay")
-                                .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.7))
+                            Button(action: {
+                                resetGame()
+                            }) {
+                                Text("Replay")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("replayButton")
                         }
-                        .accessibilityIdentifier("replayButton")
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)

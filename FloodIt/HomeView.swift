@@ -39,14 +39,30 @@ struct HomeView: View {
 
                     Spacer()
 
-                    NavigationLink(destination: LevelSelectView()) {
-                        Text("Play")
-                            .font(.system(size: 24, weight: .semibold, design: .rounded))
-                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                            .padding(.horizontal, 48)
-                            .padding(.vertical, 16)
-                            .background(.white)
+                    VStack(spacing: 16) {
+                        NavigationLink(destination: LevelSelectView()) {
+                            Text("Play")
+                                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .padding(.horizontal, 48)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
+                        }
+
+                        NavigationLink(destination: DailyChallengeEntryView()) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text("Daily Challenge")
+                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 12)
+                            .background(Color.white.opacity(0.12))
                             .clipShape(Capsule())
+                        }
                     }
 
                     Spacer()

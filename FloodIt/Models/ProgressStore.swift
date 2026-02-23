@@ -1,5 +1,14 @@
 import Foundation
 
+/// Result of a completed daily challenge.
+struct DailyResult: Codable {
+    let dateString: String
+    let movesUsed: Int
+    let moveBudget: Int
+    let starsEarned: Int
+    let colorsUsed: [Int] // GameColor raw values of first moves
+}
+
 /// Persists player progress: best star rating per level, total stars, and daily streak.
 /// Uses UserDefaults with JSON-encoded Codable data.
 class ProgressStore: ObservableObject {
@@ -9,6 +18,7 @@ class ProgressStore: ObservableObject {
     private static let lastPlayDateKey = "progress_lastPlayDate"
     private static let currentStreakKey = "progress_currentStreak"
     private static let longestStreakKey = "progress_longestStreak"
+    private static let dailyResultsKey = "progress_dailyResults"
 
     /// Best star rating per level (level ID → stars 0-3)
     @Published private(set) var levelStars: [Int: Int]
@@ -18,12 +28,22 @@ class ProgressStore: ObservableObject {
     @Published private(set) var longestStreak: Int
     private var lastPlayDate: Date?
 
+    /// Daily challenge results keyed by date string (YYYY-MM-DD)
+    @Published private(set) var dailyResults: [String: DailyResult]
+
     init() {
         if let data = UserDefaults.standard.data(forKey: Self.starsKey),
            let decoded = try? JSONDecoder().decode([Int: Int].self, from: data) {
             self.levelStars = decoded
         } else {
             self.levelStars = [:]
+        }
+
+        if let data = UserDefaults.standard.data(forKey: Self.dailyResultsKey),
+           let decoded = try? JSONDecoder().decode([String: DailyResult].self, from: data) {
+            self.dailyResults = decoded
+        } else {
+            self.dailyResults = [:]
         }
 
         self.currentStreak = UserDefaults.standard.integer(forKey: Self.currentStreakKey)
@@ -98,6 +118,25 @@ class ProgressStore: ObservableObject {
         if lastDay < calendar.startOfDay(for: yesterday) {
             currentStreak = 0
             saveStreak()
+        }
+    }
+
+    // MARK: - Daily Challenge
+
+    /// Returns the daily result for a given date string, or nil if not completed.
+    func dailyResult(for dateString: String) -> DailyResult? {
+        dailyResults[dateString]
+    }
+
+    /// Records a completed daily challenge.
+    func saveDailyResult(_ result: DailyResult) {
+        dailyResults[result.dateString] = result
+        saveDailyResults()
+    }
+
+    private func saveDailyResults() {
+        if let data = try? JSONEncoder().encode(dailyResults) {
+            UserDefaults.standard.set(data, forKey: Self.dailyResultsKey)
         }
     }
 

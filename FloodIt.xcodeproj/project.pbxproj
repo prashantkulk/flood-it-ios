@@ -16,6 +16,7 @@
 		3214D389B8DAA9974B3F3C36 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27D4261953DA06F6DF911BC /* ThemeManager.swift */; };
 		33E3B4690AF8FA56690B49D2 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */; };
 		5C367BF1E4999A08A80DC78E /* LevelSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE183B198EB44E0E383BE400 /* LevelSelectView.swift */; };
+		5F2E1F18ED3951B636A79914 /* DailyChallengeEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */; };
 		5F8B677E76B3A5DE9A348396 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75947AB6CBA0A5DE0A53E532 /* ProgressStore.swift */; };
 		63B02F230EB6B1A6F0455696 /* FloodCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF544722E8B237E330C0C0C /* FloodCell.swift */; };
 		63BD1A70E8275D6B6DF597DC /* FloodBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */; };
@@ -58,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallengeEntryView.swift; sourceTree = "<group>"; };
 		0949DB350DDAD64B75A49A5B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		0CE93DC3A7D71C6BDA619A60 /* FloodIt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FloodIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1C7FFD832E1A263F11BFEFEB /* StarRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRating.swift; sourceTree = "<group>"; };
@@ -112,6 +114,7 @@
 				3B68E9E0AA3DE739E72B5FC4 /* Assets.xcassets */,
 				D5730F9880C43BF08564B0E3 /* CellTextureCache.swift */,
 				A84625815686C15462112C98 /* ContentView.swift */,
+				04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */,
 				743E1E5BBFBD9C0AB2C8A1AB /* FloodCellNode.swift */,
 				2E27BAE84EFF19EA2070E02A /* FloodItApp.swift */,
 				F918AB9DF05A021F6EBAB27F /* GameScene.swift */,
@@ -319,6 +322,7 @@
 				1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */,
 				D3F75FD0CE7284C8004A243A /* ContentView.swift in Sources */,
 				A340ADEE53D5E5BB8B72ED12 /* DailyChallenge.swift in Sources */,
+				5F2E1F18ED3951B636A79914 /* DailyChallengeEntryView.swift in Sources */,
 				63BD1A70E8275D6B6DF597DC /* FloodBoard.swift in Sources */,
 				63B02F230EB6B1A6F0455696 /* FloodCell.swift in Sources */,
 				A568B7C4658B615FC9C73291 /* FloodCellNode.swift in Sources */,
