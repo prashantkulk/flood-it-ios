@@ -300,7 +300,7 @@ Phases are sequential. Each phase ends with a **checkpoint** — a simulator-ver
 ---
 
 ## Phase 13: Polish & App Store Prep
-**Goal:** App icon, launch screen, App Store screenshots, final testing, submission.
+**Goal:** App icon, launch screen, App Store screenshots, final testing. (Submission moved to P21.)
 
 | ID | Task | JTBD | Status | Verify |
 |---|---|---|---|---|
@@ -318,24 +318,198 @@ Phases are sequential. Each phase ends with a **checkpoint** — a simulator-ver
 
 ---
 
+## Phase 14: Scoring System & Enhanced Juice
+**Goal:** Add a full scoring system, tiered visual/haptic feedback, grid tap shortcut, idle shimmer, and near-miss lose screen. Every move should feel like it matters.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P14-T1 | `ScoreState` model: totalScore, calculateMoveScore(cellsAbsorbed, comboMultiplier, cascadeMultiplier), calculateEndBonus(movesRemaining, isOptimalPlusOne) | Scoring logic testable independently | TODO | Unit test: 12 cells at combo x3 = 720 pts |
+| P14-T2 | Integrate ScoreState into GameState: update score in performFlood(), add moveScore/cellsAbsorbed to return type | Score tracked throughout game | TODO | Unit test: score accumulates, end bonus on win |
+| P14-T3 | Score counter display in top bar (gold-tinted, .monospacedDigit alongside move counter) | Player sees score | TODO | Simulator: score visible, updates each move |
+| P14-T4 | Counter pop animations: score 1.3x easeOutBack + gold flash; move counter 1.3x + gold on 10+ cells | Big moves feel impactful | TODO | Simulator: counters pop and flash |
+| P14-T5 | Floating "+N cells" SKLabelNode at absorbed centroid, white, drifts up 40px/0.8s, fades out | Raw absorption feedback | TODO | Simulator: white number floats up |
+| P14-T6 | Floating "+X pts" SKLabelNode 0.15s later, gold, 60px/1.0s. Larger + gold burst on 1.5x+ multiplier | Points visible | TODO | Simulator: gold text, bigger on bonuses |
+| P14-T7 | Tiered haptics: <5=light, 5-15=medium, 15+=heavy+rigid. Wire to both color buttons and grid tap | Haptics scale with impact | TODO | Device: distinctly different |
+| P14-T8 | Tiered particles: 10-19=ring scales 6x, 20+=ring+screen flash (15% white overlay, 0.15s) | Bigger floods explosive | TODO | Simulator: flash on 20+ |
+| P14-T9 | Screen shake via SKCameraNode: 2-3px, 0.15s dampened, 20+ cells only | Visceral impact | TODO | Simulator: visible shake |
+| P14-T10 | Grid tap shortcut: touch handling in GameScene, determine tapped cell's color, callback to GameView to execute flood | Grid tap works | TODO | Simulator: tap cell = flood that color |
+| P14-T11 | Grid tap ghost preview: white 30% overlay on would-be-absorbed cells for 150ms, same-color = shake | Feed-forward cue | TODO | Simulator: preview flash |
+| P14-T12 | Move counter color urgency: orange at ≤5 moves, red at ≤2 with aggressive pulse | Urgency signaling | TODO | Simulator: colors change |
+| P14-T13 | Idle grid shimmer: diagonal light sweep after 5-10s idle, 15ms stagger per diagonal, 0.4s total | Board alive during pauses | TODO | Simulator: shimmer visible |
+| P14-T14 | Near-miss lose screen: progress bar "Board 87% complete!", "Just 12 cells left!" | Drive retry impulse | TODO | Simulator: near-miss framing on loss |
+| P14-T15 | Performance test: all new effects at 60fps on 15×15 | No degradation | TODO | Instruments: 60fps |
+
+### Checkpoint P14 ✅
+**Simulator:** Score counter visible and updating. Floating text on every move. Tiered particles/haptics/screen shake make big moves feel explosive. Grid tap works as shortcut. Idle shimmer keeps board alive. Near-miss lose screen drives retry.
+
+---
+
+## Phase 15: Cascade System
+**Goal:** After a flood, automatically absorb newly-adjacent same-color cells in chain reactions. Cascades are the #1 variable reward mechanic — surprise jackpot moments.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P15-T1 | Cascade detection in FloodBoard: after flood(), check if newly connected region now touches more same-color cells not previously adjacent. Return cascade waves separately | Cascade logic | TODO | Unit test: cascade detected on prepared board |
+| P15-T2 | Recursive cascade: keep checking after each cascade wave until stable state | Multi-chain support | TODO | Unit test: triple cascade on prepared board |
+| P15-T3 | Integrate cascade into GameState.performFlood(): return cascadeWaves alongside regular waves | Full cascade data flow | TODO | Unit test: performFlood returns cascade data |
+| P15-T4 | Cascade animation: each cascade wave plays 100ms after previous, escalating particle intensity, ascending pitch | Visual cascade chain | TODO | Simulator: cascade waves animate sequentially |
+| P15-T5 | Cascade scoring: each wave 1.5x multiplier (wave 1=1x, wave 2=1.5x, wave 3=2.25x) | Escalating reward | TODO | Unit test: cascade score math correct |
+| P15-T6 | "CASCADE x2!" / "CASCADE x3!" floating golden text on multi-chain reactions | Player sees cascade feedback | TODO | Simulator: cascade text visible |
+| P15-T7 | Cascade sound: escalating plip tones + whoosh per wave, crescendo on long chains | Audio excitement | TODO | Device: cascades sound exciting |
+
+### Checkpoint P15 ✅
+**Simulator:** Cascades fire automatically after floods that create new adjacencies. Visual escalation (bigger particles, ascending pitch, golden text) makes cascades feel like jackpots. Score multiplies dramatically on long chains.
+
+---
+
+## Phase 16: Obstacle System — Models & Logic
+**Goal:** All obstacle types implemented as pure logic, fully testable without visuals. BFS handles stones, voids, ice, countdowns, walls, portals, and bonus tiles.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P16-T1 | Extend cell model: add `CellType` enum — normal, stone, void, portal(pairId), countdown(movesLeft), ice(layers). Add optional `wallEdges: Set<Direction>` | Data model for all obstacles | TODO | Compiles, unit test: types construct |
+| P16-T2 | Stone blocks: BFS skips stone cells, never change color, excluded from win check | Core obstacle | TODO | Unit test: flood stops at stones, win ignores stones |
+| P16-T3 | Void cells: not part of playfield, excluded from all logic. Board shapes via void patterns | Shaped boards | TODO | Unit test: void cells excluded from flood and win |
+| P16-T4 | Ice layers: flood passing over ice cell decrements layer. At 0 layers → normal cell | Multi-pass obstacle | TODO | Unit test: ice cracks, becomes normal after all layers |
+| P16-T5 | Countdown cells: decrement each move. At 0 → scramble 3x3 area to random colors. Absorbed before 0 → defused | Urgency obstacle | TODO | Unit test: decrement, scramble, defuse all work |
+| P16-T6 | Walls between cells: block flood propagation through wall edge even if colors match | Routing obstacle | TODO | Unit test: wall blocks flood between adjacent cells |
+| P16-T7 | Portals: two cells treated as adjacent for BFS | Topology puzzle | TODO | Unit test: flood flows through portal pair |
+| P16-T8 | Bonus tiles: x2/x3 multiplier, score multiplied when absorbed | Variable reward | TODO | Unit test: bonus tile multiplies move score |
+| P16-T9 | Update FloodSolver to handle all obstacle types | Solver for budgets | TODO | Unit test: solver solves obstacle boards |
+| P16-T10 | Comprehensive obstacle interaction tests: stone+ice, portal+wall, countdown+cascade, etc. | Edge cases | TODO | 10+ unit tests covering combinations |
+
+### Checkpoint P16 ✅
+**Tests:** All obstacle types work in pure logic. BFS respects stones, voids, walls, portals. Ice cracks. Countdowns tick. Bonus tiles multiply. Solver handles all types. 30+ new unit tests.
+
+---
+
+## Phase 17: Obstacle Rendering & Animation
+**Goal:** Every obstacle type has a distinct, instantly recognizable visual treatment. Players understand obstacles through visuals alone — no tutorial text.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P17-T1 | Stone block rendering: gray textured cell, rough surface, no glow, clearly non-interactive | Stones visible | TODO | Simulator: stones look solid/immovable |
+| P17-T2 | Void cell rendering: cell not rendered, dark bg shows through. Board shapes look natural | Shaped boards | TODO | Simulator: L/donut/diamond shapes look correct |
+| P17-T3 | Ice layer rendering: translucent blue-white overlay, thicker for 2 layers. Crack animation + "crack" sound on layer removal | Ice visually satisfying | TODO | Simulator: ice cracks are satisfying |
+| P17-T4 | Countdown cell rendering: number overlay, pulses red at 1. Explosion animation (red flash + scramble) at 0. "Defused!" text on absorption | Countdown dramatic | TODO | Simulator: countdown visible, explosion dramatic |
+| P17-T5 | Wall rendering: thin dark line between cells where wall exists | Walls clear | TODO | Simulator: walls clearly visible between cells |
+| P17-T6 | Portal rendering: swirling vortex effect (rotating gradient), particle trail when flood flows through | Portals magical | TODO | Simulator: portals visually distinct |
+| P17-T7 | Bonus tile rendering: golden glow, "x2"/"x3" text overlay, gold explosion on absorption | Bonus = jackpot feel | TODO | Simulator: bonus tiles look exciting |
+| P17-T8 | Performance test: 15x15 board with all obstacle types at 60fps | No lag | TODO | Instruments: 60fps |
+
+### Checkpoint P17 ✅
+**Simulator:** Every obstacle type is visually distinct and readable at a glance. Ice cracks are satisfying, countdowns are tense, portals feel magical, bonus tiles feel like jackpots.
+
+---
+
+## Phase 18: Level Data Overhaul
+**Goal:** Redesign all 100 levels with the new obstacle progression and roller-coaster difficulty curve. Every level solvable, every obstacle introduced gradually.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P18-T1 | Extend LevelData: add obstacleConfig (stone positions, ice positions+layers, countdown positions+values, wall edges, portal pairs, bonus positions, void mask) | Level config supports obstacles | TODO | Compiles with new fields |
+| P18-T2 | Board shape templates: rectangular, L-shape, donut, diamond, cross, heart, custom void masks | Non-rectangular levels | TODO | Unit test: shapes generate correctly |
+| P18-T3 | Obstacle placement algorithm: place N stones/ice/etc. ensuring board remains solvable via solver | Solvable obstacle levels | TODO | Unit test: generated levels solvable |
+| P18-T4 | Generate levels 1-20: onboarding + easy breathers (no obstacles, keep existing behavior) | Preserve onboarding | TODO | Unit test: levels 1-20 same as before |
+| P18-T5 | Generate levels 21-30: stones + shaped boards | First obstacles | TODO | Unit test: stones present, solvable |
+| P18-T6 | Generate levels 31-40: ice layers | Ice introduced | TODO | Unit test: ice present, solvable |
+| P18-T7 | Generate levels 41-50: countdown cells + boss gauntlet | Urgency levels | TODO | Unit test: countdowns present, solvable |
+| P18-T8 | Generate levels 51-65: walls + portals | Topology puzzles | TODO | Unit test: walls/portals present, solvable |
+| P18-T9 | Generate levels 66-100: escalating combinations, expert, final boss gauntlet | Full progression | TODO | Unit test: all 100 levels solvable |
+| P18-T10 | Difficulty roller coaster verification: chart follows sawtooth (easy-hard-easy pattern) | Not linear difficulty | TODO | Manual review + unit test: move budgets follow pattern |
+| P18-T11 | Bonus tiles scattered across levels 15+ | Variable rewards | TODO | Unit test: bonus tiles in expected levels |
+
+### Checkpoint P18 ✅
+**Tests:** All 100 levels solvable with obstacles. Difficulty follows sawtooth curve. Obstacle introduction is gradual. Bonus tiles scattered for variable rewards.
+
+---
+
+## Phase 19: Win Celebration & Gold Rush Overhaul
+**Goal:** The win sequence is the emotional climax. Upgrade it with a rolling score tally, gold coin rain, perfect clear badge, and visceral lose screen.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P19-T1 | Rolling score tally on win: remaining moves tick down (0.3s each), "+50" floats up, score counter rolls | Satisfying payoff | TODO | Simulator: tally animates |
+| P19-T2 | Gold coin particles during tally: 3-4 gold sprites per tick, rain from top with gravity | Gold rush feel | TODO | Simulator: gold coins rain |
+| P19-T3 | Tally speed cap: accelerate if many moves remain, cap total tally at 2s | Don't bore player | TODO | Simulator: long tallies speed up |
+| P19-T4 | Perfect clear badge: "+500 PERFECT" gold text pulses in after tally | Reward optimal play | TODO | Simulator: badge visible on perfect clears |
+| P19-T5 | Updated score card: final score (gold, prominent), moves, stars, best score for level | Score is centerpiece | TODO | Simulator: score dominates card |
+| P19-T6 | Lose screen desaturation: non-flooded cells to grayscale over 0.5s | Visceral loss feel | TODO | Simulator: color drains on loss |
+| P19-T7 | Lose screen final score display | Player sees progress | TODO | Simulator: score shown on lose card |
+
+### Checkpoint P19 ✅
+**Simulator:** Winning feels like a gold rush — coins rain, score tallies up, perfect badge pulses. Losing feels visceral — color drains, but near-miss framing drives retry.
+
+---
+
+## Phase 20: Full QA Playthrough & Bug Fix Cycle
+**Goal:** Play the entire game like a real player. Find everything broken or unpolished. Fix it all. This is the final quality gate.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P20-T1 | **First playthrough (levels 1-100)**: Launch simulator, play ALL 100 levels sequentially. Click every button on every screen (settings, restart, hint, next, replay, daily challenge, share). Use both color buttons AND grid tap. Trigger win, lose, and "almost!" states. Test combo system. Try edge cases (rapid tapping, tapping during animations, same-color taps). Document EVERY bug and UX issue found. | Find all real bugs | TODO | Output: `bugs.md` with numbered bug list |
+| P20-T2 | **Create improvements.md**: While playing, note every moment that feels dull, confusing, or unpolished. Things like: animation timing feels off, text is hard to read, transitions are jarring, feedback is missing, something doesn't feel satisfying. Document as actionable improvements. | Find all UX gaps | TODO | Output: `improvements.md` with numbered list |
+| P20-T3 | **Implement improvements**: Go through each item in `improvements.md` and implement it. Mark each as DONE in the file after implementation. Run unit tests after each change. | Fix UX issues | TODO | All items in improvements.md marked DONE, tests pass |
+| P20-T4 | **Second playthrough (levels 1-100)**: Launch simulator again, replay ALL 100 levels. Verify improvements are actually visible and feel better. Find any NEW bugs introduced by improvements. Append new bugs to `bugs.md`. Append any remaining UX issues to `improvements.md`. | Verify improvements, catch regressions | TODO | Updated `bugs.md` and `improvements.md` |
+| P20-T5 | **Fix all bugs**: Go through each bug in `bugs.md` (both original and new). Fix each one. After fixing each bug, launch the simulator and manually verify it's resolved. Mark as FIXED in `bugs.md` with verification note. | Zero known bugs | TODO | All bugs in `bugs.md` marked FIXED |
+| P20-T6 | **Third playthrough (spot check)**: Play 20 representative levels (1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100). Verify all bugs are actually fixed. Verify all improvements feel right. | Final verification | TODO | No open bugs, game feels polished |
+| P20-T7 | **Run full test suite**: `xcodebuild test` — all unit tests and UI tests must pass. Fix any test failures. | Code quality | TODO | All tests green |
+| P20-T8 | **Final sign-off**: Update `bugs.md` and `improvements.md` with final status. Summarize overall game quality assessment. | Documentation | TODO | Both docs finalized |
+
+### Phase 20 Rules
+- Play in the actual iOS Simulator (iPhone 17 Pro), not just code review
+- Think like a REAL PLAYER, not a developer — notice things that feel wrong even if the code is "correct"
+- Every bug must be verified fixed in the simulator, not just in code
+- `bugs.md` format: `BUG-001: [Description] | Severity: Critical/High/Medium/Low | Status: OPEN/FIXED | Fix: [what was done]`
+- `improvements.md` format: `IMP-001: [Description] | Impact: High/Medium/Low | Status: TODO/DONE | Change: [what was done]`
+- Files created at `/Users/prashant/Projects/FloodIt/bugs.md` and `/Users/prashant/Projects/FloodIt/improvements.md`
+
+### Checkpoint P20 ✅
+**Simulator:** All 100 levels playable. Zero known bugs. Every interaction feels polished. Game quality is App Store-ready.
+
+---
+
+## Phase 21: App Store Submission
+**Goal:** Generate final screenshots, update store listing, archive, and upload to App Store Connect. The very last phase after all QA is complete.
+
+| ID | Task | JTBD | Status | Verify |
+|---|---|---|---|---|
+| P21-T1 | Generate final App Store screenshots (6.7" and 6.1" sizes) showing new features (obstacles, cascades, scoring, gold rush) | App Store listing | TODO | Screenshots match required sizes |
+| P21-T2 | Update App Store description and keywords to highlight new features | Discoverability | TODO | Copy reviewed |
+| P21-T3 | Archive, sign, upload to App Store Connect (`xcodebuild archive` → `codesign` → `xcodebuild -exportArchive` with `-allowProvisioningUpdates`) | Ship it | TODO | Build uploaded to App Store Connect |
+| P21-T4 | Verify build in TestFlight, distribute to Prashant for final review | Last check | TODO | TestFlight build installable |
+
+### Checkpoint P21 ✅
+**TestFlight:** Complete app with obstacles, cascades, scoring, and enhanced juice — ready for App Store review.
+
+---
+
 ## Summary: Phase Overview
 
-| Phase | Focus | Tasks | Tests Added |
+| Phase | Focus | Tasks | Status |
 |---|---|---|---|
-| P1 | Project setup & skeleton | 8 | 3 unit |
-| P2 | Core game logic | 8 | 12+ unit |
-| P3 | Basic board rendering | 8 | 1 UI |
-| P4 | Premium visual overhaul (3D cells, glow, particles, glassmorphism, dynamic bg) | 13 | 1 perf |
-| P5 | Flood animation | 7 | 1 perf |
-| P6 | Touch feedback & haptics | 6 | — |
-| P7 | Win/lose sequences | 10 | 2 unit |
-| P8 | Sound design | 8 | — |
-| P9 | Combo system | 7 | 2 unit |
-| P10 | Progression & retention | 9 | 1 unit |
-| P11 | Daily challenge & share | 6 | 2 unit |
-| P12 | Monetization | 6 | — |
-| P13 | Polish & submission | 8 | 1 regression |
-| **Total** | | **99 tasks** | **25+ tests** |
+| P1 | Project setup & skeleton | 8 | DONE |
+| P2 | Core game logic | 8 | DONE |
+| P3 | Basic board rendering | 8 | DONE |
+| P4 | Premium visual overhaul (3D cells, glow, particles, glassmorphism, dynamic bg) | 13 | DONE |
+| P5 | Flood animation | 7 | DONE |
+| P6 | Touch feedback & haptics | 6 | PARTIAL (T1 done) |
+| P7 | Win/lose sequences | 10 | DONE |
+| P8 | Sound design | 8 | DONE |
+| P9 | Combo system | 7 | DONE |
+| P10 | Progression & retention | 9 | DONE |
+| P11 | Daily challenge & share | 6 | DONE |
+| P12 | Monetization | 6 | DONE |
+| P13 | Polish & App Store prep | 8 | DONE |
+| **P14** | **Scoring system & enhanced juice** | **15** | **TODO** |
+| **P15** | **Cascade system** | **7** | **TODO** |
+| **P16** | **Obstacle models & logic** | **10** | **TODO** |
+| **P17** | **Obstacle rendering & animation** | **8** | **TODO** |
+| **P18** | **Level data overhaul** | **11** | **TODO** |
+| **P19** | **Win celebration & gold rush** | **7** | **TODO** |
+| **P20** | **Full QA playthrough & bug fix cycle** | **8** | **TODO** |
+| **P21** | **App Store submission** | **4** | **TODO** |
+| **Total** | | **169 tasks** | |
 
 ---
 

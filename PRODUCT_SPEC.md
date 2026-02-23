@@ -1,7 +1,7 @@
 # Flood It — Product Specification
-**Version:** 1.1 (Revised — deeper retention & polish)  
-**Date:** 2026-02-22  
-**Status:** Pre-development  
+**Version:** 2.0 (Obstacles, cascades, scoring & enhanced juice)
+**Date:** 2026-02-23
+**Status:** Pre-development (Phases 14–21)
 
 ---
 
@@ -23,9 +23,10 @@ This spec defines not just what the game does, but **how it feels** — because 
 - The player "owns" all cells connected to the **top-left corner** that share the same color — this is the starting flood region.
 
 ### 2.2 A Turn
-1. Player taps one of the **5 color buttons** at the bottom of the screen.
+1. Player taps one of the **5 color buttons** at the bottom of the screen (or taps a cell on the grid — see Section 4.4).
 2. The player's flood region instantly changes to that color.
 3. Any cells **adjacent** to the flood region that match the new color get absorbed into it.
+3a. **Cascade check:** After absorption, the game checks if the newly expanded flood region now touches additional same-color cells that weren't previously adjacent. If so, a secondary cascade wave auto-absorbs them (see Section 5.6). This repeats until stable.
 4. Move counter decrements by 1.
 
 ### 2.3 Win / Lose Condition
@@ -110,6 +111,9 @@ The 5 color buttons are NOT flat circles. They are **glowing orbs** — spheres 
 - Active/selected orb pulses gently (1.0 → 1.05 → 1.0, 1.5s cycle)
 - Tap state: squish + bounce as defined in Section 4.1
 
+### 3.12 Idle Grid Shimmer
+After 5–10 seconds of no player input, a diagonal light sweep animates across the board. Each cell along the diagonal brightens by 10%, with a 15ms stagger per diagonal index, totaling ~0.4s for the full sweep. The effect is subtle — a gentle reminder that the board is alive and waiting. Resets on any player interaction.
+
 ---
 
 ## 4. Touch Interaction & Feedback
@@ -121,7 +125,7 @@ The color buttons at the bottom are circular and also use the 3D raised style.
 1. **Press** (0–80ms): Button scales down to 0.88x. Shadow shrinks. The "depth" visually compresses, like a physical button being pushed.
 2. **Color broadcast** (80ms): The flood region begins changing color. The button holds the pressed state.
 3. **Release bounce** (80–160ms): Button springs back to 1.0x with a slight overshoot to 1.05x, then settles. Spring animation, not linear.
-4. **Haptic** (at 80ms): Light impact haptic fires (`UIImpactFeedbackGenerator` style `.light`). Not intrusive, just confirmation.
+4. **Haptic** (at 80ms): Tiered haptic based on cells absorbed: <5 cells = `UIImpactFeedbackGenerator(.light)`, 5–15 cells = `.medium`, 15+ cells = `.heavy` + `.rigid` overlay. Bigger moves feel physically bigger.
 
 ### 4.2 Tapping an Already-Active Color
 If the player taps the color already flooding, nothing happens gameplay-wise. The button does the press/release animation anyway (it's satisfying), and a gentle "dull" haptic fires (`UIImpactFeedbackGenerator` style `.soft`).
@@ -133,6 +137,16 @@ When the player's finger **rests on the board** (not the color buttons), the cel
 - Adjacent cells dim slightly to 85% brightness, creating a "focus" halo effect
 
 This makes the board feel responsive even when browsing, not just when tapping.
+
+### 4.4 Grid Tap Shortcut
+Tapping any cell on the board floods with that cell's color — a shortcut that skips the color buttons entirely.
+
+**Behavior:**
+1. On touch-down, a **ghost preview** appears: all cells that would be absorbed get a white 30% overlay for 150ms, giving instant feed-forward about what the move will do.
+2. On touch-up, the flood auto-executes with the tapped cell's color.
+3. If the tapped cell's color matches the current flood color (i.e., no-op), the cell shakes briefly (3 cycles, 2px amplitude, 150ms) and a soft haptic fires. No move is consumed.
+
+This shortcut makes one-handed play much faster and more intuitive. Advanced players will exclusively use grid taps.
 
 ---
 
@@ -159,6 +173,12 @@ Each time a move is made, the move counter:
 - Briefly scales up to 1.2x, then snaps back to 1.0x
 - Flashes white for 80ms
 - Color transitions to orange when ≤5 moves remain, and red when ≤2 moves remain (with a more aggressive pulse)
+- On moves absorbing 10+ cells: counter scales to 1.3x instead, flashes gold instead of white
+
+**Score counter** (see Section 15.5) pops simultaneously:
+- Scales to 1.3x with easeOutBack spring
+- Gold flash on the score digits
+- Larger pop + gold particle burst when score crosses bonus thresholds (1.5x+ multiplier)
 
 ### 5.3 The "Last Cluster" Moment
 When the player makes a move that will clear the board in one sweep — even before the animation plays — the game **detects** this is the winning move. A special sequence fires:
@@ -173,20 +193,27 @@ This pause-then-rush creates the "oh... OH!" moment that makes the game feel goo
 ### 5.4 Completion Rush (Win Sequence)
 The winning state is the most important UX moment in the game. It must feel **euphoric**.
 
-**Full sequence (total ~2.5 seconds):**
+**Full sequence (total ~4.0 seconds with score tally):**
 
-**Phase 1 — Board pulse (0–400ms):**  
+**Phase 1 — Board pulse (0–400ms):**
 All cells on the board simultaneously pulse to 1.15x scale and back. The entire board "breathes" once, like it's proud of itself. A soft chime plays.
 
-**Phase 2 — Color wave (400–900ms):**  
+**Phase 2 — Color wave (400–900ms):**
 A shimmer wave sweeps across the board from top-left to bottom-right. Each cell briefly lightens to near-white and then returns to the flood color. It looks like a light is being swept across the surface.
 
-**Phase 3 — Burst (900ms):**  
+**Phase 3 — Burst (900ms):**
 The board background flashes white (20ms), then a confetti explosion erupts from behind the board. 60–80 confetti pieces in all 5 game colors shoot upward and arc outward under simulated gravity, rotating as they fall. SpriteKit's `SKEmitterNode` handles this natively.
 
-**Phase 4 — Score card (1200ms):**  
+**Phase 4 — Rolling score tally (1200–3200ms):**
+Remaining moves tick down one at a time (0.3s each, accelerating if many remain, total capped at 2s):
+- Each tick: move counter decrements, "+50" gold text floats up from the counter
+- Score counter rolls up continuously as bonus points accumulate
+- 3–4 gold coin sprites rain from the top per tick, falling with gravity
+- If player achieved optimal+1 or fewer: after tally completes, a "+500 PERFECT" gold badge pulses in with a burst of gold particles
+
+**Phase 5 — Score card (after tally):**
 A frosted glass card slides up from the bottom of the screen with a spring animation. Shows:
-- "Solved! ✓" in large bold text
+- **Final score** (gold, large, prominent — the centerpiece)
 - Moves used / moves allowed (e.g., "14 / 22")
 - Star rating (1–3 stars based on efficiency)
 - Best score for this board (if replaying)
@@ -195,41 +222,105 @@ A frosted glass card slides up from the bottom of the screen with a spring anima
 The stars animate in one by one with a pop effect and a chime note each (do, mi, sol).
 
 ### 5.5 Lose Sequence
-Intentionally less dramatic — failure should feel calm, not punishing:
-1. All non-flooded cells fade to 40% opacity and desaturate slightly.
+Intentionally less dramatic — failure should feel calm, not punishing, but with near-miss framing to drive retry:
+1. All non-flooded cells **desaturate to grayscale** over 0.5s (color drains away, visceral loss feel).
 2. The board gently shakes horizontally (3 cycles, 4px amplitude, 300ms total).
-3. A simple overlay slides in: "Out of moves" in medium text, with "Try Again" and "Quit" buttons.
+3. A simple overlay slides in with near-miss framing:
+   - Progress bar showing "Board 87% complete!"
+   - "Just 12 cells left!" (or whatever the actual count is)
+   - Final score displayed (smaller than win screen, but visible)
+   - "Try Again" and "Quit" buttons
 4. Haptic: `UINotificationFeedbackGenerator` style `.error` (the standard iOS error buzz).
+
+The near-miss framing reframes failure as "almost success" — the player sees how close they were and is driven to retry.
+
+### 5.6 Cascade Mechanic
+After a flood absorbs cells, the game checks if the newly expanded flood region now touches MORE same-color cells that weren't previously adjacent to the flood boundary. If so, those cells are auto-absorbed in a **secondary cascade wave** — no move cost. This check repeats recursively until the board reaches a stable state.
+
+**Why this exists:** Cascades create surprise "chain reaction" jackpot moments — the #1 variable reward mechanic identified in research of Candy Crush, 2048, and other top casual games. The player doesn't plan for cascades; they just happen, creating delight.
+
+**Visual/audio cascade sequence:**
+- Each cascade wave plays 100ms after the previous wave completes
+- Particle intensity escalates with each wave (more particles, brighter, larger)
+- Sound pitch ascends with each cascade (plip tones step up a third)
+- On multi-chain reactions (2+ cascades), floating golden text appears:
+  - "CASCADE x2!" on the second wave
+  - "CASCADE x3!" on the third wave (larger text, more particles)
+  - And so on — each successive cascade is more dramatic
+
+### 5.7 Enhanced Flood Juice
+Tiered visual feedback scales with the size of the flood:
+
+**Tiered particles:**
+- 1–4 cells: standard pop animation only (no extra particles)
+- 5–9 cells: sparkle particle burst (existing behavior from Section 5.1)
+- 10–19 cells: sparkles + ripple ring scales to 6x size with brighter glow
+- 20+ cells: sparkles + large ring + **screen flash** (15% white overlay, 0.15s fade-out)
+
+**Screen shake (20+ cells only):**
+- 2–3px amplitude, 0.15s duration, dampened oscillation
+- Implemented via `SKCameraNode` offset, not node movement
+- Combined with the screen flash, creates a visceral "earthquake" moment
+
+**Floating feedback text:**
+- "+N cells" in white at the centroid of absorbed cells, drifts up 40px over 0.8s, fades out
+- "+X pts" in gold appears 0.15s later, drifts up 60px over 1.0s, fades out
+- On bonus thresholds (1.5x+ multiplier): pts text is larger with a gold particle burst behind it
 
 ---
 
-## 6. Game Modes
+## 6. Obstacle System
 
-### 6.1 Classic
+One new obstacle type is introduced every 10–15 levels, following Candy Crush's "complexity staircase" — each new mechanic gets a gentle introduction before being combined with previous ones.
+
+### 6.1 Obstacle Types
+
+| Obstacle | Introduced | Mechanic |
+|---|---|---|
+| **Stone blocks** | Level 21+ | Unfloodable gray cells. Cannot change color, cannot be absorbed. Split the board into disconnected regions that must be flooded separately. Excluded from win check. |
+| **Shaped boards** | Level 21+ | Non-rectangular board shapes: L, donut, diamond, cross, heart. Implemented via void cells that are not part of the playfield (dark background shows through). |
+| **Ice layers** | Level 31+ | 1–2 translucent icy layers over a cell. Each flood pass that reaches the cell cracks one layer. Once all layers are gone, the cell becomes normal and can be absorbed. |
+| **Countdown cells** | Level 41+ | A number displayed on the cell that decrements each move. At 0, the cell explodes and scrambles the 3×3 area around it to random colors. Defused by absorbing the cell before it hits 0. |
+| **Walls** | Level 51+ | Thin barriers between two adjacent cells. Flood cannot pass through a wall even if colors match. Some walls are breakable (crumble after 2 flood passes on either side). |
+| **Portals** | Level 61+ | Two cells treated as adjacent despite physical distance. Flood flows through a portal pair as if they were neighbors. Creates non-obvious topology. |
+| **Bonus tiles** | Level 15+ | x2 or x3 score multiplier cells with a golden glow. When absorbed, the move's score is multiplied. Gold explosion animation on absorption — jackpot feel. |
+
+### 6.2 Design Principles
+- **One at a time:** Each obstacle is introduced in a "breather" set of levels (easy difficulty) before being combined with others.
+- **Always solvable:** The level generator uses the solver to verify every board with obstacles has a valid solution within the move budget.
+- **Visual clarity:** Each obstacle is visually distinct and instantly recognizable. No two obstacles look similar.
+- **Cascades + obstacles:** Obstacles interact naturally with cascades — e.g., a cascade wave can crack ice, a cascade can flow through portals, a cascade doesn't decrement countdown cells (only player moves do).
+
+---
+
+## 7. Game Modes
+
+### 7.1 Classic
 Standard 9×9 grid. Fixed move budget per level. 500+ hand-seeded levels organized into difficulty packs:
 - **Splash** (levels 1–50): Easy. 9×9. Generous moves. Great for onboarding.
 - **Current** (51–150): Medium. 9×9. Moderate moves.
 - **Torrent** (151–300): Hard. 12×12. Tighter moves.
 - **Tsunami** (301–500): Expert. 15×15. Minimum viable moves.
 
-### 6.2 Daily Challenge
+### 7.2 Daily Challenge
 One puzzle per day, same for all players worldwide. Share your result as a score card image (moves used, time, star rating). This is the social/viral loop. New puzzle unlocks at midnight local time.
 
-### 6.3 Endless / Zen Mode
-No move limit. Procedurally generated boards. Play at your own pace. No win/lose — just the satisfaction of completing the board. Good for relaxation. Monetized differently (see Section 8).
+### 7.3 Endless / Zen Mode
+No move limit. Procedurally generated boards. Play at your own pace. No win/lose — just the satisfaction of completing the board. Good for relaxation. Monetized differently (see Section 9).
 
 ---
 
-## 7. Difficulty Progression Design
+## 8. Difficulty Progression Design
 
-### 7.1 Board Complexity Factors
+### 8.1 Board Complexity Factors
 For any given grid size, difficulty is controlled by:
 1. **Move budget** — fewer allowed moves = harder
 2. **Color count** — 5 colors is standard; 6 colors (harder to strategize)
 3. **Cluster distribution** — many small scattered clusters = harder than a few large blobs
 4. **Board size** — larger boards have longer chains of dependency
+5. **Obstacles** — each obstacle type adds a new dimension of complexity (see Section 6)
 
-### 7.2 Level Generation
+### 8.2 Level Generation
 Levels are pre-solved by a solver algorithm that finds the optimal (minimum-move) solution. The allowed move budget is then set to:
 - Easy: optimal + 8 moves
 - Medium: optimal + 4 moves
@@ -238,9 +329,32 @@ Levels are pre-solved by a solver algorithm that finds the optimal (minimum-move
 
 This ensures every level is always solvable, while hard levels require near-perfect play.
 
+### 8.3 Roller-Coaster Difficulty Curve
+Difficulty does NOT increase linearly. It follows a **sawtooth pattern** — spikes of challenge followed by breather levels. This prevents fatigue and keeps players in flow state.
+
+```
+Levels 1–5:    Onboarding (3×3 → 9×9, no obstacles, very generous moves)
+Levels 6–15:   Easy breathers (9×9, no obstacles, comfortable budgets)
+Levels 16–20:  First challenge spike (tighter move budgets, same mechanics)
+Levels 21–25:  Stones + shaped boards introduced (easy with new mechanic)
+Levels 26–30:  Challenge spike with stones (tight budgets + stones)
+Levels 31–35:  Ice layers introduced (easy with new mechanic)
+Levels 36–40:  Challenge spike (ice + stones combined)
+Levels 41–45:  Countdown cells introduced (easy)
+Levels 46–50:  Boss gauntlet (all mechanics so far, tight budgets)
+Levels 51–55:  Breather (new pack feeling)
+Levels 56–60:  Walls introduced (easy)
+Levels 61–65:  Portals introduced (easy)
+Levels 66–75:  Escalating combinations (2–3 obstacle types per level)
+Levels 76–95:  Hard/expert (complex obstacle combos, tight budgets)
+Levels 96–100: Final boss gauntlet (all obstacles, expert budgets)
+```
+
+**Bonus tiles** are scattered throughout levels 15+ as variable rewards — they appear on both easy and hard levels, creating surprise jackpot moments.
+
 ---
 
-## 8. Monetization
+## 9. Monetization
 
 **Free to play, with tasteful monetization:**
 
@@ -259,7 +373,7 @@ This ensures every level is always solvable, while hard levels require near-perf
 
 ---
 
-## 9. Technical Stack
+## 10. Technical Stack
 
 | Layer | Technology |
 |---|---|
@@ -277,7 +391,7 @@ SwiftUI's animation system is not designed for per-cell BFS-wave animations with
 
 ---
 
-## 10. Screens & Navigation
+## 11. Screens & Navigation
 
 ```
 Splash Screen (logo + loading)
@@ -299,13 +413,13 @@ Home Screen
 ```
 
 **Game Screen layout (portrait):**
-- Top bar: level name, move counter, settings icon
+- Top bar: level name, move counter, **score counter (gold-tinted)**, settings icon
 - Board: centered, square, fills most of the screen
 - Bottom: 5 color buttons + undo button
 
 ---
 
-## 11. MVP Scope (v1.0)
+## 12. MVP Scope (v1.0)
 
 For the first shipped version, scope down to:
 - Classic mode only (levels 1–100)
@@ -320,7 +434,7 @@ For the first shipped version, scope down to:
 
 ---
 
-## 12. What Makes This Version Different
+## 13. What Makes This Version Different
 
 Every Flood It clone on the App Store is a flat, lifeless grid. Ours differentiates on:
 1. **The 3D raised cell aesthetic** — nobody has done this well on iOS
@@ -328,45 +442,52 @@ Every Flood It clone on the App Store is a flat, lifeless grid. Ours differentia
 3. **The Completion Rush** — the win moment is a proper celebration
 4. **Haptics** — every touch has physical feedback
 5. **The "last cluster" pause** — the dam-break moment is intentionally designed
+6. **Cascades** — chain reactions that create surprise jackpot moments
+7. **Obstacles** — stones, ice, portals, and more keep every level feeling fresh
+8. **Scoring system** — points, multipliers, and gold rush make every move matter
 
 The game itself is old. The experience is new.
 
 ---
 
-## 13. Sound Design — The Invisible 50%
+## 14. Sound Design — The Invisible 50%
 
 Sound is not optional. It's the difference between "that was fine" and "I can't stop playing." Every great casual game has a sound identity that lives in your head.
 
-### 13.1 The Sonic Palette
+### 14.1 The Sonic Palette
 The game's sound should feel like **water + glass + chimes**. Organic, clean, musical. NOT 8-bit. NOT cartoon. Think: a xylophone played underwater.
 
-### 13.2 Core Sounds
+### 14.2 Core Sounds
 
-**Cell absorption (flood spread):**  
+**Cell absorption (flood spread):**
 Each cell that gets absorbed plays a very short pitched tone — a soft "plip" like a water droplet hitting glass. The pitch **rises with each wave** of the BFS flood. Wave 1 = C4, Wave 2 = D4, Wave 3 = E4, Wave 4 = F4, etc. This means a big flood creates an ascending musical scale — the bigger the capture, the more musical and satisfying it sounds. Players won't consciously notice this, but it feels incredible. The ascending pitch creates an emotional arc: it literally sounds like things are getting better.
 
-**Color button tap:**  
+**Color button tap:**
 A clean, muted click — like a mechanical keyboard switch but softer. Slightly different timbre per color (warmer click for Coral, crisper for Sapphire). This subconsciously teaches players to associate colors with sounds.
 
-**Large cluster absorption (5+ cells):**  
+**Large cluster absorption (5+ cells):**
 The ascending "plip" scale, but with a richer reverb tail and a subtle chord swell underneath. A quick, breathy "whoooosh" pans across from where the cluster was to the flood center.
 
-**The "Last Cluster" dam break:**  
+**The "Last Cluster" dam break:**
 Dead silence for the 500ms pause. Then: a low rumble that builds rapidly (0.5s), followed by a cascading waterfall of plip tones in rapid-fire (no musical scale, just a torrent of sound), ending with a satisfying deep "boom" that has reverb tail. This is the hero sound moment.
 
-**Completion Rush:**  
-Phase 1 (board pulse): A warm major chord swell — C major — held for 400ms.  
-Phase 2 (shimmer wave): A delicate arpeggio runs up (C-E-G-C5-E5) as the light sweeps.  
-Phase 3 (confetti): A bright, joyful "sparkle burst" — think the Mario coin sound but more organic. Then a gentle rain of tiny sparkle tones as confetti falls.  
-Phase 4 (score card): Each star plays an ascending chime (do, mi, sol). 3 stars plays the full triad and adds a subtle crowd-cheer sample (1s, low in mix).
+**Cascade chain:**
+Each cascade wave plays escalating plip tones — stepping up a musical third per wave. A "whoosh" punctuates each wave. On long chains (3+), a crescendo builds underneath, creating audio excitement that mirrors the visual escalation.
 
-**Lose sequence:**  
+**Completion Rush:**
+Phase 1 (board pulse): A warm major chord swell — C major — held for 400ms.
+Phase 2 (shimmer wave): A delicate arpeggio runs up (C-E-G-C5-E5) as the light sweeps.
+Phase 3 (confetti): A bright, joyful "sparkle burst" — think the Mario coin sound but more organic. Then a gentle rain of tiny sparkle tones as confetti falls.
+Phase 4 (score tally): Each "+50" tick plays a coin clink. Score rolling up plays a satisfying mechanical counter sound. Gold coins raining add subtle sparkle tones.
+Phase 5 (score card): Each star plays an ascending chime (do, mi, sol). 3 stars plays the full triad and adds a subtle crowd-cheer sample (1s, low in mix).
+
+**Lose sequence:**
 A single, soft, descending tone. Not harsh — melancholic but gentle. Like a sigh, not a buzzer.
 
-**Menu navigation:**  
+**Menu navigation:**
 Soft taps. Each menu item makes a very quiet tonal click on hover/selection. The home screen has a gentle ambient background — a slowly evolving pad with occasional water droplet sounds. Creates mood immediately.
 
-### 13.3 Dynamic Music Layer
+### 14.3 Dynamic Music Layer
 The game doesn't have a "soundtrack" in the traditional sense. Instead, it has an **adaptive ambient bed** that responds to game state:
 
 - **Board mostly empty (start):** Very quiet, sparse ambient pad. A few notes every few seconds.
@@ -379,11 +500,11 @@ This adaptive audio makes the game feel alive. Players will play with sound on b
 
 ---
 
-## 14. The Addiction Framework — Why Players Come Back
+## 15. The Addiction Framework — Why Players Come Back
 
 This is the most critical section. Beautiful visuals and satisfying animations get players to play once. The following systems get them to play 100 times.
 
-### 14.1 The "Just One More" Transition
+### 15.1 The "Just One More" Transition
 The gap between levels must be **frictionless**. When the score card appears after a win:
 - The "Next" button is the biggest, most prominent UI element
 - Tapping "Next" immediately begins loading the next board behind a 600ms transition (board tiles scatter/shuffle to reveal the new layout)
@@ -392,7 +513,7 @@ The gap between levels must be **frictionless**. When the score card appears aft
 
 The average session should be 8–12 levels. If we achieve this, retention is solved.
 
-### 14.2 The Streak System
+### 15.2 The Streak System
 - A running counter of consecutive days the player has completed at least one level
 - Displayed prominently on the home screen as a flame icon + number
 - Losing a streak after 7+ days triggers a "Streak Shield" offer: watch a rewarded ad to protect the streak
@@ -400,10 +521,10 @@ The average session should be 8–12 levels. If we achieve this, retention is so
 
 This mechanic single-handedly drives daily retention. It works for Duolingo, Wordle, Snapchat — it works for us.
 
-### 14.3 The Combo System
+### 15.3 The Combo System
 This is NEW — no Flood It clone has this.
 
-**How it works:**  
+**How it works:**
 If the player makes 3 consecutive "efficient" moves (moves that absorb 4+ cells each), a **combo counter** activates:
 
 - **Combo ×2:** A golden glow appears around the flood boundary. The absorption sound gains a reverb boost. Score multiplier ×2 (score is used for leaderboards/stars).
@@ -414,7 +535,7 @@ If the player makes 3 consecutive "efficient" moves (moves that absorb 4+ cells 
 
 **Why this works:** It gives skilled players a reason to think strategically about move ORDER, not just which color to pick. It adds a layer of depth without adding complexity. And the escalating visual/audio feedback creates a "power fantasy" moment that players chase.
 
-### 14.4 Star Rating System
+### 15.4 Star Rating System
 Every level awards 1–3 stars based on efficiency:
 - ★ (Bronze): Solved within move budget
 - ★★ (Silver): Solved within optimal + 3 moves
@@ -428,14 +549,50 @@ Stars are the primary progression currency. They unlock new level packs:
 
 This creates a natural reason to replay old levels for better scores — the player WANTS 3 stars to unlock the next pack.
 
-### 14.5 The "Almost!" Mechanic
+### 15.5 Scoring System
+Every move earns points. Points are the quantitative reward layer that makes every single move feel like it matters, even on easy levels.
+
+**Base scoring:**
+- 10 points per cell absorbed
+
+**Flood size multiplier:**
+- 1–4 cells: 1.0x
+- 5–9 cells: 1.5x
+- 10–19 cells: 2.0x
+- 20+ cells: 3.0x
+
+**Cascade bonus:**
+- Each cascade wave applies an additional 1.5x multiplier
+- Wave 1 (initial flood): 1.0x
+- Wave 2 (first cascade): 1.5x
+- Wave 3 (second cascade): 2.25x (1.5 × 1.5)
+- And so on — cascades are the highest-scoring events in the game
+
+**Combo integration:**
+- Score multipliers from the combo system (Section 15.3) stack multiplicatively with flood size and cascade multipliers
+
+**Speed bonus (on win):**
+- Each remaining move = +50 points
+- Incentivizes efficient play beyond just star rating
+
+**Perfect clear bonus:**
+- Solving within optimal + 1 moves = +500 points
+- Displayed as a special "+500 PERFECT" gold badge on the score card
+
+**Visual treatment:**
+- Score counter in top bar, gold-tinted, `.monospacedDigit` font
+- Floating "+X pts" text on each move (see Section 5.7)
+- Gold particles burst on bonus thresholds
+- Score card prominently features final score (see Section 5.4)
+
+### 15.6 The "Almost!" Mechanic
 When the player loses with ≤2 cells remaining (SO close!), a special lose screen appears:
 - "SO CLOSE! Just 2 cells left!"
 - The remaining unconquered cells pulse/glow red, taunting
 - An offer: "Watch an ad for +3 moves" (rewarded video)
 - This converts at extremely high rates because the loss aversion is maximal
 
-### 14.6 The Daily Challenge & Social Loop
+### 15.7 The Daily Challenge & Social Loop
 (Moved from v1.1 to v1.0 — this is too important for retention to defer)
 
 **Daily Challenge:**
@@ -453,7 +610,7 @@ When the player loses with ≤2 cells remaining (SO close!), a special lose scre
 - "You did better than 73% of players today"
 - No accounts needed — uses a device fingerprint for the leaderboard
 
-### 14.7 Unlockable Color Themes
+### 15.8 Unlockable Color Themes
 Color themes are cosmetic — they change the 5 gradient pairs used in the game. They're the primary reward currency.
 
 Themes unlock via:
@@ -475,30 +632,30 @@ Each theme also subtly changes the board background and the particle colors duri
 
 ---
 
-## 15. Onboarding — The First 60 Seconds
+## 16. Onboarding — The First 60 Seconds
 
 The first experience must be perfect. No tutorial screens. No text walls. Learn by doing.
 
-**Level 1 (3×3 board, 3 colors, very generous moves):**  
+**Level 1 (3×3 board, 3 colors, very generous moves):**
 The board appears. No instructions. The 3 color buttons at the bottom gently pulse. When the player taps any color, the flood happens with FULL animation and sound. The game teaches itself — "oh, I tap a color and it spreads."
 
-**Level 2 (4×4 board, 3 colors):**  
+**Level 2 (4×4 board, 3 colors):**
 Slightly bigger. Player naturally gets it.
 
-**Level 3 (5×5 board, 4 colors):**  
+**Level 3 (5×5 board, 4 colors):**
 A new color appears — it briefly glows to draw attention.
 
-**Level 4 (7×7 board, 4 colors):**  
+**Level 4 (7×7 board, 4 colors):**
 First real challenge. Move limit introduced with a subtle "13 moves left" counter that wasn't visible before. It just appears — no explanation needed.
 
-**Level 5 (9×9 board, 5 colors):**  
+**Level 5 (9×9 board, 5 colors):**
 Full game. All 5 colors. This is the standard experience from here on.
 
 **Key principle:** The onboarding IS the first 5 levels. There are zero pop-ups, zero "Got it!" buttons, zero tutorial overlays. Everything is discoverable through play. The only text that appears is the level number and the move counter. Respect the player's intelligence.
 
 ---
 
-## 16. The Board Background — Not Just a Color
+## 17. The Board Background — Not Just a Color
 
 The board sits on a background that is NOT static. It's a **living gradient** that responds to game state:
 
@@ -511,7 +668,7 @@ This subtle effect makes the game feel more alive and immersive than any static 
 
 ---
 
-## 17. Revised MVP Scope (v1.0)
+## 18. Revised MVP Scope (v1.0)
 
 After deep review, the MVP must include more than originally planned. The addiction loop IS the product.
 
@@ -530,24 +687,30 @@ After deep review, the MVP must include more than originally planned. The addict
 - "Remove Ads" IAP ($2.99)
 - Living background gradient
 
-**v1.1 (Fast follow, 2 weeks after launch):**
+**v1.5 (Post-launch content update):**
+- Scoring system with multipliers and cascades
+- Obstacles: stones, shaped boards, ice, countdowns, walls, portals, bonus tiles
+- Grid tap shortcut
+- Enhanced flood juice (tiered particles, screen shake, floating text)
+- Idle grid shimmer
+- Gold rush win celebration with rolling tally
+- Near-miss lose screen with progress framing
+- Levels 1–100 redesigned with obstacle progression
+
+**v2.0 (Major update):**
 - Zen Mode
 - 5 more color themes
 - Weekly leaderboard
 - Level packs 2–4 (Current, Torrent, Tsunami)
 - 12×12 and 15×15 boards
-
-**v2.0 (Major update):**
 - Board editor (create and share custom boards)
 - Social features (friend challenges)
 - Seasonal events (Diwali theme, Christmas theme)
 - Apple Watch complication (show daily challenge status)
 
-**Estimated build time for revised v1.0:** 4–5 weeks with Claude Code. The sound design and combo system add ~1 week over the original estimate, but they're the difference between a forgettable game and one people talk about.
-
 ---
 
-## 18. The Emotional Arc of a Session
+## 19. The Emotional Arc of a Session
 
 This is the design intent for how a player should FEEL during a 10-minute session:
 
@@ -555,16 +718,16 @@ This is the design intent for how a player should FEEL during a 10-minute sessio
 
 2. **Starting a level** → The board appears. Colorful but orderly. They feel: This is manageable. I can do this.
 
-3. **First few moves** → Cells absorb. The ascending plip tones play. They feel: Satisfying. I'm making progress.
+3. **First few moves** → Cells absorb. The ascending plip tones play. Score ticks up. They feel: Satisfying. I'm making progress.
 
-4. **Mid-game** → Board is 40-60% flooded. Combo builds. Golden glow. They feel: I'm in the zone. I'm good at this.
+4. **Mid-game** → Board is 40-60% flooded. Combo builds. Golden glow. A surprise cascade chain fires — "CASCADE x2!" — bonus points rain down. They feel: I'm in the zone. I'm powerful. That was a jackpot.
 
-5. **Late game (tight moves)** → Move counter turns orange. Ambient swells. They feel: Tension. Can I make it?
+5. **Late game (tight moves)** → Move counter turns orange, then red. Ambient swells. They feel: Tension. Can I make it?
 
 6. **The last cluster moment** → Pause. Dim. Dam break. They feel: RUSH. Pure dopamine.
 
-7. **Completion Rush** → Confetti, chimes, stars. They feel: Euphoria. I'm awesome.
+7. **Completion Rush** → Confetti, chimes, gold coins rain, score tallies up. "+500 PERFECT" flashes. They feel: Euphoria. I'm awesome.
 
-8. **Score card** → "Next" button stares at them. They feel: Just one more.
+8. **Score card** → Final score in gold. Three stars pop. "Next" button stares at them. They feel: Just one more.
 
 This arc repeats. Each level is a 60-90 second micro-story with a beginning, middle, tension, and climax. That's what makes it addictive — not the puzzle mechanics, but the emotional rhythm.
