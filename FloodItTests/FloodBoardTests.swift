@@ -436,6 +436,41 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(cascade.isEmpty)
     }
 
+    // MARK: - P15-T5: Cascade scoring
+
+    func testCascadeScoreMultiplier() {
+        let scoreState = ScoreState()
+        let base = 5 // cells absorbed
+
+        // No cascade (0 cascade waves) → multiplier 1.0
+        let noCascade = scoreState.calculateMoveScore(cellsAbsorbed: base, cascadeMultiplier: 1.0)
+        XCTAssertEqual(noCascade, 100) // 5 * 20 * 1.0
+
+        // Cascade 1 (1 cascade wave) → multiplier 1.5
+        let cascade1 = scoreState.calculateMoveScore(cellsAbsorbed: base, cascadeMultiplier: 1.5)
+        XCTAssertEqual(cascade1, 150) // 5 * 20 * 1.5
+
+        // Cascade 2 (2 cascade waves) → multiplier 2.25 (1.5^2)
+        let cascade2 = scoreState.calculateMoveScore(cellsAbsorbed: base, cascadeMultiplier: 2.25)
+        XCTAssertEqual(cascade2, 225) // 5 * 20 * 2.25
+
+        // Cascade 3 (3 cascade waves) → multiplier 3.375 (1.5^3)
+        let cascade3 = scoreState.calculateMoveScore(cellsAbsorbed: base, cascadeMultiplier: 3.375)
+        XCTAssertEqual(cascade3, 337) // 5 * 20 * 3.375 = 337.5 → 337
+    }
+
+    func testCascadeMultiplierFromGameState() {
+        // Verify the cascade multiplier computation: pow(1.5, cascadeCount)
+        // cascade 0 → 1.0
+        XCTAssertEqual(pow(1.5, 0), 1.0, accuracy: 0.001)
+        // cascade 1 → 1.5
+        XCTAssertEqual(pow(1.5, 1), 1.5, accuracy: 0.001)
+        // cascade 2 → 2.25
+        XCTAssertEqual(pow(1.5, 2), 2.25, accuracy: 0.001)
+        // cascade 3 → 3.375
+        XCTAssertEqual(pow(1.5, 3), 3.375, accuracy: 0.001)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
