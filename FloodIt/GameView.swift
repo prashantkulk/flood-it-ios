@@ -12,6 +12,7 @@ struct GameView: View {
     @State private var isWinningMove: Bool = false
     @State private var showWinCard: Bool = false
     @State private var winCardOffset: CGFloat = 600
+    @State private var starScales: [CGFloat] = [0, 0, 0]
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -30,11 +31,21 @@ struct GameView: View {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
                 .onAppear {
-                    scene.onWinAnimationComplete = { [self] in
+                    scene.onWinAnimationComplete = {
                         DispatchQueue.main.async {
                             showWinCard = true
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                                 winCardOffset = 0
+                            }
+                            // Stagger star reveals after card slides in
+                            let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
+                            for i in 0..<stars {
+                                let delay = 0.5 + Double(i) * 0.3  // 500ms after card + 300ms between stars
+                                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
+                                        starScales[i] = 1.0
+                                    }
+                                }
                             }
                         }
                     }
@@ -218,13 +229,14 @@ struct GameView: View {
                         .foregroundColor(.white.opacity(0.5))
                         .offset(y: -10)
 
-                    // Star rating
+                    // Star rating with staggered animation
                     HStack(spacing: 8) {
                         let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
                         ForEach(0..<3, id: \.self) { index in
                             Image(systemName: index < stars ? "star.fill" : "star")
                                 .font(.system(size: 28))
                                 .foregroundColor(index < stars ? .yellow : .white.opacity(0.3))
+                                .scaleEffect(index < stars ? starScales[index] : 1.0)
                         }
                     }
                     .padding(.vertical, 4)
@@ -314,6 +326,7 @@ struct GameView: View {
         showWinCard = false
         winCardOffset = 600
         isWinningMove = false
+        starScales = [0, 0, 0]
         let board = FloodBoard.generateBoard(size: 9, colors: GameColor.allCases, seed: seed)
         gameState.reset(board: board, totalMoves: 30)
         scene.configure(with: board)
