@@ -109,6 +109,12 @@ class GameState: ObservableObject {
         return total - board.floodRegion.count
     }
 
+    /// Flood completion percentage (0.0 - 1.0).
+    var floodCompletionPercentage: Double {
+        let total = Double(board.gridSize * board.gridSize)
+        return Double(board.floodRegion.count) / total
+    }
+
     /// Grants extra moves, returning the game to playing state.
     func grantExtraMoves(_ count: Int) {
         movesRemaining += count

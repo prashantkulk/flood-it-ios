@@ -364,6 +364,73 @@ struct GameView: View {
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
+                    } else if nearMissPercentage >= 75 {
+                        // MARK: P14-T14 Near-miss lose screen (75%+ completion)
+                        Text("So Close!")
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+
+                        // Progress bar
+                        VStack(spacing: 8) {
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color.white.opacity(0.15))
+                                        .frame(height: 12)
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color(red: 1.0, green: 0.84, blue: 0.0))
+                                        .frame(width: geo.size.width * CGFloat(nearMissPercentage) / 100.0, height: 12)
+                                }
+                            }
+                            .frame(height: 12)
+
+                            Text("Board \(nearMissPercentage)% complete!")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+
+                            Text("Just \(gameState.unfloodedCellCount) cell\(gameState.unfloodedCellCount == 1 ? "" : "s") left!")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                watchAdForExtraMoves()
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.rectangle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Extra Moves (+3)")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("extraMovesButton")
+
+                            Button(action: {
+                                resetGame()
+                            }) {
+                                Text("Try Again")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("tryAgainButton")
+
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Text("Quit")
+                                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            .accessibilityIdentifier("quitButton")
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
                     } else {
                         // Standard lose overlay
                         Text("Out of Moves")
@@ -556,6 +623,11 @@ struct GameView: View {
     private var almostCellCount: Int {
         let count = gameState.unfloodedCellCount
         return count <= 2 ? count : 0
+    }
+
+    /// Flood completion percentage rounded to integer (for near-miss lose screen).
+    private var nearMissPercentage: Int {
+        Int(gameState.floodCompletionPercentage * 100)
     }
 
     private var moveCounterColor: Color {
