@@ -384,6 +384,47 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(cascade.isEmpty)
     }
 
+    // MARK: - P15-T2: Recursive cascade (triple cascade)
+
+    func testTripleCascade() {
+        // Board where flooding triggers a 3-deep cascade chain:
+        // A  B  C  C  C
+        // C  C  B  C  C
+        // C  C  C  B  C
+        // C  C  C  C  B
+        // C  C  C  C  C
+        // Flood to B: wave 1 = (0,1) [adjacent to region]
+        //   → wave 2 = (1,2) [adjacent to (0,1) via diagonal? No, only 4-dir]
+        // Actually let me use a straight chain:
+        // A  B  B  B  B
+        // C  C  C  C  C
+        // ...
+        // wave 1 = (0,1), wave 2 = (0,2), wave 3 = (0,3), wave 4 = (0,4)
+        // cascade = 3 rounds
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells)
+        let cascade = board.cascadeWaves(after: .amber)
+
+        // Should have 3 cascade rounds (4 total waves, minus first = 3)
+        XCTAssertEqual(cascade.count, 3, "Expected a triple cascade")
+
+        // Each cascade round should have 1 cell
+        XCTAssertEqual(cascade[0].count, 1)
+        XCTAssertEqual(cascade[1].count, 1)
+        XCTAssertEqual(cascade[2].count, 1)
+
+        // Verify cascade cells are the chain: (0,2), (0,3), (0,4)
+        XCTAssertEqual(Set(cascade[0]), Set([CellPosition(row: 0, col: 2)]))
+        XCTAssertEqual(Set(cascade[1]), Set([CellPosition(row: 0, col: 3)]))
+        XCTAssertEqual(Set(cascade[2]), Set([CellPosition(row: 0, col: 4)]))
+    }
+
     func testCascadeWavesEmptyWhenNoAbsorption() {
         // Flooding with a color not adjacent to the flood region
         let cells: [[GameColor]] = [
