@@ -424,7 +424,22 @@ struct GameView: View {
             isWinningMove = true
         }
 
+        let prevCombo = gameState.comboCount
         let result = gameState.performFlood(color: color)
+
+        // Combo audio
+        if gameState.comboCount >= 3 {
+            // x2+ reverb plip
+            SoundManager.shared.playComboPlip(frequency: 440 + Double(gameState.comboCount) * 30)
+            // x3+ bass throb
+            if gameState.comboCount >= 4 {
+                SoundManager.shared.playBassThob()
+            }
+        }
+        // Combo break tink
+        if gameState.comboCount == 0 && prevCombo >= 3 {
+            SoundManager.shared.playComboBreakTink()
+        }
 
         // Update ambient volume based on flood progress
         let totalCells = Double(gameState.board.gridSize * gameState.board.gridSize)

@@ -296,6 +296,49 @@ final class SoundManager {
         }
     }
 
+    // MARK: - Combo Audio
+
+    /// Plip with longer reverb tail for combo x2+.
+    func playComboPlip(frequency: Double = 261.63) {
+        let dur = 0.2 // longer than normal 0.08
+        playBuffer(duration: dur, volume: 0.28) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(exp(-t * 15)) // slower decay than normal (50)
+            let sine = Float(sin(2 * .pi * frequency * t))
+            let harmonic = Float(sin(2 * .pi * frequency * 2.5 * t)) * 0.3
+            // Add reverb-like tail with detuned copy
+            let reverbTail = Float(sin(2 * .pi * (frequency * 1.005) * t)) * 0.15 * Float(exp(-t * 10))
+            return (sine + harmonic + reverbTail) * envelope
+        }
+    }
+
+    /// Low bass throb for combo x3+: 80Hz sine pulse, very quiet.
+    func playBassThob() {
+        let dur = 0.25
+        playBuffer(duration: dur, volume: 0.12) { i, sr in
+            let t = Double(i) / sr
+            let progress = t / dur
+            // Bell-shaped envelope
+            let envelope = Float(sin(.pi * progress))
+            let sine = Float(sin(2 * .pi * 80 * t))
+            let sub = Float(sin(2 * .pi * 40 * t)) * 0.3
+            return (sine + sub) * envelope
+        }
+    }
+
+    /// Short 'tink' on combo break: high sine with very fast decay.
+    func playComboBreakTink() {
+        let dur = 0.1
+        playBuffer(duration: dur, volume: 0.18) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(exp(-t * 70))
+            // High pitched metallic tink
+            let f1 = Float(sin(2 * .pi * 2093 * t)) // C7
+            let f2 = Float(sin(2 * .pi * 2637 * t)) * 0.4 // E7
+            return (f1 + f2) * envelope
+        }
+    }
+
     // MARK: - Ambient Layer
 
     func startAmbient() {
