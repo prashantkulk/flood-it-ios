@@ -634,6 +634,77 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(board.canFloodTraverse(CellPosition(row: 0, col: 1)))
     }
 
+    // MARK: - P16-T5: Countdown cells
+
+    func testCountdownDecrementsEachMove() {
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[2][2] = .countdown(movesLeft: 3)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        var rng = SeededRandomNumberGenerator(seed: 1)
+
+        board.flood(color: .amber)
+        board.tickCountdowns(using: &rng)
+        XCTAssertEqual(board.cellType(atRow: 2, col: 2), .countdown(movesLeft: 2))
+
+        board.flood(color: .emerald)
+        board.tickCountdowns(using: &rng)
+        XCTAssertEqual(board.cellType(atRow: 2, col: 2), .countdown(movesLeft: 1))
+    }
+
+    func testCountdownScramblesAt0() {
+        // Use a larger board so countdown cell is far from flood region
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 4), count: 4)
+        types[3][3] = .countdown(movesLeft: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet, .coral],
+            [.sapphire, .violet, .coral, .amber],
+            [.violet, .coral, .amber, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 4, cells: cells, cellTypes: types)
+        var rng = SeededRandomNumberGenerator(seed: 99)
+
+        // Capture colors around (3,3) before explosion
+        let colorsBefore = [
+            board.cells[2][2], board.cells[2][3],
+            board.cells[3][2], board.cells[3][3]
+        ]
+
+        board.flood(color: .amber)
+        board.tickCountdowns(using: &rng)
+
+        // Countdown at (3,3) should become normal
+        XCTAssertEqual(board.cellType(atRow: 3, col: 3), .normal)
+
+        // Verify scramble happened: colors in 3x3 area around (3,3) should be randomized
+        let colorsAfter = [
+            board.cells[2][2], board.cells[2][3],
+            board.cells[3][2], board.cells[3][3]
+        ]
+        // With 5 colors and seed 99, at least one cell should differ
+        XCTAssertNotEqual(colorsBefore, colorsAfter, "Scramble should change cell colors")
+    }
+
+    func testCountdownDefusedOnAbsorption() {
+        // Countdown cell is same color as flood and will be absorbed
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .countdown(movesLeft: 5)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+
+        // Flood amber: (0,1) is countdown but amber, should be absorbed and defused
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal, "Countdown should be defused when absorbed")
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {

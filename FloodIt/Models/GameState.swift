@@ -14,6 +14,8 @@ class GameState: ObservableObject {
     private(set) var maxCombo: Int = 0
     /// History of colors chosen (for share card).
     private(set) var colorHistory: [GameColor] = []
+    /// RNG for countdown scramble determinism.
+    private var countdownRng = SeededRandomNumberGenerator(seed: 42)
 
     enum GameStatus {
         case playing
@@ -41,6 +43,7 @@ class GameState: ObservableObject {
         self.comboCount = 0
         self.maxCombo = 0
         self.colorHistory = []
+        self.countdownRng = SeededRandomNumberGenerator(seed: 42)
         self.scoreState.reset()
     }
 
@@ -83,6 +86,7 @@ class GameState: ObservableObject {
         let absorbedCount = allWaves.flatMap { $0 }.count
 
         board.flood(color: color)
+        board.tickCountdowns(using: &countdownRng)
         movesMade += 1
         movesRemaining -= 1
         colorHistory.append(color)

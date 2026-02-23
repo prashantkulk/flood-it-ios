@@ -134,8 +134,12 @@ struct FloodBoard {
             }
         }
         // Mark all absorbed cells with the new color (they already match, but ensures consistency)
+        // Defuse countdown cells that were absorbed into the region
         for pos in absorbed {
             cells[pos.row][pos.col] = newColor
+            if case .countdown = cellTypes[pos.row][pos.col] {
+                cellTypes[pos.row][pos.col] = .normal
+            }
         }
         // Process ice cells adjacent to the final absorbed region
         var crackedIce = Set<CellPosition>()
@@ -149,6 +153,44 @@ struct FloodBoard {
                         } else {
                             cellTypes[neighbor.row][neighbor.col] = .ice(layers: layers - 1)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Decrements all countdown cells by 1. At 0, scrambles the 3x3 area around it.
+    /// Uses the provided RNG for deterministic scrambling.
+    mutating func tickCountdowns(using rng: inout SeededRandomNumberGenerator) {
+        var exploded = [CellPosition]()
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if case .countdown(let movesLeft) = cellTypes[row][col] {
+                    if movesLeft <= 1 {
+                        // Explode: mark for scramble
+                        exploded.append(CellPosition(row: row, col: col))
+                        cellTypes[row][col] = .normal
+                    } else {
+                        cellTypes[row][col] = .countdown(movesLeft: movesLeft - 1)
+                    }
+                }
+            }
+        }
+        // Scramble 3x3 area around each exploded countdown
+        let colors = GameColor.allCases
+        for pos in exploded {
+            for dr in -1...1 {
+                for dc in -1...1 {
+                    let r = pos.row + dr
+                    let c = pos.col + dc
+                    guard r >= 0, r < gridSize, c >= 0, c < gridSize else { continue }
+                    let cellPos = CellPosition(row: r, col: c)
+                    // Only scramble playable, non-stone, non-void cells
+                    switch cellTypes[r][c] {
+                    case .stone, .void:
+                        continue
+                    default:
+                        cells[r][c] = colors[Int.random(in: 0..<colors.count, using: &rng)]
                     }
                 }
             }
