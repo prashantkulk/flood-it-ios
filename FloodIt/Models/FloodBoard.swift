@@ -140,6 +140,13 @@ struct FloodBoard {
         return FloodBoard(gridSize: size, cells: cells)
     }
 
+    /// Returns true if flooding with the given color would complete the board (all cells same color).
+    func wouldComplete(color newColor: GameColor) -> Bool {
+        var simulated = self
+        simulated.flood(color: newColor)
+        return simulated.isComplete
+    }
+
     /// Returns the 4-directional neighbors of a cell position within bounds.
     private func neighbors(of position: CellPosition) -> [CellPosition] {
         let directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]

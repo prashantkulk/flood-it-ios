@@ -9,6 +9,7 @@ struct GameView: View {
     @State private var moveCounterScale: CGFloat = 1.0
     @State private var moveCounterFlash: Bool = false
     @State private var moveCounterPulse: Bool = false
+    @State private var isWinningMove: Bool = false
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -226,6 +227,13 @@ struct GameView: View {
             return
         }
         lightHaptic.impactOccurred()
+
+        // Detect if this move will complete the board
+        let willComplete = gameState.board.wouldComplete(color: color)
+        if willComplete {
+            isWinningMove = true
+        }
+
         let result = gameState.performFlood(color: color)
         if result.waves.isEmpty {
             scene.updateColors(from: gameState.board)
@@ -234,7 +242,8 @@ struct GameView: View {
                 board: gameState.board,
                 waves: result.waves,
                 newColor: color,
-                previousColors: result.previousColors
+                previousColors: result.previousColors,
+                isWinningMove: willComplete
             )
         }
     }

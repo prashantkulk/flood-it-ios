@@ -165,6 +165,40 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(board.cells[0][0], .coral)
     }
 
+    // MARK: - P7-T1: wouldComplete
+
+    func testWouldCompleteReturnsTrueWhenLastMove() {
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .amber],
+            [.coral, .coral, .amber],
+            [.coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        XCTAssertTrue(board.wouldComplete(color: .amber))
+    }
+
+    func testWouldCompleteReturnsFalseWhenNotLastMove() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        XCTAssertFalse(board.wouldComplete(color: .amber))
+    }
+
+    func testWouldCompleteDoesNotMutateBoard() {
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .amber],
+            [.coral, .coral, .amber],
+            [.coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        _ = board.wouldComplete(color: .amber)
+        XCTAssertEqual(board.cells[0][2], .amber, "Board should not be mutated")
+        XCTAssertEqual(board.cells[0][0], .coral, "Board should not be mutated")
+    }
+
     // MARK: - P2-T1: generateBoard
 
     func testSameSeedSameBoard() {
