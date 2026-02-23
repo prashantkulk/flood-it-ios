@@ -85,6 +85,49 @@ final class DailyChallengeTests: XCTestCase {
         XCTAssertNil(store.dailyResult(for: "2099-12-31"))
     }
 
+    // MARK: - P11-T6: Daily streak integration
+
+    func testDailyChallengeCountsTowardStreak() {
+        // Clean state
+        UserDefaults.standard.removeObject(forKey: "progress_currentStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_longestStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_lastPlayDate")
+
+        let store = ProgressStore()
+        XCTAssertEqual(store.currentStreak, 0)
+
+        // Completing daily challenge records a play
+        store.recordPlay()
+        XCTAssertEqual(store.currentStreak, 1)
+
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: "progress_currentStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_longestStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_lastPlayDate")
+    }
+
+    func testDoublePlaySameDayStreakOnlyIncrementsOnce() {
+        // Clean state
+        UserDefaults.standard.removeObject(forKey: "progress_currentStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_longestStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_lastPlayDate")
+
+        let store = ProgressStore()
+
+        // First play (e.g., daily challenge)
+        store.recordPlay()
+        XCTAssertEqual(store.currentStreak, 1)
+
+        // Second play same day (e.g., classic level)
+        store.recordPlay()
+        XCTAssertEqual(store.currentStreak, 1, "Streak should not double-increment on same day")
+
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: "progress_currentStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_longestStreak")
+        UserDefaults.standard.removeObject(forKey: "progress_lastPlayDate")
+    }
+
     // MARK: - Helpers
 
     private func makeDate(year: Int, month: Int, day: Int) -> Date {
