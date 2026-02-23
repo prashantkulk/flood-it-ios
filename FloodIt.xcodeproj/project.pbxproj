@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		037793C1BE645D26E26CF2BB /* SpriteKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BCF99913BD3C7862D1B9375 /* SpriteKit.framework */; };
+		095D4A20C9A725BDE61AA04D /* LevelDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59573EBC83D60DD6AC557035 /* LevelDataTests.swift */; };
 		0990A1E674E4A19B60CA3C65 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA548063A2EC30039D99EA8B /* GameState.swift */; };
 		1001691068C391E05E401A2A /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = F918AB9DF05A021F6EBAB27F /* GameScene.swift */; };
 		1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5730F9880C43BF08564B0E3 /* CellTextureCache.swift */; };
@@ -15,6 +16,7 @@
 		63B02F230EB6B1A6F0455696 /* FloodCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF544722E8B237E330C0C0C /* FloodCell.swift */; };
 		63BD1A70E8275D6B6DF597DC /* FloodBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */; };
 		789247DFCED267B3B202542E /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB80E331B185113565138406 /* GameView.swift */; };
+		909F15B81AC07D03410DA982 /* LevelData.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F80A4171FD713980C7A0D /* LevelData.swift */; };
 		961464DB7CADF8B260466F42 /* StarRating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C7FFD832E1A263F11BFEFEB /* StarRating.swift */; };
 		A568B7C4658B615FC9C73291 /* FloodCellNode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743E1E5BBFBD9C0AB2C8A1AB /* FloodCellNode.swift */; };
 		A7D5A6530466DBB52D2BFCEE /* LevelGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EEE7F2DEAD2AA109B452863 /* LevelGenerator.swift */; };
@@ -62,6 +64,7 @@
 		4C735C615150F4C0CA406FC9 /* FloodBoardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodBoardTests.swift; sourceTree = "<group>"; };
 		579F7662A95924876B7DA014 /* GameStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateTests.swift; sourceTree = "<group>"; };
 		591C4E16DDC7F5F2BDA6A01B /* FloodItUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FloodItUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		59573EBC83D60DD6AC557035 /* LevelDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelDataTests.swift; sourceTree = "<group>"; };
 		641849E0784D325ECA815052 /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		719DA29BAA32D456DF985F32 /* FloodSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolver.swift; sourceTree = "<group>"; };
@@ -77,6 +80,7 @@
 		DA548063A2EC30039D99EA8B /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
 		EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolverTests.swift; sourceTree = "<group>"; };
 		EAE7986BBF635BBEF381E35F /* GameColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameColor.swift; sourceTree = "<group>"; };
+		EF8F80A4171FD713980C7A0D /* LevelData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelData.swift; sourceTree = "<group>"; };
 		F918AB9DF05A021F6EBAB27F /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -146,6 +150,7 @@
 				719DA29BAA32D456DF985F32 /* FloodSolver.swift */,
 				EAE7986BBF635BBEF381E35F /* GameColor.swift */,
 				DA548063A2EC30039D99EA8B /* GameState.swift */,
+				EF8F80A4171FD713980C7A0D /* LevelData.swift */,
 				3EEE7F2DEAD2AA109B452863 /* LevelGenerator.swift */,
 				1C7FFD832E1A263F11BFEFEB /* StarRating.swift */,
 			);
@@ -158,6 +163,7 @@
 				4C735C615150F4C0CA406FC9 /* FloodBoardTests.swift */,
 				EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */,
 				579F7662A95924876B7DA014 /* GameStateTests.swift */,
+				59573EBC83D60DD6AC557035 /* LevelDataTests.swift */,
 				8FEF9B99BB3FC771463633EA /* LevelGeneratorTests.swift */,
 			);
 			path = FloodItTests;
@@ -285,6 +291,7 @@
 				D695B9EE19652E21D543C1E0 /* FloodBoardTests.swift in Sources */,
 				AD085CF19CD2C55919E0A433 /* FloodSolverTests.swift in Sources */,
 				B614E50F83534D84FE93F68C /* GameStateTests.swift in Sources */,
+				095D4A20C9A725BDE61AA04D /* LevelDataTests.swift in Sources */,
 				D5C623DBF10F2F678F579EFF /* LevelGeneratorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -305,6 +312,7 @@
 				0990A1E674E4A19B60CA3C65 /* GameState.swift in Sources */,
 				789247DFCED267B3B202542E /* GameView.swift in Sources */,
 				F043953D9F19E6685818077E /* HomeView.swift in Sources */,
+				909F15B81AC07D03410DA982 /* LevelData.swift in Sources */,
 				A7D5A6530466DBB52D2BFCEE /* LevelGenerator.swift in Sources */,
 				B3C818B20A27B3CE5641E4DB /* SettingsView.swift in Sources */,
 				C40B68B6DE72384D49FBCA7E /* SoundManager.swift in Sources */,
