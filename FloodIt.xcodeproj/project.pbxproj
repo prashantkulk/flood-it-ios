@@ -21,6 +21,7 @@
 		AD085CF19CD2C55919E0A433 /* FloodSolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */; };
 		B2419755A7E6D4BF445CA6E8 /* FloodItApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E27BAE84EFF19EA2070E02A /* FloodItApp.swift */; };
 		B614E50F83534D84FE93F68C /* GameStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579F7662A95924876B7DA014 /* GameStateTests.swift */; };
+		C40B68B6DE72384D49FBCA7E /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641849E0784D325ECA815052 /* SoundManager.swift */; };
 		C598A52CABFB5D4F970B5711 /* FloodItUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00855996CA885A0EF8DAD4F /* FloodItUITests.swift */; };
 		D3F75FD0CE7284C8004A243A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84625815686C15462112C98 /* ContentView.swift */; };
 		D5C623DBF10F2F678F579EFF /* LevelGeneratorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEF9B99BB3FC771463633EA /* LevelGeneratorTests.swift */; };
@@ -60,6 +61,7 @@
 		4C735C615150F4C0CA406FC9 /* FloodBoardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodBoardTests.swift; sourceTree = "<group>"; };
 		579F7662A95924876B7DA014 /* GameStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameStateTests.swift; sourceTree = "<group>"; };
 		591C4E16DDC7F5F2BDA6A01B /* FloodItUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FloodItUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		641849E0784D325ECA815052 /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundManager.swift; sourceTree = "<group>"; };
 		6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		719DA29BAA32D456DF985F32 /* FloodSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolver.swift; sourceTree = "<group>"; };
 		743E1E5BBFBD9C0AB2C8A1AB /* FloodCellNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodCellNode.swift; sourceTree = "<group>"; };
@@ -99,6 +101,7 @@
 				F918AB9DF05A021F6EBAB27F /* GameScene.swift */,
 				BB80E331B185113565138406 /* GameView.swift */,
 				0949DB350DDAD64B75A49A5B /* HomeView.swift */,
+				641849E0784D325ECA815052 /* SoundManager.swift */,
 				BDAF9400817FE3B9824D2867 /* Models */,
 			);
 			path = FloodIt;
@@ -300,6 +303,7 @@
 				789247DFCED267B3B202542E /* GameView.swift in Sources */,
 				F043953D9F19E6685818077E /* HomeView.swift in Sources */,
 				A7D5A6530466DBB52D2BFCEE /* LevelGenerator.swift in Sources */,
+				C40B68B6DE72384D49FBCA7E /* SoundManager.swift in Sources */,
 				961464DB7CADF8B260466F42 /* StarRating.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
