@@ -158,8 +158,10 @@ class GameScene: SKScene {
         isAnimating = false
         removeAction(forKey: "floodCompletion")
 
-        // Remove ripple rings and sparkles
-        children.filter { $0.name == "rippleRing" || $0.name == "sparkle" }.forEach { $0.removeFromParent() }
+        // Remove ripple rings, sparkles, and touch highlights
+        children.filter { $0.name == "rippleRing" || $0.name == "sparkle" || $0.name == "touchRing" }.forEach { $0.removeFromParent() }
+        highlightRing = nil
+        highlightedCell = nil
 
         // Snap all cell nodes to final state
         guard let board = board else { return }
@@ -411,6 +413,136 @@ class GameScene: SKScene {
             ])
             dot.run(anim)
         }
+    }
+
+    // MARK: - Touch Highlighting
+
+    private var highlightedCell: (row: Int, col: Int)?
+    private var highlightRing: SKShapeNode?
+
+    private func cellAt(point: CGPoint) -> (row: Int, col: Int)? {
+        guard let board = board, !cellNodes.isEmpty else { return nil }
+        let n = board.gridSize
+        let sceneW = size.width
+        let available = sceneW - gridPadding * 2
+        let cellSize = (available - CGFloat(n - 1) * gridGap) / CGFloat(n)
+        let gridWidth = CGFloat(n) * cellSize + CGFloat(n - 1) * gridGap
+        let gridHeight = CGFloat(n) * cellSize + CGFloat(n - 1) * gridGap
+        let originX = (sceneW - gridWidth) / 2
+        let originY = (size.height - gridHeight) / 2 + 40
+
+        for row in 0..<n {
+            for col in 0..<n {
+                let x = originX + CGFloat(col) * (cellSize + gridGap) + cellSize / 2
+                let y = originY + CGFloat(n - 1 - row) * (cellSize + gridGap) + cellSize / 2
+                let halfSize = (cellSize + gridGap) / 2
+                if abs(point.x - x) <= halfSize && abs(point.y - y) <= halfSize {
+                    return (row, col)
+                }
+            }
+        }
+        return nil
+    }
+
+    private func applyHighlight(row: Int, col: Int) {
+        guard row < cellNodes.count, col < cellNodes[row].count else { return }
+        guard let board = board else { return }
+        let n = board.gridSize
+
+        // Remove previous highlights
+        removeHighlight()
+
+        highlightedCell = (row, col)
+        let node = cellNodes[row][col]
+
+        // Brighten touched cell (+15% brightness via colorize)
+        let brighten = SKAction.run { node.alpha = 1.15 }
+        node.run(brighten, withKey: "touchHighlight")
+
+        // Pulsing white ring
+        let sceneW = size.width
+        let available = sceneW - gridPadding * 2
+        let cellSize = (available - CGFloat(n - 1) * gridGap) / CGFloat(n)
+        let ringRadius = cellSize / 2 + 2
+        let ring = SKShapeNode(circleOfRadius: ringRadius)
+        ring.strokeColor = UIColor.white.withAlphaComponent(0.6)
+        ring.fillColor = .clear
+        ring.lineWidth = 1.5
+        ring.position = node.position
+        ring.zPosition = 7
+        ring.name = "touchRing"
+
+        let pulseUp = SKAction.fadeAlpha(to: 0.8, duration: 0.4)
+        pulseUp.timingMode = .easeInEaseOut
+        let pulseDown = SKAction.fadeAlpha(to: 0.3, duration: 0.4)
+        pulseDown.timingMode = .easeInEaseOut
+        ring.run(SKAction.repeatForever(SKAction.sequence([pulseUp, pulseDown])))
+        addChild(ring)
+        highlightRing = ring
+
+        // Dim adjacent cells to 85%
+        let adjacentOffsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        for (dr, dc) in adjacentOffsets {
+            let ar = row + dr
+            let ac = col + dc
+            guard ar >= 0 && ar < n && ac >= 0 && ac < n else { continue }
+            guard ar < cellNodes.count, ac < cellNodes[ar].count else { continue }
+            let adjNode = cellNodes[ar][ac]
+            adjNode.run(SKAction.fadeAlpha(to: 0.85, duration: 0.08), withKey: "touchDim")
+        }
+    }
+
+    private func removeHighlight() {
+        guard let board = board else { return }
+        let n = board.gridSize
+
+        if let prev = highlightedCell {
+            // Restore touched cell
+            if prev.row < cellNodes.count, prev.col < cellNodes[prev.row].count {
+                cellNodes[prev.row][prev.col].run(SKAction.fadeAlpha(to: 1.0, duration: 0.08), withKey: "touchHighlight")
+            }
+            // Restore adjacent cells
+            let adjacentOffsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+            for (dr, dc) in adjacentOffsets {
+                let ar = prev.row + dr
+                let ac = prev.col + dc
+                guard ar >= 0 && ar < n && ac >= 0 && ac < n else { continue }
+                guard ar < cellNodes.count, ac < cellNodes[ar].count else { continue }
+                cellNodes[ar][ac].run(SKAction.fadeAlpha(to: 1.0, duration: 0.08), withKey: "touchDim")
+            }
+        }
+
+        highlightRing?.removeFromParent()
+        highlightRing = nil
+        highlightedCell = nil
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let point = touch.location(in: self)
+        if let cell = cellAt(point: point) {
+            applyHighlight(row: cell.row, col: cell.col)
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let point = touch.location(in: self)
+        let cell = cellAt(point: point)
+        if cell?.row != highlightedCell?.row || cell?.col != highlightedCell?.col {
+            removeHighlight()
+            if let cell = cell {
+                applyHighlight(row: cell.row, col: cell.col)
+            }
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        removeHighlight()
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        removeHighlight()
     }
 
     private func renderBoard() {
