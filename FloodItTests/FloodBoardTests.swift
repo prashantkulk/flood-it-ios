@@ -305,6 +305,41 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(StarRating.calculate(movesUsed: 8, optimalMoves: 10), 3)
     }
 
+    // MARK: - P9-T7: Combo Score Multiplier
+
+    func testStarRatingWithComboBonus3() {
+        // 12 moves, optimal 10 → normally 2 stars (10+1 < 12 <= 10+3)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 12, optimalMoves: 10, maxCombo: 0), 2)
+        // With maxCombo 3: effective = 12 - 1 = 11 ≤ 10 + 1 → 3 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 12, optimalMoves: 10, maxCombo: 3), 3)
+    }
+
+    func testStarRatingWithComboBonus5() {
+        // 13 moves, optimal 10 → normally 2 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 13, optimalMoves: 10, maxCombo: 0), 2)
+        // With maxCombo 5: effective = 13 - 2 = 11 ≤ 10 + 1 → 3 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 13, optimalMoves: 10, maxCombo: 5), 3)
+    }
+
+    func testStarRatingCombo4SameAsCombo3() {
+        // maxCombo 4 still only gives -1 bonus (same as 3)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 4), 2)
+        // effective = 14 - 1 = 13 ≤ 10 + 3 → 2 stars
+    }
+
+    func testStarRatingNoComboNoChange() {
+        // maxCombo 0 or 2: no bonus
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 0), 1)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 2), 1)
+    }
+
+    func testStarRatingComboBonusUpgrades1To2Stars() {
+        // 14 moves, optimal 10 → 1 star normally (14 > 10+3)
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 0), 1)
+        // With maxCombo 5: effective = 14 - 2 = 12 ≤ 10+3 → 2 stars
+        XCTAssertEqual(StarRating.calculate(movesUsed: 14, optimalMoves: 10, maxCombo: 5), 2)
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {

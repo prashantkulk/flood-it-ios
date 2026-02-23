@@ -43,7 +43,7 @@ struct GameView: View {
                                 winCardOffset = 0
                             }
                             // Stagger star reveals after card slides in
-                            let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
+                            let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
                             for i in 0..<stars {
                                 let delay = 0.5 + Double(i) * 0.3
                                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
@@ -328,7 +328,7 @@ struct GameView: View {
 
                     // Star rating with staggered animation
                     HStack(spacing: 8) {
-                        let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves)
+                        let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
                         ForEach(0..<3, id: \.self) { index in
                             Image(systemName: index < stars ? "star.fill" : "star")
                                 .font(.system(size: 28))
