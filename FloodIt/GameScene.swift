@@ -17,6 +17,14 @@ class GameScene: SKScene {
     // Camera for screen shake
     private var cameraNode = SKCameraNode()
 
+    // Idle shimmer
+    private var idleTimer: TimeInterval = 0
+    private var lastInteractionTime: TimeInterval = 0
+    private var isIdleShimmering: Bool = false
+    private let idleDelay: TimeInterval = 7.0  // 5-10s range, use 7
+    private let shimmerRepeatInterval: TimeInterval = 9.0  // 8-10s range
+    private var lastShimmerTime: TimeInterval = 0
+
     func configure(with board: FloodBoard) {
         self.board = board
         if size.width > 0 {
@@ -37,6 +45,47 @@ class GameScene: SKScene {
         setupParticles()
         if board != nil {
             renderBoard()
+        }
+    }
+
+    override func update(_ currentTime: TimeInterval) {
+        // MARK: P14-T13 Idle shimmer check
+        if lastInteractionTime == 0 { lastInteractionTime = currentTime }
+        let idleTime = currentTime - lastInteractionTime
+        if idleTime >= idleDelay && !isAnimating {
+            if lastShimmerTime == 0 || (currentTime - lastShimmerTime) >= shimmerRepeatInterval {
+                triggerIdleShimmer()
+                lastShimmerTime = currentTime
+            }
+        }
+    }
+
+    /// Reset the idle timer (called on any interaction).
+    func resetIdleTimer() {
+        lastInteractionTime = CACurrentMediaTime()
+        lastShimmerTime = 0
+    }
+
+    /// Diagonal light sweep across the board.
+    private func triggerIdleShimmer() {
+        guard let board = board, !cellNodes.isEmpty else { return }
+        let n = board.gridSize
+        let shimmerDelay: TimeInterval = 0.015  // 15ms per diagonal
+
+        for row in 0..<n {
+            for col in 0..<n {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let diag = row + col
+                let node = cellNodes[row][col]
+                let delay = Double(diag) * shimmerDelay
+
+                let wait = SKAction.wait(forDuration: delay)
+                let brighten = SKAction.fadeAlpha(to: 1.2, duration: 0.06)
+                brighten.timingMode = .easeOut
+                let restore = SKAction.fadeAlpha(to: 1.0, duration: 0.10)
+                restore.timingMode = .easeIn
+                node.run(SKAction.sequence([wait, brighten, restore]), withKey: "idleShimmer")
+            }
         }
     }
 
@@ -269,6 +318,7 @@ class GameScene: SKScene {
     /// absorbed cells animate wave-by-wave with pop + crossfade.
     func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], isWinningMove: Bool = false, completion: (() -> Void)? = nil) {
         self.board = board
+        resetIdleTimer()
 
         // If currently animating, snap to end first
         if isAnimating {
@@ -1214,6 +1264,7 @@ class GameScene: SKScene {
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        resetIdleTimer()
         guard let touch = touches.first else { return }
         let point = touch.location(in: self)
         if let cell = cellAt(point: point) {
