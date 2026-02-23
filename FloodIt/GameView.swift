@@ -152,7 +152,7 @@ struct GameView: View {
                     Text("Moves: \(gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundColor(moveCounterColor)
-                        .opacity(gameState.movesRemaining <= 2 ? (moveCounterPulse ? 0.7 : 1.0) : 1.0)
+                        .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.7 : 1.0) : 1.0)
                         .scaleEffect(moveCounterScale)
                         .overlay(
                             Color.white
@@ -180,8 +180,12 @@ struct GameView: View {
                                     moveCounterFlash = false
                                 }
                             }
-                            // Start/stop pulse for critical moves
+                            // MARK: P14-T12 Urgency pulse for critical moves
                             if newValue <= 2 {
+                                withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
+                                    moveCounterPulse = true
+                                }
+                            } else if newValue <= 5 {
                                 withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
                                     moveCounterPulse = true
                                 }
