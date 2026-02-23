@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct LevelSelectView: View {
+    @ObservedObject private var progress = ProgressStore.shared
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 5)
 
     var body: some View {
@@ -17,7 +18,7 @@ struct LevelSelectView: View {
                         // Splash levels 1-50
                         ForEach(LevelStore.levels.prefix(50)) { level in
                             NavigationLink(destination: GameView(levelNumber: level.id)) {
-                                LevelCell(level: level, stars: 0, isUnlocked: true)
+                                LevelCell(level: level, stars: progress.stars(for: level.id), isUnlocked: true)
                             }
                             .buttonStyle(.plain)
                         }
@@ -26,7 +27,7 @@ struct LevelSelectView: View {
                         Section {
                             ForEach(LevelStore.levels.dropFirst(50).prefix(50)) { level in
                                 NavigationLink(destination: GameView(levelNumber: level.id)) {
-                                    LevelCell(level: level, stars: 0, isUnlocked: true)
+                                    LevelCell(level: level, stars: progress.stars(for: level.id), isUnlocked: true)
                                 }
                                 .buttonStyle(.plain)
                             }
