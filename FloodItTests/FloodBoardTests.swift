@@ -755,6 +755,54 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(region.count, 2)
     }
 
+    // MARK: - P16-T7: Portals
+
+    func testPortalFloodFlowsThroughPair() {
+        // Board: C E E
+        //        E E E
+        //        E E A
+        // Portal pair: (0,0) and (2,2), so flood can reach (2,2) from (0,0)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][0] = .portal(pairId: 1)
+        types[2][2] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .emerald, .emerald],
+            [.emerald, .emerald, .emerald],
+            [.emerald, .emerald, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        let region = board.floodRegion
+        // (0,0) is coral with portal to (2,2) which is also coral
+        // So flood region should include both portal cells
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(region.contains(CellPosition(row: 2, col: 2)), "Portal pair should be reachable")
+    }
+
+    func testPortalAbsorptionAcrossBoard() {
+        // Board: C A A
+        //        E E E
+        //        A A A
+        // Portal: (0,0) ↔ (2,0)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][0] = .portal(pairId: 1)
+        types[2][0] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.emerald, .emerald, .emerald],
+            [.amber, .amber, .amber],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        let waves = board.cellsAbsorbedBy(color: .amber)
+        let allAbsorbed = Set(waves.flatMap { $0 })
+        // (0,1) is amber adjacent to (0,0) — absorbed
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 0, col: 1)))
+        // (2,0) is portal partner, amber — should be absorbed through portal
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 2, col: 0)), "Portal should allow absorption across board")
+        // (2,1) and (2,2) should also be absorbed (adjacent to (2,0))
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 2, col: 1)))
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 2, col: 2)))
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {

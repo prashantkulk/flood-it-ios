@@ -319,10 +319,10 @@ struct FloodBoard {
         return simulated.isComplete
     }
 
-    /// Returns the 4-directional neighbors of a cell position within bounds, respecting walls.
+    /// Returns the 4-directional neighbors of a cell position within bounds,
+    /// respecting walls and including portal connections.
     private func neighbors(of position: CellPosition) -> [CellPosition] {
-        return Direction.allCases.compactMap { dir in
-            // Check for wall in this direction
+        var result = Direction.allCases.compactMap { dir -> CellPosition? in
             guard !hasWall(at: position, direction: dir) else { return nil }
             let (dr, dc) = dir.delta
             let r = position.row + dr
@@ -330,6 +330,26 @@ struct FloodBoard {
             guard r >= 0, r < gridSize, c >= 0, c < gridSize else { return nil }
             return CellPosition(row: r, col: c)
         }
+        // Add portal pair as neighbor if this cell is a portal
+        if case .portal(let pairId) = cellTypes[position.row][position.col] {
+            if let partner = portalPartner(for: position, pairId: pairId) {
+                result.append(partner)
+            }
+        }
+        return result
+    }
+
+    /// Finds the portal partner for a given portal cell.
+    private func portalPartner(for position: CellPosition, pairId: Int) -> CellPosition? {
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                if row == position.row && col == position.col { continue }
+                if case .portal(let otherId) = cellTypes[row][col], otherId == pairId {
+                    return CellPosition(row: row, col: col)
+                }
+            }
+        }
+        return nil
     }
 }
 
