@@ -110,6 +110,12 @@ struct GameView: View {
                             }
                         }
                     }
+                    // MARK: P14-T10 Grid tap shortcut
+                    scene.onGridTap = { color in
+                        DispatchQueue.main.async {
+                            tapColorButton(color)
+                        }
+                    }
                 }
 
             // Subtle border frame around the board area (no fill, just a thin luminous border)

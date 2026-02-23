@@ -262,6 +262,9 @@ class GameScene: SKScene {
     /// Callback invoked after the winning animation sequence finishes (before overlays).
     var onWinAnimationComplete: (() -> Void)?
 
+    /// Callback for grid tap shortcut: invoked with the tapped cell's color.
+    var onGridTap: ((GameColor) -> Void)?
+
     /// Animate the flood with staggered waves. Flood region cells change instantly;
     /// absorbed cells animate wave-by-wave with pop + crossfade.
     func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], isWinningMove: Bool = false, completion: (() -> Void)? = nil) {
@@ -1229,7 +1232,15 @@ class GameScene: SKScene {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        removeHighlight()
+        guard let touch = touches.first else { removeHighlight(); return }
+        let point = touch.location(in: self)
+        if let cell = cellAt(point: point), let board = board {
+            let tappedColor = board.cells[cell.row][cell.col]
+            removeHighlight()
+            onGridTap?(tappedColor)
+        } else {
+            removeHighlight()
+        }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
