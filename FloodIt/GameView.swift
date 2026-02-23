@@ -17,6 +17,7 @@ struct GameView: View {
     @State private var showLoseCard: Bool = false
     @State private var loseCardOffset: CGFloat = 600
     @State private var showSettings: Bool = false
+    @State private var showShareSheet: Bool = false
     /// Whether this is a daily challenge game.
     let isDailyChallenge: Bool
     /// The daily challenge date string (shown on screen).
@@ -392,15 +393,28 @@ struct GameView: View {
                     VStack(spacing: 12) {
                         if isDailyChallenge {
                             Button(action: {
+                                showShareSheet = true
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Share")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("shareButton")
+
+                            Button(action: {
                                 dismiss()
                             }) {
                                 Text("Done")
-                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(.white)
-                                    .clipShape(Capsule())
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
                             }
                             .accessibilityIdentifier("doneButton")
                         } else {
@@ -443,6 +457,23 @@ struct GameView: View {
                         .stroke(Color.white.opacity(0.15), lineWidth: 1)
                 )
                 .offset(y: winCardOffset)
+                .sheet(isPresented: $showShareSheet) {
+                    if isDailyChallenge {
+                        let challengeNum = DailyChallenge.challengeNumber(for: Date())
+                        let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
+                        let starStr = String(repeating: "\u{2605}", count: stars) + String(repeating: "\u{2606}", count: 3 - stars)
+                        let shareText = "Flood It Daily #\(challengeNum) \(starStr) \(gameState.movesMade)/\(gameState.totalMoves) moves"
+                        let result = DailyResult(
+                            dateString: DailyChallenge.dateString(for: Date()),
+                            movesUsed: gameState.movesMade,
+                            moveBudget: gameState.totalMoves,
+                            starsEarned: stars,
+                            colorsUsed: gameState.colorHistory.prefix(5).map { $0.rawValue }
+                        )
+                        let image = ShareCardRenderer.render(result: result, challengeNumber: challengeNum)
+                        ShareSheet(items: [image, shareText])
+                    }
+                }
             }
 
             // Settings overlay

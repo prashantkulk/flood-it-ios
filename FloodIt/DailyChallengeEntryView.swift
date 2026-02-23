@@ -5,6 +5,7 @@ import SwiftUI
 struct DailyChallengeEntryView: View {
     @ObservedObject private var progress = ProgressStore.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var showShareSheet = false
 
     private let today = Date()
     private var challengeNumber: Int { DailyChallenge.challengeNumber(for: today) }
@@ -54,16 +55,35 @@ struct DailyChallengeEntryView: View {
                 }
             }
 
-            Button(action: { dismiss() }) {
-                Text("Back")
-                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+            VStack(spacing: 12) {
+                Button(action: { showShareSheet = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Share")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    }
                     .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
                     .padding(.horizontal, 48)
                     .padding(.vertical, 16)
                     .background(.white)
                     .clipShape(Capsule())
+                }
+
+                Button(action: { dismiss() }) {
+                    Text("Back")
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
             }
             .padding(.top, 16)
+            .sheet(isPresented: $showShareSheet) {
+                let stars = result.starsEarned
+                let starStr = String(repeating: "\u{2605}", count: stars) + String(repeating: "\u{2606}", count: 3 - stars)
+                let shareText = "Flood It Daily #\(challengeNumber) \(starStr) \(result.movesUsed)/\(result.moveBudget) moves"
+                let image = ShareCardRenderer.render(result: result, challengeNumber: challengeNumber)
+                ShareSheet(items: [image, shareText])
+            }
         }
     }
 }
