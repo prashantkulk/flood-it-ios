@@ -108,11 +108,12 @@ final class StoreManager: ObservableObject {
     }
 
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached { [weak self] in
+        let productID = StoreManager.removeAdsProductID
+        return Task.detached { [weak self] in
             for await result in Transaction.updates {
                 if let transaction = try? result.payloadValue,
-                   transaction.productID == StoreManager.removeAdsProductID {
-                    await MainActor.run {
+                   transaction.productID == productID {
+                    await MainActor.run { [weak self] in
                         self?.applyAdFree()
                     }
                     await transaction.finish()

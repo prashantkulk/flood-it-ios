@@ -555,7 +555,7 @@ class GameScene: SKScene {
 
             // Build path with gravity
             var actions = [SKAction]()
-            var curVx = vx
+            let curVx = vx
             var curVy = vy
             for _ in 0..<steps {
                 let dx = curVx * CGFloat(dt)

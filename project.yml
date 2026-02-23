@@ -22,6 +22,7 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: true
         UILaunchScreen:
           UIColorName: LaunchBackground
           UIImageName: LaunchLogo
