@@ -175,6 +175,12 @@ struct GameView: View {
                             }
                         }
 
+                    // MARK: P14-T3 Score counter
+                    Text("\(gameState.scoreState.totalScore)")
+                        .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                        .accessibilityIdentifier("scoreCounter")
+
                     Spacer()
 
                     // MARK: P12-T3 Hint button
