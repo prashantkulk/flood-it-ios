@@ -787,6 +787,43 @@ class GameScene: SKScene {
         comboGlowNodes.removeAll()
     }
 
+    /// Increase brightness of all cells by 10% for combo x4+.
+    func applyComboSaturation() {
+        for row in cellNodes {
+            for node in row {
+                node.run(SKAction.colorize(with: .white, colorBlendFactor: 0.1, duration: 0.15), withKey: "comboSat")
+            }
+        }
+    }
+
+    /// Remove combo saturation boost.
+    func removeComboSaturation() {
+        for row in cellNodes {
+            for node in row {
+                node.removeAction(forKey: "comboSat")
+                node.run(SKAction.colorize(withColorBlendFactor: 0.0, duration: 0.15), withKey: "comboSatRemove")
+            }
+        }
+    }
+
+    /// Subtle screen shake: 2px amplitude, 100ms total.
+    func comboScreenShake() {
+        let amplitude: CGFloat = 2
+        let shakeDur: TimeInterval = 0.025
+        var actions = [SKAction]()
+        for _ in 0..<2 {
+            actions.append(SKAction.moveBy(x: amplitude, y: 0, duration: shakeDur))
+            actions.append(SKAction.moveBy(x: -amplitude * 2, y: 0, duration: shakeDur))
+            actions.append(SKAction.moveBy(x: amplitude, y: 0, duration: shakeDur * 0.5))
+        }
+        let shakeSeq = SKAction.sequence(actions)
+        for row in cellNodes {
+            for node in row {
+                node.run(shakeSeq, withKey: "comboShake")
+            }
+        }
+    }
+
     /// Spawn spark particles along the flood boundary for combo x3+.
     func spawnComboSparks(board: FloodBoard) {
         let region = board.floodRegion

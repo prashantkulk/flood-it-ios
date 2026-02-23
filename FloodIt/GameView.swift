@@ -451,8 +451,14 @@ struct GameView: View {
             if gameState.comboCount >= 4 {
                 scene.spawnComboSparks(board: gameState.board)
             }
+            // x4+ saturation + screen shake
+            if gameState.comboCount >= 5 {
+                scene.applyComboSaturation()
+                scene.comboScreenShake()
+            }
         } else {
             scene.removeComboGlow()
+            scene.removeComboSaturation()
         }
 
         // Trigger lose animation if game just ended
