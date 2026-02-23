@@ -18,6 +18,7 @@ struct GameView: View {
     @State private var loseCardOffset: CGFloat = 600
     @State private var showSettings: Bool = false
     @State private var showShareSheet: Bool = false
+    @State private var hintColor: GameColor? = nil
     /// Whether this is a daily challenge game.
     let isDailyChallenge: Bool
     /// The daily challenge date string (shown on screen).
@@ -176,6 +177,17 @@ struct GameView: View {
 
                     Spacer()
 
+                    // MARK: P12-T3 Hint button
+                    Button(action: {
+                        watchAdForHint()
+                    }) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(hintColor != nil ? hintColor!.lightColor : .white.opacity(0.7))
+                    }
+                    .accessibilityIdentifier("hintButton")
+                    .disabled(gameState.gameStatus != .playing)
+
                     Button(action: {
                         showSettings = true
                     }) {
@@ -270,15 +282,19 @@ struct GameView: View {
 
                         VStack(spacing: 12) {
                             Button(action: {
-                                useExtraMoves()
+                                watchAdForExtraMoves()
                             }) {
-                                Text("Extra Moves (+3)")
-                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 16)
-                                    .background(.white)
-                                    .clipShape(Capsule())
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.rectangle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Extra Moves (+3)")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(.white)
+                                .clipShape(Capsule())
                             }
                             .accessibilityIdentifier("extraMovesButton")
 
@@ -590,6 +606,21 @@ struct GameView: View {
         }
     }
 
+    // MARK: - P12-T3 Rewarded video for extra moves and hints
+
+    private func watchAdForExtraMoves() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            useExtraMoves()
+            return
+        }
+        adManager.showRewardedVideo(from: rootVC) { [self] rewarded in
+            if rewarded {
+                useExtraMoves()
+            }
+        }
+    }
+
     private func useExtraMoves() {
         showLoseCard = false
         loseCardOffset = 600
@@ -597,6 +628,41 @@ struct GameView: View {
         // Restore cell alpha and stop pulsing
         scene.stopPulseUnfloodedCells()
         scene.updateColors(from: gameState.board)
+    }
+
+    private func watchAdForHint() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else {
+            showHint()
+            return
+        }
+        adManager.showRewardedVideo(from: rootVC) { [self] rewarded in
+            if rewarded {
+                showHint()
+            }
+        }
+    }
+
+    private func showHint() {
+        // Use greedy solver to find best next color
+        let currentColor = gameState.board.cells[0][0]
+        let colors = Array(GameColor.allCases.prefix(currentLevelData.colorCount))
+        var bestColor = colors.first(where: { $0 != currentColor }) ?? .coral
+        var bestCount = 0
+        for color in colors {
+            if color == currentColor { continue }
+            let absorbed = gameState.board.cellsAbsorbedBy(color: color)
+            let count = absorbed.flatMap { $0 }.count
+            if count > bestCount {
+                bestCount = count
+                bestColor = color
+            }
+        }
+        // Highlight the hint color briefly
+        hintColor = bestColor
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            hintColor = nil
+        }
     }
 
     // MARK: - P12-T2 Pack boundary interstitial
