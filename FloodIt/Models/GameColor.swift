@@ -75,6 +75,17 @@ enum GameColor: Int, CaseIterable {
         }
     }
 
+    /// Bandpass center frequency for button click sound.
+    var clickFrequency: Double {
+        switch self {
+        case .coral:    return 800   // warm
+        case .amber:    return 1200  // bright
+        case .emerald:  return 1000  // neutral
+        case .sapphire: return 1500  // crisp
+        case .violet:   return 900   // mellow
+        }
+    }
+
     /// UIColor version of darkColor for Core Graphics rendering.
     var uiDarkColor: UIColor {
         switch self {

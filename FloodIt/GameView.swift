@@ -392,6 +392,7 @@ struct GameView: View {
             return
         }
         lightHaptic.impactOccurred()
+        SoundManager.shared.playButtonClick(centerFrequency: color.clickFrequency)
 
         // Detect if this move will complete the board
         let willComplete = gameState.board.wouldComplete(color: color)
