@@ -69,6 +69,16 @@ class CellTextureCache {
         return tex
     }
 
+    func iceOverlay(size: CGSize, cornerRadius: CGFloat, layers: Int) -> SKTexture {
+        let key = "ice_\(layers)_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let alpha: CGFloat = layers >= 2 ? 0.50 : 0.30
+        let color = UIColor(red: 0.75, green: 0.88, blue: 1.0, alpha: alpha)
+        let tex = SKTexture(image: Self.drawRoundedRect(color: color, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
     func stoneShadow(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
         let key = "stone_shadow_\(Int(size.width))"
         if let t = cache[key] { return t }

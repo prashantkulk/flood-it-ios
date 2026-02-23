@@ -9,6 +9,8 @@ final class FloodCellNode: SKNode {
     private(set) var gameColor: GameColor
     private(set) var isStone = false
     private(set) var isVoid = false
+    private(set) var iceLayers: Int = 0
+    private var iceOverlayNode: SKSpriteNode?
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -120,6 +122,68 @@ final class FloodCellNode: SKNode {
         glossNode.isHidden = true
         highlightNode.alpha = 0.15
         bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.10)
+    }
+
+    /// Configure this cell with an ice overlay. 2 layers = thicker/more opaque, 1 = thinner.
+    func configureAsIce(layers: Int) {
+        iceLayers = layers
+        let sz = CGSize(width: cellSize, height: cellSize)
+        let cornerRadius = cellSize * cornerFraction
+
+        let overlay = SKSpriteNode(color: .clear, size: sz)
+        overlay.texture = CellTextureCache.shared.iceOverlay(size: sz, cornerRadius: cornerRadius, layers: layers)
+        overlay.zPosition = 3.5
+        overlay.name = "iceOverlay"
+        addChild(overlay)
+        iceOverlayNode = overlay
+    }
+
+    /// Update ice layers with crack animation when a layer is removed.
+    func updateIceLayers(_ newLayers: Int) {
+        guard newLayers != iceLayers else { return }
+        iceLayers = newLayers
+
+        if newLayers <= 0 {
+            // Fully cracked — dissolve overlay
+            playCrackAnimation()
+            SoundManager.shared.playCrack()
+            iceOverlayNode?.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: 0.3),
+                SKAction.removeFromParent()
+            ]))
+            iceOverlayNode = nil
+        } else {
+            // Layer removed — update texture + crack
+            let sz = CGSize(width: cellSize, height: cellSize)
+            let cornerRadius = cellSize * cornerFraction
+            iceOverlayNode?.texture = CellTextureCache.shared.iceOverlay(size: sz, cornerRadius: cornerRadius, layers: newLayers)
+            playCrackAnimation()
+            SoundManager.shared.playCrack()
+        }
+    }
+
+    /// White fracture lines that appear briefly when ice cracks.
+    private func playCrackAnimation() {
+        let sz = cellSize
+        let crackPath = UIBezierPath()
+        crackPath.move(to: CGPoint(x: -sz * 0.3, y: sz * 0.3))
+        crackPath.addLine(to: CGPoint(x: 0, y: 0))
+        crackPath.addLine(to: CGPoint(x: sz * 0.25, y: -sz * 0.35))
+        crackPath.move(to: CGPoint(x: 0, y: 0))
+        crackPath.addLine(to: CGPoint(x: sz * 0.3, y: sz * 0.2))
+
+        let crack = SKShapeNode(path: crackPath.cgPath)
+        crack.strokeColor = UIColor.white.withAlphaComponent(0.85)
+        crack.lineWidth = 1.5
+        crack.zPosition = 4
+        crack.name = "crackLines"
+        addChild(crack)
+
+        crack.run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.3),
+            SKAction.fadeOut(withDuration: 0.2),
+            SKAction.removeFromParent()
+        ]))
     }
 
     /// Configure this cell as a void: completely hidden so the dark background shows through.

@@ -308,6 +308,7 @@ class GameScene: SKScene {
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor)
         updateParticleColor(for: floodColor)
+        updateObstacleOverlays(from: board)
     }
 
     /// Callback invoked after the winning animation sequence finishes (before overlays).
@@ -345,9 +346,10 @@ class GameScene: SKScene {
             }
         }
 
-        // Update background and particles
+        // Update background, particles, and obstacle overlays
         updateBackground(for: newColor)
         updateParticleColor(for: newColor)
+        updateObstacleOverlays(from: board)
 
         guard !waves.isEmpty else {
             completion?()
@@ -1511,6 +1513,32 @@ class GameScene: SKScene {
         removeHighlight()
     }
 
+    // MARK: - Obstacle Overlay Updates
+
+    /// Update obstacle overlays (ice layers, countdown numbers, etc.) based on board state.
+    func updateObstacleOverlays(from board: FloodBoard) {
+        for row in 0..<board.gridSize {
+            for col in 0..<board.gridSize {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let node = cellNodes[row][col]
+                let type = board.cellType(atRow: row, col: col)
+
+                // Ice layer updates
+                switch type {
+                case .ice(let layers):
+                    if node.iceLayers != layers {
+                        node.updateIceLayers(layers)
+                    }
+                default:
+                    // Cell was ice but is now normal (fully cracked)
+                    if node.iceLayers > 0 {
+                        node.updateIceLayers(0)
+                    }
+                }
+            }
+        }
+    }
+
     private func renderBoard() {
         guard let board = board else { return }
         for row in cellNodes { for node in row { node.removeFromParent() } }
@@ -1543,6 +1571,8 @@ class GameScene: SKScene {
                     node.configureAsStone()
                 case .void:
                     node.configureAsVoid()
+                case .ice(let layers):
+                    node.configureAsIce(layers: layers)
                 default:
                     break
                 }

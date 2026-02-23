@@ -296,6 +296,20 @@ final class SoundManager {
         }
     }
 
+    // MARK: - Obstacle Audio
+
+    /// Ice crack sound: sharp noise burst with high-frequency pop.
+    func playCrack() {
+        let dur = 0.12
+        playBuffer(duration: dur, volume: 0.20) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(exp(-t * 40))
+            let noise = Float.random(in: -1...1) * 0.5
+            let crack = Float(sin(2 * .pi * 3000 * t)) * 0.5
+            return (noise + crack) * envelope
+        }
+    }
+
     // MARK: - Cascade Audio
 
     /// Cascade whoosh: rising sweep, slightly longer and brighter than cluster whoosh.
