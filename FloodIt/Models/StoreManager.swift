@@ -20,13 +20,30 @@ final class StoreManager: ObservableObject {
 
     private var transactionListener: Task<Void, Never>?
 
+    // MARK: P12-T5 Purchase persistence
+
     private init() {
-        // Check persisted ad-free status first
+        // Check persisted ad-free status from UserDefaults first
         if adManager.isAdFree {
             purchaseState = .purchased
         }
         transactionListener = listenForTransactions()
-        Task { await loadProducts() }
+        Task {
+            await loadProducts()
+            // Verify entitlements on launch to catch restored/family-shared purchases
+            await checkEntitlementsOnLaunch()
+        }
+    }
+
+    /// Check Transaction.currentEntitlements on app launch to restore ad-free status.
+    private func checkEntitlementsOnLaunch() async {
+        for await result in Transaction.currentEntitlements {
+            if let transaction = try? checkVerified(result),
+               transaction.productID == Self.removeAdsProductID {
+                applyAdFree()
+                return
+            }
+        }
     }
 
     deinit {
