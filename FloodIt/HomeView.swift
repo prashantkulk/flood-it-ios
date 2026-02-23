@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HomeView: View {
+    @ObservedObject private var progress = ProgressStore.shared
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -8,6 +10,26 @@ struct HomeView: View {
                     .ignoresSafeArea()
 
                 VStack(spacing: 40) {
+                    // Streak badge (top right area)
+                    HStack {
+                        Spacer()
+                        if progress.currentStreak > 0 {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.orange)
+                                Text("\(progress.currentStreak)")
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(Color.white.opacity(0.1)))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 60)
+
                     Spacer()
 
                     Text("FLOOD")

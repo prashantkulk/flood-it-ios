@@ -48,6 +48,7 @@ struct GameView: View {
                             // Stagger star reveals after card slides in
                             let stars = StarRating.calculate(movesUsed: gameState.movesMade, optimalMoves: gameState.optimalMoves, maxCombo: gameState.maxCombo)
                             ProgressStore.shared.updateStars(for: levelNumber, stars: stars)
+                            ProgressStore.shared.recordPlay()
                             for i in 0..<stars {
                                 let delay = 0.5 + Double(i) * 0.3
                                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
