@@ -203,6 +203,9 @@ class GameScene: SKScene {
         updateParticleColor(for: floodColor)
     }
 
+    /// Callback invoked after the winning animation sequence finishes (before overlays).
+    var onWinAnimationComplete: (() -> Void)?
+
     /// Animate the flood with staggered waves. Flood region cells change instantly;
     /// absorbed cells animate wave-by-wave with pop + crossfade.
     func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], isWinningMove: Bool = false, completion: (() -> Void)? = nil) {
@@ -241,6 +244,12 @@ class GameScene: SKScene {
         }
 
         isAnimating = true
+
+        if isWinningMove {
+            animateWinningFlood(waves: waves, newColor: newColor, completion: completion)
+            return
+        }
+
         let waveDelay: TimeInterval = 0.03  // 30ms per wave
 
         // Calculate total animation duration for completion callback
@@ -312,6 +321,70 @@ class GameScene: SKScene {
             }
         ])
         run(completionAction, withKey: "floodCompletion")
+    }
+
+    // MARK: - Winning Flood Animation
+
+    /// Dam-break winning animation: 500ms pause → dim to 60% → rapid BFS flood at 10ms per wave.
+    private func animateWinningFlood(waves: [[CellPosition]], newColor: GameColor, completion: (() -> Void)?) {
+        let pauseDuration: TimeInterval = 0.5
+        let dimDuration: TimeInterval = 0.3
+        let waveDelay: TimeInterval = 0.01  // 10ms per wave (rapid)
+
+        // Phase 1: 500ms pause, then dim all cells to 60%
+        let dimAction = SKAction.sequence([
+            SKAction.wait(forDuration: pauseDuration),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                for row in self.cellNodes {
+                    for node in row {
+                        node.run(SKAction.fadeAlpha(to: 0.6, duration: dimDuration), withKey: "winDim")
+                    }
+                }
+            },
+            SKAction.wait(forDuration: dimDuration)
+        ])
+
+        // Phase 2: Rapid dam-break flood
+        let damBreakAction = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            for (waveIndex, wave) in waves.enumerated() {
+                let delay = Double(waveIndex) * waveDelay
+                for pos in wave {
+                    guard pos.row < self.cellNodes.count, pos.col < self.cellNodes[pos.row].count else { continue }
+                    let node = self.cellNodes[pos.row][pos.col]
+                    let waitAction = SKAction.wait(forDuration: delay)
+                    let colorChange = SKAction.run { [weak node] in
+                        node?.crossfadeToColor(newColor, duration: 0.08)
+                    }
+                    let brighten = SKAction.fadeAlpha(to: 1.0, duration: 0.08)
+                    let anim = SKAction.sequence([waitAction, SKAction.group([colorChange, brighten])])
+                    node.run(anim, withKey: "floodAnim")
+                }
+            }
+        }
+
+        // Calculate total dam-break duration
+        let totalWaves = waves.count
+        let damBreakDuration = Double(totalWaves - 1) * waveDelay + 0.15
+
+        let finishAction = SKAction.sequence([
+            SKAction.wait(forDuration: damBreakDuration),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                self.isAnimating = false
+                // Mark all cells as flooded
+                for row in self.cellNodes {
+                    for node in row {
+                        node.setFlooded(true)
+                    }
+                }
+                self.onWinAnimationComplete?()
+                completion?()
+            }
+        ])
+
+        run(SKAction.sequence([dimAction, damBreakAction, finishAction]), withKey: "floodCompletion")
     }
 
     // MARK: - Ripple Ring Effect

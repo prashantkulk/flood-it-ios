@@ -140,6 +140,38 @@ struct FloodBoard {
         return FloodBoard(gridSize: size, cells: cells)
     }
 
+    /// Returns all non-flood-region cells grouped in BFS waves from the flood region boundary.
+    /// Used for the dam-break winning animation.
+    func allRemainingCellsInBFSOrder() -> [[CellPosition]] {
+        let region = floodRegion
+        var visited = region
+        // Start from boundary of flood region
+        var currentWave = Set<CellPosition>()
+        for pos in region {
+            for neighbor in neighbors(of: pos) {
+                if !visited.contains(neighbor) {
+                    visited.insert(neighbor)
+                    currentWave.insert(neighbor)
+                }
+            }
+        }
+        var waves = [[CellPosition]]()
+        while !currentWave.isEmpty {
+            waves.append(Array(currentWave))
+            var nextWave = Set<CellPosition>()
+            for pos in currentWave {
+                for neighbor in neighbors(of: pos) {
+                    if !visited.contains(neighbor) {
+                        visited.insert(neighbor)
+                        nextWave.insert(neighbor)
+                    }
+                }
+            }
+            currentWave = nextWave
+        }
+        return waves
+    }
+
     /// Returns true if flooding with the given color would complete the board (all cells same color).
     func wouldComplete(color newColor: GameColor) -> Bool {
         var simulated = self
