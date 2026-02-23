@@ -1113,6 +1113,7 @@ class GameScene: SKScene {
 
     private var highlightedCell: (row: Int, col: Int)?
     private var highlightRing: SKShapeNode?
+    private var ghostOverlays: [SKSpriteNode] = []
 
     private func cellAt(point: CGPoint) -> (row: Int, col: Int)? {
         guard let board = board, !cellNodes.isEmpty else { return nil }
@@ -1209,6 +1210,7 @@ class GameScene: SKScene {
         highlightRing?.removeFromParent()
         highlightRing = nil
         highlightedCell = nil
+        removeGhostOverlays()
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -1216,7 +1218,63 @@ class GameScene: SKScene {
         let point = touch.location(in: self)
         if let cell = cellAt(point: point) {
             applyHighlight(row: cell.row, col: cell.col)
+            showGhostPreview(row: cell.row, col: cell.col)
         }
+    }
+
+    // MARK: P14-T11 Ghost Preview
+
+    private func showGhostPreview(row: Int, col: Int) {
+        removeGhostOverlays()
+        guard let board = board else { return }
+        let tappedColor = board.cells[row][col]
+        let currentColor = board.cells[0][0]
+
+        // Same color as flood region → small shake
+        if tappedColor == currentColor {
+            let shakeR = SKAction.moveBy(x: 2, y: 0, duration: 0.03)
+            let shakeL = SKAction.moveBy(x: -4, y: 0, duration: 0.03)
+            let shakeBack = SKAction.moveBy(x: 2, y: 0, duration: 0.03)
+            let shake = SKAction.sequence([shakeR, shakeL, shakeBack])
+            if row < cellNodes.count, col < cellNodes[row].count {
+                cellNodes[row][col].run(shake, withKey: "ghostShake")
+            }
+            return
+        }
+
+        // Show preview overlay on cells that would be absorbed
+        let waves = board.cellsAbsorbedBy(color: tappedColor)
+        let allAbsorbed = waves.flatMap { $0 }
+        let n = board.gridSize
+        let sceneW = size.width
+        let available = sceneW - gridPadding * 2
+        let cellSize = (available - CGFloat(n - 1) * gridGap) / CGFloat(n)
+
+        for pos in allAbsorbed {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let cellNode = cellNodes[pos.row][pos.col]
+            let overlay = SKSpriteNode(color: .white, size: CGSize(width: cellSize, height: cellSize))
+            overlay.alpha = 0.3
+            overlay.position = cellNode.position
+            overlay.zPosition = 9
+            overlay.name = "ghostOverlay"
+            addChild(overlay)
+            ghostOverlays.append(overlay)
+
+            // Fade in quickly, then fade out after 150ms
+            overlay.run(SKAction.sequence([
+                SKAction.wait(forDuration: 0.15),
+                SKAction.fadeOut(withDuration: 0.1),
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
+    private func removeGhostOverlays() {
+        for overlay in ghostOverlays {
+            overlay.removeFromParent()
+        }
+        ghostOverlays.removeAll()
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
