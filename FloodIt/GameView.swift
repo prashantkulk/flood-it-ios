@@ -177,7 +177,10 @@ struct GameView: View {
         }
     }
 
+    private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+
     private func tapColorButton(_ color: GameColor) {
+        lightHaptic.impactOccurred()
         let result = gameState.performFlood(color: color)
         if result.waves.isEmpty {
             scene.updateColors(from: gameState.board)
