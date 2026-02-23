@@ -397,6 +397,8 @@ class GameScene: SKScene {
     private func runCompletionRush(completion: @escaping () -> Void) {
         completionRushPulse { [weak self] in
             self?.completionRushShimmer {
+                self?.completionRushConfetti()
+                // Don't wait for confetti to finish — signal completion for overlay
                 completion()
             }
         }
@@ -455,6 +457,55 @@ class GameScene: SKScene {
             SKAction.wait(forDuration: totalDuration),
             SKAction.run { completion() }
         ]), withKey: "rushShimmer")
+    }
+
+    /// Phase 3: Confetti burst — 60-80 colored rectangles shoot up from center, arc under gravity.
+    private func completionRushConfetti() {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
+        let count = Int.random(in: 60...80)
+        let colors = GameColor.allCases
+
+        for _ in 0..<count {
+            let color = colors.randomElement()!
+            let w = CGFloat.random(in: 4...8)
+            let h = CGFloat.random(in: 6...12)
+            let confetti = SKSpriteNode(color: color.skColor, size: CGSize(width: w, height: h))
+            confetti.position = center
+            confetti.zPosition = 10
+            confetti.zRotation = CGFloat.random(in: 0...(2 * .pi))
+            confetti.name = "confetti"
+            addChild(confetti)
+
+            // Initial velocity: shoot upward with horizontal spread
+            let vx = CGFloat.random(in: -180...180)
+            let vy = CGFloat.random(in: 200...450)
+            let gravity: CGFloat = -400
+            let lifetime: TimeInterval = 2.0
+            let steps = 60
+            let dt = lifetime / Double(steps)
+
+            // Build path with gravity
+            var actions = [SKAction]()
+            var curVx = vx
+            var curVy = vy
+            for _ in 0..<steps {
+                let dx = curVx * CGFloat(dt)
+                let dy = curVy * CGFloat(dt)
+                actions.append(SKAction.moveBy(x: dx, y: dy, duration: dt))
+                curVy += gravity * CGFloat(dt)
+                _ = curVx // horizontal stays constant
+            }
+
+            let moveSeq = SKAction.sequence(actions)
+            let spin = SKAction.rotate(byAngle: CGFloat.random(in: -8...8), duration: lifetime)
+            let fadeOut = SKAction.sequence([
+                SKAction.wait(forDuration: lifetime * 0.6),
+                SKAction.fadeOut(withDuration: lifetime * 0.4)
+            ])
+
+            let group = SKAction.group([moveSeq, spin, fadeOut])
+            confetti.run(SKAction.sequence([group, SKAction.removeFromParent()]))
+        }
     }
 
     // MARK: - Ripple Ring Effect
