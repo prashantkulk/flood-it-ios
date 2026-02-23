@@ -7,6 +7,7 @@ final class FloodCellNode: SKNode {
 
     let cellSize: CGFloat
     private(set) var gameColor: GameColor
+    private(set) var isStone = false
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -79,6 +80,7 @@ final class FloodCellNode: SKNode {
     }
 
     func applyColor(_ color: GameColor) {
+        guard !isStone else { return }
         self.gameColor = color
         let sz = CGSize(width: cellSize, height: cellSize)
         let cornerRadius = cellSize * cornerFraction
@@ -105,9 +107,24 @@ final class FloodCellNode: SKNode {
         highlightNode.size = sz
     }
 
+    /// Configure this cell as a stone block: gray gradient, no glow, no gloss (matte).
+    func configureAsStone() {
+        isStone = true
+        let sz = CGSize(width: cellSize, height: cellSize)
+        let cornerRadius = cellSize * cornerFraction
+
+        bodyNode.texture = CellTextureCache.shared.stoneGradient(size: sz, cornerRadius: cornerRadius)
+        shadowNode.texture = CellTextureCache.shared.stoneShadow(size: sz, cornerRadius: cornerRadius)
+        glowNode.alpha = 0
+        glossNode.isHidden = true
+        highlightNode.alpha = 0.15
+        bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.10)
+    }
+
     /// Smoothly crossfade from old color to new color over given duration.
     /// Creates a temporary overlay with the old body texture and fades it out.
     func crossfadeToColor(_ newColor: GameColor, duration: TimeInterval = 0.15) {
+        guard !isStone else { return }
         // Capture old body texture before changing
         let oldBodyTex = bodyNode.texture
         let oldGlowTex = glowNode.texture

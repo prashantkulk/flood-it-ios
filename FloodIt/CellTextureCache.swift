@@ -57,6 +57,27 @@ class CellTextureCache {
         return tex
     }
 
+    // MARK: - Obstacle Textures
+
+    func stoneGradient(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let key = "stone_grad_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let light = UIColor(red: 0.45, green: 0.43, blue: 0.40, alpha: 1.0)
+        let dark = UIColor(red: 0.25, green: 0.23, blue: 0.20, alpha: 1.0)
+        let tex = SKTexture(image: Self.drawGradient(light: light, dark: dark, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
+    func stoneShadow(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let key = "stone_shadow_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let color = UIColor(red: 0.15, green: 0.13, blue: 0.10, alpha: 0.7)
+        let tex = SKTexture(image: Self.drawRoundedRect(color: color, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
     // MARK: - Renderers
 
     private static func drawHighlight(size: CGSize, cornerRadius: CGFloat) -> UIImage {

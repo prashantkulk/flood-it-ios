@@ -230,6 +230,7 @@ class GameScene: SKScene {
                 let node = cellNodes[row][col]
                 node.removeAction(forKey: "floodAnim")
                 node.removeCrossfadeOverlays()
+                guard !node.isStone else { continue }
                 let cell = board.cells[row][col]
                 if node.gameColor != cell {
                     node.applyColor(cell)
@@ -296,6 +297,7 @@ class GameScene: SKScene {
             for col in 0..<board.gridSize {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
                 let node = cellNodes[row][col]
+                guard !node.isStone else { continue }
                 let cell = board.cells[row][col]
                 if node.gameColor != cell {
                     node.applyColor(cell)
@@ -1533,6 +1535,16 @@ class GameScene: SKScene {
                 let y = originY + CGFloat(n - 1 - row) * (cellSize + gridGap) + cellSize / 2
                 node.position = CGPoint(x: x, y: y)
                 node.name = "cell_\(row)_\(col)"
+
+                // Configure obstacle appearance
+                let cellType = board.cellType(atRow: row, col: col)
+                switch cellType {
+                case .stone:
+                    node.configureAsStone()
+                default:
+                    break
+                }
+
                 node.setFlooded(floodKeys.contains("\(row),\(col)"))
                 addChild(node)
                 rowNodes.append(node)
