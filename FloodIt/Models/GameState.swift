@@ -44,20 +44,31 @@ class GameState: ObservableObject {
         self.scoreState.reset()
     }
 
+    /// Result of performing a flood move, containing data for animation and scoring.
+    struct FloodResult {
+        let waves: [[CellPosition]]
+        let cascadeWaves: [[CellPosition]]
+        let previousColors: [CellPosition: GameColor]
+        let cascadeCount: Int
+    }
+
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.
-    /// Returns the waves of absorbed cells (empty if move is invalid), plus the previous colors for crossfade.
+    /// Returns the waves of absorbed cells (empty if move is invalid), cascade waves, and previous colors.
     @discardableResult
-    func performFlood(color: GameColor) -> (waves: [[CellPosition]], previousColors: [CellPosition: GameColor]) {
-        guard gameStatus == .playing else { return ([], [:]) }
+    func performFlood(color: GameColor) -> FloodResult {
+        guard gameStatus == .playing else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0) }
 
         // Don't waste a move if tapping the same color as current flood region
         let currentColor = board.cells[0][0]
-        guard color != currentColor else { return ([], [:]) }
+        guard color != currentColor else { return FloodResult(waves: [], cascadeWaves: [], previousColors: [:], cascadeCount: 0) }
 
-        // Capture wave data and previous colors BEFORE mutating
-        let waves = board.cellsAbsorbedBy(color: color)
+        // Capture wave data and cascade waves BEFORE mutating
+        let allWaves = board.cellsAbsorbedBy(color: color)
+        let initialWaves: [[CellPosition]] = allWaves.isEmpty ? [] : [allWaves[0]]
+        let cascadeWaves: [[CellPosition]] = allWaves.count > 1 ? Array(allWaves.dropFirst()) : []
+
         var previousColors = [CellPosition: GameColor]()
-        for wave in waves {
+        for wave in allWaves {
             for pos in wave {
                 previousColors[pos] = board.cells[pos.row][pos.col]
             }
@@ -68,8 +79,8 @@ class GameState: ObservableObject {
             previousColors[pos] = board.cells[pos.row][pos.col]
         }
 
-        // Count absorbed cells for combo tracking
-        let absorbedCount = waves.flatMap { $0 }.count
+        // Count absorbed cells for combo tracking (initial + cascade)
+        let absorbedCount = allWaves.flatMap { $0 }.count
 
         board.flood(color: color)
         movesMade += 1
@@ -86,10 +97,10 @@ class GameState: ObservableObject {
             comboCount = 0
         }
 
-        // Record move score
+        // Record move score with cascade multiplier: 1.5^cascadeCount
         let comboMultiplier = comboCount >= 2 ? Double(comboCount) : 1.0
-        let cascadeWaves = waves.count
-        let cascadeMultiplier = cascadeWaves >= 3 ? 1.0 + Double(cascadeWaves - 2) * 0.25 : 1.0
+        let cascadeCount = cascadeWaves.count
+        let cascadeMultiplier = cascadeCount > 0 ? pow(1.5, Double(cascadeCount)) : 1.0
         scoreState.recordMove(cellsAbsorbed: absorbedCount, comboMultiplier: comboMultiplier, cascadeMultiplier: cascadeMultiplier)
 
         if board.isComplete {
@@ -100,7 +111,7 @@ class GameState: ObservableObject {
             gameStatus = .lost
         }
 
-        return (waves, previousColors)
+        return FloodResult(waves: initialWaves, cascadeWaves: cascadeWaves, previousColors: previousColors, cascadeCount: cascadeCount)
     }
 
     /// Returns the number of cells not in the flood region.

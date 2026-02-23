@@ -316,7 +316,7 @@ class GameScene: SKScene {
 
     /// Animate the flood with staggered waves. Flood region cells change instantly;
     /// absorbed cells animate wave-by-wave with pop + crossfade.
-    func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], isWinningMove: Bool = false, completion: (() -> Void)? = nil) {
+    func animateFlood(board: FloodBoard, waves: [[CellPosition]], newColor: GameColor, previousColors: [CellPosition: GameColor], isWinningMove: Bool = false, cascadeStartIndex: Int = 0, completion: (() -> Void)? = nil) {
         self.board = board
         resetIdleTimer()
 

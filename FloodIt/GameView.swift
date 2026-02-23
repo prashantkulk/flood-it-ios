@@ -660,7 +660,8 @@ struct GameView: View {
         let result = gameState.performFlood(color: color)
 
         // MARK: P14-T7 Tiered haptics based on cells absorbed
-        let cellsAbsorbed = result.waves.flatMap { $0 }.count
+        let allWaves = result.waves + result.cascadeWaves
+        let cellsAbsorbed = allWaves.flatMap { $0 }.count
         if cellsAbsorbed >= 15 {
             heavyHaptic.impactOccurred()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [self] in
@@ -706,21 +707,22 @@ struct GameView: View {
         let floodedCells = Double(gameState.board.floodRegion.count)
         SoundManager.shared.updateAmbientVolume(floodPercentage: floodedCells / totalCells)
 
-        if result.waves.isEmpty {
+        if allWaves.isEmpty {
             scene.updateColors(from: gameState.board)
         } else {
             scene.animateFlood(
                 board: gameState.board,
-                waves: result.waves,
+                waves: allWaves,
                 newColor: color,
                 previousColors: result.previousColors,
-                isWinningMove: willComplete
+                isWinningMove: willComplete,
+                cascadeStartIndex: result.waves.count
             )
             // MARK: P14-T5/T6 Floating text
             if cellsAbsorbed > 0 {
-                scene.spawnFloatingCellsText(waves: result.waves, cellsAbsorbed: cellsAbsorbed)
+                scene.spawnFloatingCellsText(waves: allWaves, cellsAbsorbed: cellsAbsorbed)
                 let comboMult = gameState.comboCount >= 2 ? Double(gameState.comboCount) : 1.0
-                scene.spawnFloatingPointsText(waves: result.waves, points: gameState.scoreState.lastMoveScore, multiplier: comboMult)
+                scene.spawnFloatingPointsText(waves: allWaves, points: gameState.scoreState.lastMoveScore, multiplier: comboMult)
             }
         }
 
