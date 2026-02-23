@@ -56,6 +56,35 @@ final class DailyChallengeTests: XCTestCase {
         XCTAssertNotEqual(DailyChallenge.seed(for: date1), DailyChallenge.seed(for: date2))
     }
 
+    // MARK: - P11-T3: Daily result persistence
+
+    func testSaveDailyResultAndRetrieve() {
+        let store = ProgressStore()
+        let result = DailyResult(
+            dateString: "2026-99-99",
+            movesUsed: 14,
+            moveBudget: 22,
+            starsEarned: 3,
+            colorsUsed: [0, 1, 2, 3, 4]
+        )
+        store.saveDailyResult(result)
+
+        let retrieved = store.dailyResult(for: "2026-99-99")
+        XCTAssertNotNil(retrieved)
+        XCTAssertEqual(retrieved?.movesUsed, 14)
+        XCTAssertEqual(retrieved?.moveBudget, 22)
+        XCTAssertEqual(retrieved?.starsEarned, 3)
+        XCTAssertEqual(retrieved?.colorsUsed, [0, 1, 2, 3, 4])
+
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: "progress_dailyResults")
+    }
+
+    func testDailyResultNilIfNotCompleted() {
+        let store = ProgressStore()
+        XCTAssertNil(store.dailyResult(for: "2099-12-31"))
+    }
+
     // MARK: - Helpers
 
     private func makeDate(year: Int, month: Int, day: Int) -> Date {
