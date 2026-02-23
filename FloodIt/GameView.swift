@@ -34,6 +34,7 @@ struct GameView: View {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
                 .onAppear {
+                    SoundManager.shared.startAmbient()
                     scene.onWinAnimationComplete = {
                         DispatchQueue.main.async {
                             showWinCard = true
@@ -402,6 +403,12 @@ struct GameView: View {
         }
 
         let result = gameState.performFlood(color: color)
+
+        // Update ambient volume based on flood progress
+        let totalCells = Double(gameState.board.gridSize * gameState.board.gridSize)
+        let floodedCells = Double(gameState.board.floodRegion.count)
+        SoundManager.shared.updateAmbientVolume(floodPercentage: floodedCells / totalCells)
+
         if result.waves.isEmpty {
             scene.updateColors(from: gameState.board)
         } else {
@@ -416,6 +423,7 @@ struct GameView: View {
 
         // Trigger lose animation if game just ended
         if gameState.gameStatus == .lost {
+            SoundManager.shared.playLoseTone()
             scene.animateLose()
             // Pulse remaining cells if "almost" (≤2 unflooded)
             if gameState.unfloodedCellCount <= 2 {
