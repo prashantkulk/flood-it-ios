@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var ambientEnabled: Bool = SoundManager.shared.ambientEnabled
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var progress = ProgressStore.shared
+    @StateObject private var storeManager = StoreManager.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -115,6 +116,9 @@ struct SettingsView: View {
                 }
             }
 
+            // MARK: P12-T4 Remove Ads IAP
+            removeAdsSection
+
             Button(action: { dismiss() }) {
                 Text("Done")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
@@ -138,5 +142,44 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 28)
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private var removeAdsSection: some View {
+        switch storeManager.purchaseState {
+        case .purchased:
+            HStack {
+                Image(systemName: "checkmark.seal.fill")
+                    .foregroundColor(.green)
+                Text("Ad-Free")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .foregroundColor(.white)
+            }
+        case .purchasing:
+            ProgressView()
+                .tint(.white)
+        default:
+            if let product = storeManager.removeAdsProduct {
+                Button(action: {
+                    Task { await storeManager.purchaseRemoveAds() }
+                }) {
+                    HStack {
+                        Text("Remove Ads")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        Spacer()
+                        Text(product.displayPrice)
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.white.opacity(0.1))
+                    )
+                }
+                .accessibilityIdentifier("removeAdsButton")
+            }
+        }
     }
 }
