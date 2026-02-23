@@ -724,6 +724,13 @@ struct GameView: View {
                 let comboMult = gameState.comboCount >= 2 ? Double(gameState.comboCount) : 1.0
                 scene.spawnFloatingPointsText(waves: allWaves, points: gameState.scoreState.lastMoveScore, multiplier: comboMult)
             }
+            // MARK: P15-T6 Cascade text
+            if result.cascadeCount >= 1 {
+                let chainCount = result.cascadeCount + 1  // +1 because cascade count doesn't include the initial wave
+                // Delay cascade text to appear when cascade animation starts
+                let cascadeTextDelay = Double(result.waves.count) * 0.03 + 0.1
+                scene.spawnCascadeText(chainCount: chainCount, delay: cascadeTextDelay)
+            }
         }
 
         // Update combo visuals

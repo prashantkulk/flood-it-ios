@@ -982,6 +982,82 @@ class GameScene: SKScene {
         }
     }
 
+    // MARK: - Cascade Text
+
+    /// Spawn floating golden 'CASCADE xN!' text at the center of the board.
+    func spawnCascadeText(chainCount: Int, delay: TimeInterval = 0) {
+        guard chainCount >= 2 else { return }
+        let text = "CASCADE x\(chainCount)!"
+        let label = SKLabelNode(text: text)
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = 32
+        label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        label.position = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
+        label.zPosition = 20
+        label.alpha = 0
+        label.setScale(0.5)
+        label.name = "cascadeText"
+        addChild(label)
+
+        let waitAction = SKAction.wait(forDuration: delay)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.12)
+        let scaleUp = SKAction.scale(to: 1.2, duration: 0.12)
+        scaleUp.timingMode = .easeOut
+        let settle = SKAction.scale(to: 1.0, duration: 0.08)
+        settle.timingMode = .easeInEaseOut
+        let hold = SKAction.wait(forDuration: 0.8)
+        let moveUp = SKAction.moveBy(x: 0, y: 50, duration: 0.5)
+        moveUp.timingMode = .easeIn
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+
+        let burstAction = SKAction.run { [weak self, weak label] in
+            guard let self = self, let pos = label?.position else { return }
+            self.spawnGoldenCascadeBurst(at: pos, intensity: chainCount)
+        }
+
+        let anim = SKAction.sequence([
+            waitAction,
+            SKAction.group([fadeIn, scaleUp]),
+            settle,
+            burstAction,
+            hold,
+            SKAction.group([moveUp, fadeOut]),
+            SKAction.removeFromParent()
+        ])
+        label.run(anim)
+    }
+
+    /// Golden particle burst behind cascade text.
+    private func spawnGoldenCascadeBurst(at position: CGPoint, intensity: Int) {
+        let count = min(8 + intensity * 4, 24)
+        for _ in 0..<count {
+            let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...5))
+            dot.fillColor = SKColor(red: 1.0, green: CGFloat.random(in: 0.7...0.9), blue: 0.0, alpha: 1.0)
+            dot.strokeColor = .clear
+            dot.position = position
+            dot.zPosition = 19
+            dot.alpha = 0.9
+            dot.blendMode = .add
+            dot.name = "cascadeBurst"
+            addChild(dot)
+
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let distance = CGFloat.random(in: 20...60)
+            let dx = cos(angle) * distance
+            let dy = sin(angle) * distance
+
+            let move = SKAction.moveBy(x: dx, y: dy, duration: CGFloat.random(in: 0.3...0.6))
+            move.timingMode = .easeOut
+            let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+            let shrink = SKAction.scale(to: 0.2, duration: 0.4)
+
+            dot.run(SKAction.sequence([
+                SKAction.group([move, SKAction.sequence([SKAction.wait(forDuration: 0.2), fadeOut]), shrink]),
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
     /// Camera shake for large absorptions (20+ cells).
     /// Random offset 2-3px, dampened over 0.15s (3-4 oscillations).
     func cameraShake() {
