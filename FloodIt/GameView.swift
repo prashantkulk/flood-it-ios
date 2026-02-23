@@ -8,6 +8,7 @@ struct GameView: View {
     private let seed: UInt64
     @State private var moveCounterScale: CGFloat = 1.0
     @State private var moveCounterFlash: Bool = false
+    @State private var moveCounterPulse: Bool = false
 
     init(seed: UInt64 = 42) {
         self.seed = seed
@@ -51,7 +52,8 @@ struct GameView: View {
                 HStack {
                     Text("Moves: \(gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(moveCounterColor)
+                        .opacity(gameState.movesRemaining <= 2 ? (moveCounterPulse ? 0.7 : 1.0) : 1.0)
                         .scaleEffect(moveCounterScale)
                         .overlay(
                             Color.white
@@ -60,7 +62,7 @@ struct GameView: View {
                                 .allowsHitTesting(false)
                         )
                         .accessibilityIdentifier("moveCounter")
-                        .onChange(of: gameState.movesRemaining) { _ in
+                        .onChange(of: gameState.movesRemaining) { newValue in
                             moveCounterFlash = true
                             withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
                                 moveCounterScale = 1.2
@@ -72,6 +74,14 @@ struct GameView: View {
                                 withAnimation(.easeOut(duration: 0.15)) {
                                     moveCounterFlash = false
                                 }
+                            }
+                            // Start/stop pulse for critical moves
+                            if newValue <= 2 {
+                                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                                    moveCounterPulse = true
+                                }
+                            } else {
+                                moveCounterPulse = false
                             }
                         }
 
@@ -198,6 +208,12 @@ struct GameView: View {
                 }
             }
         }
+    }
+
+    private var moveCounterColor: Color {
+        if gameState.movesRemaining <= 2 { return .red }
+        if gameState.movesRemaining <= 5 { return .orange }
+        return .white
     }
 
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
