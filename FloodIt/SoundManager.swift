@@ -10,12 +10,23 @@ final class SoundManager {
     private let mixer = AVAudioMixerNode()
     private let sampleRate: Double = 44100
 
-    // Settings
+    // Settings (persisted via UserDefaults)
+    private static let kMasterVolume = "sound_masterVolume"
+    private static let kSFXEnabled = "sound_sfxEnabled"
+    private static let kAmbientEnabled = "sound_ambientEnabled"
+
     var masterVolume: Float = 0.8 {
-        didSet { mixer.outputVolume = masterVolume }
+        didSet {
+            mixer.outputVolume = masterVolume
+            UserDefaults.standard.set(masterVolume, forKey: Self.kMasterVolume)
+        }
     }
-    var sfxEnabled: Bool = true
-    var ambientEnabled: Bool = true
+    var sfxEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(sfxEnabled, forKey: Self.kSFXEnabled) }
+    }
+    var ambientEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(ambientEnabled, forKey: Self.kAmbientEnabled) }
+    }
 
     // Ambient state
     private var ambientNode: AVAudioSourceNode?
@@ -24,8 +35,26 @@ final class SoundManager {
     private var ambientTargetVolume: Float = 0.1
 
     private init() {
+        loadSettings()
         setupAudioSession()
         setupEngine()
+    }
+
+    private func loadSettings() {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: Self.kMasterVolume) != nil {
+            masterVolume = defaults.float(forKey: Self.kMasterVolume)
+        }
+        if defaults.object(forKey: Self.kSFXEnabled) != nil {
+            sfxEnabled = defaults.bool(forKey: Self.kSFXEnabled)
+        } else {
+            sfxEnabled = true
+        }
+        if defaults.object(forKey: Self.kAmbientEnabled) != nil {
+            ambientEnabled = defaults.bool(forKey: Self.kAmbientEnabled)
+        } else {
+            ambientEnabled = true
+        }
     }
 
     private func setupAudioSession() {

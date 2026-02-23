@@ -15,6 +15,7 @@ struct GameView: View {
     @State private var starScales: [CGFloat] = [0, 0, 0]
     @State private var showLoseCard: Bool = false
     @State private var loseCardOffset: CGFloat = 600
+    @State private var showSettings: Bool = false
     @Environment(\.dismiss) private var dismiss
 
     init(seed: UInt64 = 42) {
@@ -123,6 +124,15 @@ struct GameView: View {
                         }
 
                     Spacer()
+
+                    Button(action: {
+                        showSettings = true
+                    }) {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .accessibilityIdentifier("settingsButton")
 
                     Button(action: {
                         resetGame()
@@ -369,7 +379,19 @@ struct GameView: View {
                 )
                 .offset(y: winCardOffset)
             }
+
+            // Settings overlay
+            if showSettings {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .onTapGesture { showSettings = false }
+                    .transition(.opacity)
+
+                SettingsView()
+                    .transition(.scale.combined(with: .opacity))
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: showSettings)
     }
 
     /// Number of unflooded cells if ≤2 (for "Almost!" mechanic), 0 otherwise.
