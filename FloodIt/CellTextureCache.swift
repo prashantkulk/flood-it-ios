@@ -2,49 +2,57 @@ import SpriteKit
 import UIKit
 
 /// Pre-renders and caches SKTextures used by FloodCellNode layers.
-enum CellTextureCache {
+class CellTextureCache {
+    static let shared = CellTextureCache()
 
-    private static var cache: [String: SKTexture] = [:]
+    private var cache: [String: SKTexture] = [:]
+
+    func clearAll() {
+        cache.removeAll()
+    }
 
     // MARK: - Public API
 
-    static func solid(color: UIColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+    func solid(color: UIColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
         let key = "solid_\(color.hashValue)_\(Int(size.width))"
         if let t = cache[key] { return t }
-        let tex = SKTexture(image: drawRoundedRect(color: color, size: size, cornerRadius: cornerRadius))
+        let tex = SKTexture(image: Self.drawRoundedRect(color: color, size: size, cornerRadius: cornerRadius))
         cache[key] = tex
         return tex
     }
 
-    static func gradient(for gameColor: GameColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
-        let key = "grad_\(gameColor.rawValue)_\(Int(size.width))"
+    func gradient(for gameColor: GameColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let themeId = ThemeManager.shared.activeTheme.id
+        let key = "grad_\(themeId)_\(gameColor.rawValue)_\(Int(size.width))"
         if let t = cache[key] { return t }
-        let tex = SKTexture(image: drawGradient(light: gameColor.uiLightColor, dark: gameColor.uiDarkColor, size: size, cornerRadius: cornerRadius))
+        let tex = SKTexture(image: Self.drawGradient(light: gameColor.uiLightColor, dark: gameColor.uiDarkColor, size: size, cornerRadius: cornerRadius))
         cache[key] = tex
         return tex
     }
 
-    static func glow(for gameColor: GameColor, size: CGSize) -> SKTexture {
-        let key = "glow_\(gameColor.rawValue)_\(Int(size.width))"
+    func glow(for gameColor: GameColor, size: CGSize) -> SKTexture {
+        let themeId = ThemeManager.shared.activeTheme.id
+        let key = "glow_\(themeId)_\(gameColor.rawValue)_\(Int(size.width))"
         if let t = cache[key] { return t }
-        let tex = SKTexture(image: drawGlow(color: gameColor.uiLightColor, size: size))
+        let tex = SKTexture(image: Self.drawGlow(color: gameColor.uiLightColor, size: size))
         cache[key] = tex
         return tex
     }
 
-    static func shadow(for gameColor: GameColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
-        let key = "shadow_\(gameColor.rawValue)_\(Int(size.width))"
+    func shadow(for gameColor: GameColor, size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let themeId = ThemeManager.shared.activeTheme.id
+        let key = "shadow_\(themeId)_\(gameColor.rawValue)_\(Int(size.width))"
         if let t = cache[key] { return t }
         let shadowColor = gameColor.uiShadowColor
-        let tex = SKTexture(image: drawRoundedRect(color: shadowColor, size: size, cornerRadius: cornerRadius))
+        let tex = SKTexture(image: Self.drawRoundedRect(color: shadowColor, size: size, cornerRadius: cornerRadius))
         cache[key] = tex
         return tex
     }
 
-    static func highlight(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+    func highlight(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
         let key = "highlight_\(Int(size.width))"
         if let t = cache[key] { return t }
-        let tex = SKTexture(image: drawHighlight(size: size, cornerRadius: cornerRadius))
+        let tex = SKTexture(image: Self.drawHighlight(size: size, cornerRadius: cornerRadius))
         cache[key] = tex
         return tex
     }

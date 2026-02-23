@@ -12,6 +12,7 @@
 		0990A1E674E4A19B60CA3C65 /* GameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA548063A2EC30039D99EA8B /* GameState.swift */; };
 		1001691068C391E05E401A2A /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = F918AB9DF05A021F6EBAB27F /* GameScene.swift */; };
 		1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5730F9880C43BF08564B0E3 /* CellTextureCache.swift */; };
+		3214D389B8DAA9974B3F3C36 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27D4261953DA06F6DF911BC /* ThemeManager.swift */; };
 		33E3B4690AF8FA56690B49D2 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */; };
 		5C367BF1E4999A08A80DC78E /* LevelSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE183B198EB44E0E383BE400 /* LevelSelectView.swift */; };
 		5F8B677E76B3A5DE9A348396 /* ProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75947AB6CBA0A5DE0A53E532 /* ProgressStore.swift */; };
@@ -85,6 +86,7 @@
 		EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolverTests.swift; sourceTree = "<group>"; };
 		EAE7986BBF635BBEF381E35F /* GameColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameColor.swift; sourceTree = "<group>"; };
 		EF8F80A4171FD713980C7A0D /* LevelData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelData.swift; sourceTree = "<group>"; };
+		F27D4261953DA06F6DF911BC /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
 		F918AB9DF05A021F6EBAB27F /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -159,6 +161,7 @@
 				3EEE7F2DEAD2AA109B452863 /* LevelGenerator.swift */,
 				75947AB6CBA0A5DE0A53E532 /* ProgressStore.swift */,
 				1C7FFD832E1A263F11BFEFEB /* StarRating.swift */,
+				F27D4261953DA06F6DF911BC /* ThemeManager.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -325,6 +328,7 @@
 				B3C818B20A27B3CE5641E4DB /* SettingsView.swift in Sources */,
 				C40B68B6DE72384D49FBCA7E /* SoundManager.swift in Sources */,
 				961464DB7CADF8B260466F42 /* StarRating.swift in Sources */,
+				3214D389B8DAA9974B3F3C36 /* ThemeManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

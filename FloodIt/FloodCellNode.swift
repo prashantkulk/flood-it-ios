@@ -85,22 +85,22 @@ final class FloodCellNode: SKNode {
 
         // Glow texture
         let glowSize = CGSize(width: cellSize * 1.45, height: cellSize * 1.45)
-        let glowTex = CellTextureCache.glow(for: color, size: glowSize)
+        let glowTex = CellTextureCache.shared.glow(for: color, size: glowSize)
         glowNode.texture = glowTex
         glowNode.size = glowSize
 
         // Shadow texture (color-matched, soft)
-        let shadowTex = CellTextureCache.shadow(for: color, size: sz, cornerRadius: cornerRadius)
+        let shadowTex = CellTextureCache.shared.shadow(for: color, size: sz, cornerRadius: cornerRadius)
         shadowNode.texture = shadowTex
         shadowNode.size = sz
 
         // Gradient body texture (light → dark, top-left to bottom-right)
-        let bodyTex = CellTextureCache.gradient(for: color, size: sz, cornerRadius: cornerRadius)
+        let bodyTex = CellTextureCache.shared.gradient(for: color, size: sz, cornerRadius: cornerRadius)
         bodyNode.texture = bodyTex
         bodyNode.size = sz
 
         // Highlight texture
-        let highlightTex = CellTextureCache.highlight(size: sz, cornerRadius: cornerRadius)
+        let highlightTex = CellTextureCache.shared.highlight(size: sz, cornerRadius: cornerRadius)
         highlightNode.texture = highlightTex
         highlightNode.size = sz
     }

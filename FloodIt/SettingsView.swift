@@ -4,6 +4,8 @@ struct SettingsView: View {
     @State private var masterVolume: Double = Double(SoundManager.shared.masterVolume)
     @State private var sfxEnabled: Bool = SoundManager.shared.sfxEnabled
     @State private var ambientEnabled: Bool = SoundManager.shared.ambientEnabled
+    @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var progress = ProgressStore.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -53,6 +55,63 @@ struct SettingsView: View {
                 .tint(.white)
                 .onChange(of: ambientEnabled) { newValue in
                     SoundManager.shared.setAmbientEnabled(newValue)
+                }
+            }
+
+            // Theme selector
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Theme")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+
+                ForEach(ThemeManager.allThemes) { theme in
+                    let isActive = themeManager.activeTheme.id == theme.id
+                    let unlocked = themeManager.isUnlocked(theme)
+
+                    Button(action: {
+                        if unlocked {
+                            themeManager.selectTheme(theme)
+                        }
+                    }) {
+                        HStack {
+                            // Color preview swatches
+                            HStack(spacing: 3) {
+                                ForEach(0..<5, id: \.self) { i in
+                                    Circle()
+                                        .fill(Color(hex: theme.lightColors[i]))
+                                        .frame(width: 14, height: 14)
+                                }
+                            }
+
+                            Text(theme.name)
+                                .font(.system(size: 15, weight: .medium, design: .rounded))
+                                .foregroundColor(unlocked ? .white : .white.opacity(0.4))
+
+                            Spacer()
+
+                            if !unlocked {
+                                HStack(spacing: 2) {
+                                    Text("\(theme.starsRequired)")
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .foregroundColor(.yellow.opacity(0.7))
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.yellow.opacity(0.7))
+                                }
+                            } else if isActive {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(isActive ? Color.white.opacity(0.12) : Color.clear)
+                        )
+                    }
+                    .disabled(!unlocked)
                 }
             }
 
