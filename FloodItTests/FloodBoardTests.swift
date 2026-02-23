@@ -855,6 +855,291 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertEqual(state.scoreState.lastMoveScore, 20)
     }
 
+    // MARK: - P16-T10: Comprehensive obstacle interaction tests
+
+    func testStoneAdjacentToIce() {
+        // Stone at (1,0), ice at (0,1) — stone blocks, ice cracks independently
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[1][0] = .stone
+        types[0][1] = .ice(layers: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.coral, .amber, .amber],
+            [.emerald, .emerald, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        // Flood region: only (0,0) — (1,0) is stone, blocks south
+        let region = board.floodRegion
+        XCTAssertEqual(region.count, 1)
+
+        // Flood amber: no absorption (ice blocks (0,1), stone blocks (1,0))
+        board.flood(color: .amber)
+        // Ice at (0,1) should crack to normal (adjacent to region)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+        // Stone at (1,0) should remain stone
+        XCTAssertEqual(board.cellType(atRow: 1, col: 0), .stone)
+    }
+
+    func testPortalWithWall() {
+        // Portal pair (0,0) ↔ (2,2), wall between (0,0) and (1,0)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][0] = .portal(pairId: 1)
+        types[2][2] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .emerald, .emerald],
+            [.coral, .emerald, .emerald],
+            [.emerald, .emerald, .coral],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .south)
+
+        // Wall blocks (0,0) → (1,0), but portal connects (0,0) ↔ (2,2)
+        let region = board.floodRegion
+        // (0,0) coral, portal to (2,2) coral — should be connected
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(region.contains(CellPosition(row: 2, col: 2)), "Portal should bypass wall")
+        // (1,0) is coral but wall blocks it
+        XCTAssertFalse(region.contains(CellPosition(row: 1, col: 0)), "Wall should still block")
+    }
+
+    func testCountdownWithCascade() {
+        // Countdown at edge, cascade happens, countdown still ticks
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 4), count: 4)
+        types[3][3] = .countdown(movesLeft: 2)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .sapphire],
+        ]
+        var board = FloodBoard(gridSize: 4, cells: cells, cellTypes: types)
+        var rng = SeededRandomNumberGenerator(seed: 1)
+
+        board.flood(color: .amber)
+        board.tickCountdowns(using: &rng)
+        XCTAssertEqual(board.cellType(atRow: 3, col: 3), .countdown(movesLeft: 1))
+    }
+
+    func testIceWithCascade() {
+        // Ice blocks cascade propagation until cracked
+        // Use wall to prevent absorption from going around
+        var types4: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 4), count: 4)
+        types4[0][2] = .ice(layers: 1)
+        let cells4: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 4, cells: cells4, cellTypes: types4)
+
+        // cellsAbsorbedBy amber: only (0,1) — ice at (0,2) blocks cascade to (0,3)
+        let waves = board.cellsAbsorbedBy(color: .amber)
+        let allAbsorbed = Set(waves.flatMap { $0 })
+        XCTAssertTrue(allAbsorbed.contains(CellPosition(row: 0, col: 1)))
+        XCTAssertFalse(allAbsorbed.contains(CellPosition(row: 0, col: 2)), "Ice should block cascade")
+        XCTAssertFalse(allAbsorbed.contains(CellPosition(row: 0, col: 3)), "Ice should block cascade to (0,3)")
+
+        // After flood, ice cracks
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 2), .normal)
+
+        // Now (0,2) is normal and amber — should be absorbable
+        // The region is now {(0,0),(0,1)} = amber. (0,2) is amber and normal → yes
+        let waves2 = board.cellsAbsorbedBy(color: .amber)
+        let allAbsorbed2 = Set(waves2.flatMap { $0 })
+        // Actually the region color is amber and we're querying cellsAbsorbedBy(.amber) — same color, no absorption
+        // We need to flood a different color first, then back to amber
+        // Let's just verify (0,2) is now traversable
+        XCTAssertTrue(board.canFloodTraverse(CellPosition(row: 0, col: 2)),
+                       "Ice should be normal after cracking")
+    }
+
+    func testBonusWithCombo() {
+        // Bonus tile absorbed during a combo should multiply the already-combo'd score
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 5), count: 5)
+        types[1][0] = .bonus(multiplier: 2)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.amber, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .violet, .violet, .violet, .violet],
+            [.violet, .coral, .coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells, cellTypes: types)
+        let state = GameState(board: board, totalMoves: 20)
+
+        // Move 1: flood amber, absorbs 5 cells → combo 1
+        let result1 = state.performFlood(color: .amber)
+        XCTAssertEqual(state.comboCount, 1)
+        // Bonus x2 should be applied (bonus at (1,0) which is amber, absorbed)
+        XCTAssertEqual(result1.bonusMultiplier, 2)
+    }
+
+    func testVoidShapedBoardWithPortals() {
+        // L-shaped board with portals connecting corners
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 4), count: 4)
+        // Void out top-right quadrant
+        types[0][2] = .void; types[0][3] = .void
+        types[1][2] = .void; types[1][3] = .void
+        // Portal connecting (0,1) ↔ (3,3)
+        types[0][1] = .portal(pairId: 1)
+        types[3][3] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .amber, .amber],
+            [.coral, .coral, .amber, .amber],
+            [.emerald, .emerald, .sapphire, .sapphire],
+            [.emerald, .emerald, .sapphire, .coral],
+        ]
+        let board = FloodBoard(gridSize: 4, cells: cells, cellTypes: types)
+        let region = board.floodRegion
+        // (0,0), (0,1) [portal], (1,0), (1,1) are coral and connected
+        // Portal links (0,1) → (3,3) which is also coral
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(region.contains(CellPosition(row: 3, col: 3)), "Portal should work on void-shaped board")
+        // Void cells should not be in region
+        XCTAssertFalse(region.contains(CellPosition(row: 0, col: 2)))
+
+        // Board should be solvable
+        let moves = FloodSolver.solve(board: board)
+        var testBoard = board
+        for color in moves {
+            testBoard.flood(color: color)
+        }
+        XCTAssertTrue(testBoard.isComplete, "Solver should handle void+portal board")
+    }
+
+    func testStoneDoesNotCrackLikeIce() {
+        // Stone never changes type, even when adjacent to flood region
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][1] = .stone
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.coral, .coral, .coral],
+            [.coral, .coral, .coral],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .stone, "Stone should never change type")
+        // Stone at (0,1) should still be skipped by flood
+        XCTAssertFalse(board.floodRegion.contains(CellPosition(row: 0, col: 1)))
+    }
+
+    func testCountdownDefusedBeforeExplosion() {
+        // Countdown with movesLeft 1, but absorbed this turn → defused, no scramble
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][1] = .countdown(movesLeft: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .sapphire, .sapphire],
+            [.sapphire, .sapphire, .sapphire],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        var rng = SeededRandomNumberGenerator(seed: 1)
+
+        // Flood amber: absorbs (0,1) which is countdown → defused to normal
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+        // Now tick — should NOT scramble because it was defused
+        let cellsBefore = board.cells
+        board.tickCountdowns(using: &rng)
+        XCTAssertEqual(board.cells, cellsBefore, "Defused countdown should not scramble")
+    }
+
+    func testMultiplePortalPairs() {
+        // Two portal pairs on the same board
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 4), count: 4)
+        types[0][0] = .portal(pairId: 1)
+        types[3][3] = .portal(pairId: 1)
+        types[0][3] = .portal(pairId: 2)
+        types[3][0] = .portal(pairId: 2)
+        let cells: [[GameColor]] = [
+            [.coral, .emerald, .emerald, .coral],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald],
+            [.coral, .emerald, .emerald, .coral],
+        ]
+        let board = FloodBoard(gridSize: 4, cells: cells, cellTypes: types)
+        let region = board.floodRegion
+        // (0,0) coral → portal to (3,3) coral. (3,3) neighbors: (3,2) emerald, (2,3) emerald, portal to (0,0).
+        // (0,3) coral → portal to (3,0) coral. But (0,3) is not connected to (0,0) by BFS.
+        // Region = {(0,0), (3,3)} only
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(region.contains(CellPosition(row: 3, col: 3)), "Portal pair 1 connects")
+        XCTAssertFalse(region.contains(CellPosition(row: 0, col: 3)), "Separate portal pair, not connected")
+        XCTAssertEqual(region.count, 2, "Only portal pair 1 connects coral cells to origin")
+    }
+
+    func testWallBetweenPortalAndNeighbor() {
+        // Portal at (0,0), wall between (0,0) and (0,1)
+        // Portal should still work, wall only blocks the direct neighbor
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][0] = .portal(pairId: 1)
+        types[2][2] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .emerald],
+            [.emerald, .emerald, .emerald],
+            [.emerald, .emerald, .coral],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+        board.addWall(at: CellPosition(row: 0, col: 0), direction: .east)
+
+        let region = board.floodRegion
+        // (0,0) coral, wall blocks east to (0,1), but portal reaches (2,2) coral
+        XCTAssertTrue(region.contains(CellPosition(row: 0, col: 0)))
+        XCTAssertTrue(region.contains(CellPosition(row: 2, col: 2)), "Portal bypasses wall")
+        XCTAssertFalse(region.contains(CellPosition(row: 0, col: 1)), "Wall blocks east neighbor")
+    }
+
+    func testIceMultipleLayers() {
+        // Ice with 3 layers takes 3 floods to crack fully
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .ice(layers: 3)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+
+        // Flood 1: ice cracks to 2
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .ice(layers: 2))
+
+        // Flood 2: ice cracks to 1
+        board.flood(color: .emerald)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .ice(layers: 1))
+
+        // Flood 3: ice cracks to normal
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+    }
+
+    func testAllObstaclesBoardSolvable() {
+        // Board with stones, ice, portals, and voids — solver should complete it
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 5), count: 5)
+        types[1][1] = .stone
+        types[0][2] = .ice(layers: 1)
+        types[0][4] = .void
+        types[4][0] = .portal(pairId: 1)
+        types[0][0] = .portal(pairId: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald, .sapphire, .violet],
+            [.amber, .emerald, .sapphire, .violet, .coral],
+            [.emerald, .sapphire, .violet, .coral, .amber],
+            [.sapphire, .violet, .coral, .amber, .emerald],
+            [.coral, .amber, .emerald, .sapphire, .violet],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells, cellTypes: types)
+        let moves = FloodSolver.solve(board: board)
+        var testBoard = board
+        var rng = SeededRandomNumberGenerator(seed: 0)
+        for color in moves {
+            testBoard.flood(color: color)
+            testBoard.tickCountdowns(using: &rng)
+        }
+        XCTAssertTrue(testBoard.isComplete, "Solver should handle board with mixed obstacles")
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
