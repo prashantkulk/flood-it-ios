@@ -341,9 +341,12 @@ class GameScene: SKScene {
         let dimDuration: TimeInterval = 0.3
         let waveDelay: TimeInterval = 0.01  // 10ms per wave (rapid)
 
-        // Phase 1: 500ms pause, then dim all cells to 60%
+        // Phase 1: 500ms pause, then rumble + dim all cells to 60%
         let dimAction = SKAction.sequence([
             SKAction.wait(forDuration: pauseDuration),
+            SKAction.run {
+                SoundManager.shared.playDamBreakRumble()
+            },
             SKAction.run { [weak self] in
                 guard let self = self else { return }
                 for row in self.cellNodes {
@@ -355,9 +358,16 @@ class GameScene: SKScene {
             SKAction.wait(forDuration: dimDuration)
         ])
 
-        // Phase 2: Rapid dam-break flood
+        // Phase 2: Rapid dam-break flood with plip torrent
         let damBreakAction = SKAction.run { [weak self] in
             guard let self = self else { return }
+            // Rapid-fire plip torrent (random pitches)
+            let torrentDuration = Double(waves.count) * waveDelay + 0.1
+            SoundManager.shared.playPlipTorrent(count: min(waves.count * 2, 20), over: torrentDuration)
+            // Deep boom at end
+            DispatchQueue.main.asyncAfter(deadline: .now() + torrentDuration) {
+                SoundManager.shared.playDeepBoom()
+            }
             for (waveIndex, wave) in waves.enumerated() {
                 let delay = Double(waveIndex) * waveDelay
                 for pos in wave {
