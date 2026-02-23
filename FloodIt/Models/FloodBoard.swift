@@ -67,10 +67,10 @@ struct FloodBoard {
         }
     }
 
-    /// Returns true if a cell can participate in flood BFS (not stone, not void).
+    /// Returns true if a cell can participate in flood BFS (not stone, void, or ice).
     func canFloodTraverse(_ pos: CellPosition) -> Bool {
         switch cellTypes[pos.row][pos.col] {
-        case .stone, .void:
+        case .stone, .void, .ice:
             return false
         default:
             return true
@@ -114,6 +114,7 @@ struct FloodBoard {
 
     /// Performs a flood fill with the given color.
     /// Changes the entire flood region to the new color, then absorbs all adjacent cells matching it.
+    /// Ice cells at the boundary get their layers decremented instead of being absorbed.
     mutating func flood(color newColor: GameColor) {
         let currentRegion = floodRegion
         // Change all cells in the current flood region to the new color
@@ -135,6 +136,22 @@ struct FloodBoard {
         // Mark all absorbed cells with the new color (they already match, but ensures consistency)
         for pos in absorbed {
             cells[pos.row][pos.col] = newColor
+        }
+        // Process ice cells adjacent to the final absorbed region
+        var crackedIce = Set<CellPosition>()
+        for pos in absorbed {
+            for neighbor in neighbors(of: pos) {
+                if !absorbed.contains(neighbor) && !crackedIce.contains(neighbor) {
+                    if case .ice(let layers) = cellTypes[neighbor.row][neighbor.col] {
+                        crackedIce.insert(neighbor)
+                        if layers <= 1 {
+                            cellTypes[neighbor.row][neighbor.col] = .normal
+                        } else {
+                            cellTypes[neighbor.row][neighbor.col] = .ice(layers: layers - 1)
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -567,6 +567,73 @@ final class FloodBoardTests: XCTestCase {
         XCTAssertTrue(board.isComplete)
     }
 
+    // MARK: - P16-T4: Ice layers
+
+    func testIceCracksOverMultipleFloods() {
+        // Board: C A
+        //        A A    (0,1) is ice(layers: 2), all amber
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .ice(layers: 2)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.amber, .amber],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+
+        // First flood to amber: ice at (0,1) should crack to 1 layer
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .ice(layers: 1))
+        // (0,1) should NOT be in the flood region yet (still ice)
+        XCTAssertFalse(board.floodRegion.contains(CellPosition(row: 0, col: 1)))
+
+        // Second flood (different color and back): need another flood to crack again
+        board.flood(color: .emerald)  // change to emerald, (0,1) won't crack (not adjacent after region changes)
+        // Actually the flood region after first flood includes (0,0),(1,0),(1,1) = amber
+        // Flooding emerald changes the region to emerald. (0,1) is still ice, but is it adjacent? Yes.
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+        // Now ice is cleared, flooding amber should absorb (0,1)
+        board.flood(color: .amber)
+        XCTAssertTrue(board.floodRegion.contains(CellPosition(row: 0, col: 1)))
+    }
+
+    func testIceSingleLayerBecomesNormal() {
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 2), count: 2)
+        types[0][1] = .ice(layers: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber],
+            [.emerald, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 2, cells: cells, cellTypes: types)
+
+        // Flood to emerald: (0,1) is ice, not adjacent to absorbed region?
+        // Flood region is (0,0). Flood to emerald: region becomes emerald, absorbs (1,0),(1,1).
+        // Now (0,1) is adjacent to absorbed region → ice cracks to normal
+        board.flood(color: .emerald)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+    }
+
+    func testIceNotAbsorbedUntilNormal() {
+        // 3x3 board, ice at (0,1)
+        var types: [[CellType]] = Array(repeating: Array(repeating: .normal, count: 3), count: 3)
+        types[0][1] = .ice(layers: 1)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber],
+            [.emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells, cellTypes: types)
+
+        // cellsAbsorbedBy should NOT include (0,1) since it's ice
+        let waves = board.cellsAbsorbedBy(color: .amber)
+        let allAbsorbed = Set(waves.flatMap { $0 })
+        XCTAssertFalse(allAbsorbed.contains(CellPosition(row: 0, col: 1)), "Ice cell should not be absorbed")
+
+        // After flood, ice cracks to normal
+        board.flood(color: .amber)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 1), .normal)
+        XCTAssertTrue(board.canFloodTraverse(CellPosition(row: 0, col: 1)))
+    }
+
     // MARK: - P5-T7: Wave animation performance on 15×15 board
 
     func testWaveAnimationSetup15x15() {
