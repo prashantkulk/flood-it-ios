@@ -68,6 +68,7 @@
 		0CE93DC3A7D71C6BDA619A60 /* FloodIt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FloodIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18AAFE9C94D2F0C50860E7CD /* ShareCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardRenderer.swift; sourceTree = "<group>"; };
 		1C7FFD832E1A263F11BFEFEB /* StarRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRating.swift; sourceTree = "<group>"; };
+		2786F8CEEE740D0468EF5BA6 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodBoard.swift; sourceTree = "<group>"; };
 		2D644E95C012DE27B3421D2F /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		2E27BAE84EFF19EA2070E02A /* FloodItApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodItApp.swift; sourceTree = "<group>"; };
@@ -128,6 +129,7 @@
 				F918AB9DF05A021F6EBAB27F /* GameScene.swift */,
 				BB80E331B185113565138406 /* GameView.swift */,
 				0949DB350DDAD64B75A49A5B /* HomeView.swift */,
+				2786F8CEEE740D0468EF5BA6 /* Info.plist */,
 				AE183B198EB44E0E383BE400 /* LevelSelectView.swift */,
 				A2EA0783DC6120BB9EC468FA /* SettingsView.swift */,
 				18AAFE9C94D2F0C50860E7CD /* ShareCardRenderer.swift */,
@@ -457,13 +459,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_GENERATION_MODE = GeneratedFile;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = FloodIt/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -541,13 +537,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_GENERATION_MODE = GeneratedFile;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_FILE = FloodIt/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
