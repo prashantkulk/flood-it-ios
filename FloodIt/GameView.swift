@@ -555,6 +555,9 @@ struct GameView: View {
     }
 
     private let lightHaptic = UIImpactFeedbackGenerator(style: .light)
+    private let mediumHaptic = UIImpactFeedbackGenerator(style: .medium)
+    private let heavyHaptic = UIImpactFeedbackGenerator(style: .heavy)
+    private let rigidHaptic = UIImpactFeedbackGenerator(style: .rigid)
     private let warningHaptic = UINotificationFeedbackGenerator()
 
     private func tapColorButton(_ color: GameColor) {
@@ -563,7 +566,6 @@ struct GameView: View {
             warningHaptic.notificationOccurred(.warning)
             return
         }
-        lightHaptic.impactOccurred()
         SoundManager.shared.playButtonClick(centerFrequency: color.clickFrequency)
 
         // Detect if this move will complete the board
@@ -575,8 +577,18 @@ struct GameView: View {
         let prevCombo = gameState.comboCount
         let result = gameState.performFlood(color: color)
 
-        // MARK: P14-T4 Move counter gold flash for large absorptions
+        // MARK: P14-T7 Tiered haptics based on cells absorbed
         let cellsAbsorbed = result.waves.flatMap { $0 }.count
+        if cellsAbsorbed >= 15 {
+            heavyHaptic.impactOccurred()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [self] in
+                rigidHaptic.impactOccurred()
+            }
+        } else if cellsAbsorbed >= 5 {
+            mediumHaptic.impactOccurred()
+        } else {
+            lightHaptic.impactOccurred()
+        }
         if cellsAbsorbed >= 10 {
             moveCounterGoldFlash = true
             withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
