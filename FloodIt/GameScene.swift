@@ -372,19 +372,53 @@ class GameScene: SKScene {
             SKAction.wait(forDuration: damBreakDuration),
             SKAction.run { [weak self] in
                 guard let self = self else { return }
-                self.isAnimating = false
-                // Mark all cells as flooded
+                // Mark all cells as flooded (stop breathing)
                 for row in self.cellNodes {
                     for node in row {
-                        node.setFlooded(true)
+                        node.removeAction(forKey: "breathe")
+                        node.run(SKAction.scale(to: 1.0, duration: 0.05))
                     }
                 }
-                self.onWinAnimationComplete?()
-                completion?()
+                // Start completion rush sequence
+                self.runCompletionRush {
+                    self.isAnimating = false
+                    self.onWinAnimationComplete?()
+                    completion?()
+                }
             }
         ])
 
         run(SKAction.sequence([dimAction, damBreakAction, finishAction]), withKey: "floodCompletion")
+    }
+
+    // MARK: - Completion Rush
+
+    /// Runs the full completion rush sequence: pulse → shimmer → confetti.
+    private func runCompletionRush(completion: @escaping () -> Void) {
+        completionRushPulse {
+            completion()
+        }
+    }
+
+    /// Phase 1: All cells scale to 1.15x then back to 1.0x over 400ms.
+    private func completionRushPulse(completion: @escaping () -> Void) {
+        let scaleUp = SKAction.scale(to: 1.15, duration: 0.2)
+        scaleUp.timingMode = .easeInEaseOut
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.2)
+        scaleDown.timingMode = .easeInEaseOut
+        let pulse = SKAction.sequence([scaleUp, scaleDown])
+
+        for row in cellNodes {
+            for node in row {
+                node.run(pulse, withKey: "winPulse")
+            }
+        }
+
+        // Wait for pulse to finish, then call completion
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.4),
+            SKAction.run { completion() }
+        ]), withKey: "rushPulse")
     }
 
     // MARK: - Ripple Ring Effect
