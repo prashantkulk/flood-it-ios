@@ -6,9 +6,11 @@ class GameState: ObservableObject {
     @Published private(set) var movesRemaining: Int
     @Published private(set) var movesMade: Int
     @Published private(set) var gameStatus: GameStatus
+    @Published private(set) var comboCount: Int = 0
 
     private(set) var totalMoves: Int
     private(set) var optimalMoves: Int = 0
+    private(set) var maxCombo: Int = 0
 
     enum GameStatus {
         case playing
@@ -33,6 +35,8 @@ class GameState: ObservableObject {
         self.movesMade = 0
         self.gameStatus = .playing
         self.optimalMoves = FloodSolver.solveMoveCount(board: board)
+        self.comboCount = 0
+        self.maxCombo = 0
     }
 
     /// Computes the wave data for animation BEFORE mutating the board, then performs the flood.
@@ -59,9 +63,22 @@ class GameState: ObservableObject {
             previousColors[pos] = board.cells[pos.row][pos.col]
         }
 
+        // Count absorbed cells for combo tracking
+        let absorbedCount = waves.flatMap { $0 }.count
+
         board.flood(color: color)
         movesMade += 1
         movesRemaining -= 1
+
+        // Update combo: >=4 cells absorbed increments, <4 resets
+        if absorbedCount >= 4 {
+            comboCount += 1
+            if comboCount > maxCombo {
+                maxCombo = comboCount
+            }
+        } else {
+            comboCount = 0
+        }
 
         if board.isComplete {
             gameStatus = .won

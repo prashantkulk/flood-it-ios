@@ -67,6 +67,96 @@ final class GameStateTests: XCTestCase {
         XCTAssertEqual(state.movesRemaining, 0)
     }
 
+    // MARK: - P9-T1: Combo Tracking
+
+    func testComboIncrementsOnLargeAbsorption() {
+        // Board where flooding amber absorbs 4+ cells
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.amber, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .violet, .violet, .violet, .violet],
+            [.violet, .coral, .coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells)
+        let state = GameState(board: board, totalMoves: 20)
+        XCTAssertEqual(state.comboCount, 0)
+
+        // Flood amber: absorbs (0,1),(0,2),(0,3),(0,4),(1,0) = 5 cells → combo 1
+        state.performFlood(color: .amber)
+        XCTAssertEqual(state.comboCount, 1)
+
+        // Flood emerald: absorbs many emerald cells → combo 2
+        state.performFlood(color: .emerald)
+        XCTAssertEqual(state.comboCount, 2)
+
+        // Flood sapphire: absorbs sapphire cells → combo 3
+        state.performFlood(color: .sapphire)
+        XCTAssertEqual(state.comboCount, 3)
+    }
+
+    func testComboResetsOnSmallAbsorption() {
+        // Board where first move absorbs many, second absorbs few
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.emerald, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .sapphire, .sapphire, .sapphire, .sapphire],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells)
+        let state = GameState(board: board, totalMoves: 20)
+
+        // Flood amber: absorbs 4 cells → combo 1
+        state.performFlood(color: .amber)
+        XCTAssertEqual(state.comboCount, 1)
+
+        // Flood emerald: only absorbs (1,0) = 1 cell → combo resets
+        state.performFlood(color: .emerald)
+        XCTAssertEqual(state.comboCount, 0)
+    }
+
+    func testMaxComboTracked() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.amber, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .sapphire, .sapphire, .sapphire, .sapphire],
+            [.sapphire, .violet, .violet, .violet, .violet],
+            [.violet, .coral, .coral, .coral, .coral],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells)
+        let state = GameState(board: board, totalMoves: 20)
+
+        state.performFlood(color: .amber)
+        state.performFlood(color: .emerald)
+        state.performFlood(color: .sapphire)
+        XCTAssertEqual(state.maxCombo, 3)
+
+        // Even after reset, maxCombo reflects highest
+        state.performFlood(color: .violet)
+        state.performFlood(color: .coral)
+        XCTAssertGreaterThanOrEqual(state.maxCombo, 3)
+    }
+
+    func testComboResetOnGameReset() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .amber, .amber, .amber],
+            [.amber, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+            [.emerald, .emerald, .emerald, .emerald, .emerald],
+        ]
+        let board = FloodBoard(gridSize: 5, cells: cells)
+        let state = GameState(board: board, totalMoves: 20)
+        state.performFlood(color: .amber)
+        XCTAssertEqual(state.comboCount, 1)
+
+        let newBoard = FloodBoard(gridSize: 5, cells: cells)
+        state.reset(board: newBoard, totalMoves: 20)
+        XCTAssertEqual(state.comboCount, 0)
+        XCTAssertEqual(state.maxCombo, 0)
+    }
+
     func testCannotFloodAfterGameOver() {
         let cells: [[GameColor]] = [
             [.coral, .amber],
