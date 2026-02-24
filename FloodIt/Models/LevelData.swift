@@ -115,6 +115,8 @@ struct LevelStore {
                 levelData = generateCountdownLevels(id: i, seed: seed, tier: tier)
             case 51...65:
                 levelData = generateWallPortalLevels(id: i, seed: seed, tier: tier)
+            case 66...100:
+                levelData = generateExpertLevels(id: i, seed: seed, tier: tier)
             default:
                 levelData = generateStandardLevel(id: i, seed: seed, tier: tier, extraMoves: extraMovesForLevel(i))
             }
@@ -267,6 +269,88 @@ struct LevelStore {
             stoneCount: stoneCount,
             wallCount: wallCount,
             portalPairCount: portalPairCount
+        )
+        let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
+        return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
+    }
+
+    private static func generateExpertLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        let gridSize = 9
+        let colorCount = 5
+
+        // Sawtooth difficulty: every 5-7 levels has a breather
+        let isBreather = (id % 7 == 0) || id == 70 || id == 80 || id == 90
+        let isFinalBoss = id == 100
+
+        let extraMoves: Int
+        let stoneCount: Int
+        let iceCount: Int
+        let iceLayers: Int
+        let countdownCount: Int
+        let countdownMoves: Int
+        let wallCount: Int
+        let portalPairCount: Int
+        var voids: [CellPosition] = []
+
+        if isFinalBoss {
+            // Level 100: ultimate boss — all obstacle types, tight budget
+            extraMoves = 1
+            stoneCount = 3
+            iceCount = 3
+            iceLayers = 2
+            countdownCount = 2
+            countdownMoves = 3
+            wallCount = 4
+            portalPairCount = 2
+            voids = BoardShapes.donut(gridSize: gridSize)
+        } else if isBreather {
+            // Breather levels — fewer obstacles, generous budget
+            extraMoves = 5
+            stoneCount = 1
+            iceCount = 0
+            iceLayers = 1
+            countdownCount = 0
+            countdownMoves = 5
+            wallCount = 1
+            portalPairCount = 0
+        } else {
+            // Progressive difficulty with sawtooth
+            let difficulty = (id - 66) / 5  // 0-6 difficulty bands
+            let withinBand = (id - 66) % 5  // position within band
+
+            // Budget oscillates: tighter for mid-band, relaxes slightly at band edges
+            let baseBudget = max(1, 3 - difficulty / 2)
+            extraMoves = withinBand == 0 ? baseBudget + 1 : baseBudget
+
+            // Obstacle counts ramp up across bands
+            stoneCount = min(4, 1 + difficulty / 2)
+            iceCount = min(3, difficulty / 2)
+            iceLayers = difficulty >= 4 ? 2 : 1
+            countdownCount = difficulty >= 2 ? min(2, difficulty / 3 + 1) : 0
+            countdownMoves = difficulty >= 4 ? 3 : 4
+            wallCount = min(4, 1 + difficulty / 2)
+            portalPairCount = difficulty >= 3 ? 1 : 0
+
+            // Some expert levels use shaped boards
+            switch id {
+            case 72: voids = BoardShapes.diamond(gridSize: gridSize)
+            case 78: voids = BoardShapes.cross(gridSize: gridSize)
+            case 85: voids = BoardShapes.lShape(gridSize: gridSize)
+            case 92: voids = BoardShapes.heart(gridSize: gridSize)
+            case 97: voids = BoardShapes.donut(gridSize: gridSize)
+            default: break
+            }
+        }
+
+        let request = ObstaclePlacer.PlacementRequest(
+            stoneCount: stoneCount,
+            iceCount: iceCount,
+            iceLayers: iceLayers,
+            countdownCount: countdownCount,
+            countdownMoves: countdownMoves,
+            wallCount: wallCount,
+            portalPairCount: portalPairCount,
+            voidPositions: voids
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)

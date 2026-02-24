@@ -306,4 +306,49 @@ final class LevelDataTests: XCTestCase {
         }
         XCTAssertTrue(portalFound, "Portals should appear in levels 55-65")
     }
+
+    // MARK: - P18-T9: Levels 66-100 escalating + final boss
+
+    func testLevels66To100AllSolvable() {
+        for i in 66...100 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) should be solvable: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
+
+    func testLevels66To100HaveObstacles() {
+        for i in 66...100 {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+        }
+    }
+
+    func testLevel100IsFinalBoss() {
+        let level = LevelStore.level(100)!
+        let config = level.obstacleConfig!
+        // Final boss should have multiple obstacle types
+        XCTAssertGreaterThanOrEqual(config.stonePositions.count, 1, "Boss should have stones")
+        XCTAssertGreaterThanOrEqual(config.icePositions.count, 1, "Boss should have ice")
+        XCTAssertGreaterThanOrEqual(config.wallEdges.count, 1, "Boss should have walls")
+        // Tight budget
+        let extra = level.moveBudget - level.optimalMoves
+        XCTAssertLessThanOrEqual(extra, 1, "Level 100 should have very tight budget")
+    }
+
+    func testBreatherLevelsExistIn66To100() {
+        // Breather levels should have more generous budgets
+        var breatherFound = false
+        for i in 66...100 {
+            let level = LevelStore.level(i)!
+            let extra = level.moveBudget - level.optimalMoves
+            if extra >= 5 {
+                breatherFound = true
+                break
+            }
+        }
+        XCTAssertTrue(breatherFound, "Should have at least one breather level in 66-100")
+    }
 }
