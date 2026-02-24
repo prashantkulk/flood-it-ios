@@ -24,6 +24,12 @@ struct GameView: View {
     @State private var showSettings: Bool = false
     @State private var showShareSheet: Bool = false
     @State private var hintColor: GameColor? = nil
+    // BUG-11: Hint system — 3 per level, question mark icon, gold pulse
+    @State private var hintsRemaining: Int = 3
+    @State private var hintPulsing: Bool = false
+    // BUG-12: Level intro splash
+    @State private var showLevelIntro: Bool = true
+    @State private var levelIntroOpacity: Double = 0
     /// Whether this is a daily challenge game.
     let isDailyChallenge: Bool
     /// The daily challenge date string (shown on screen).
@@ -162,137 +168,156 @@ struct GameView: View {
             }
 
             VStack {
-                // Top bar: move counter + restart
-                if isDailyChallenge, let dateStr = dailyChallengeDate {
-                    Text(dateStr)
-                        .font(.system(size: 14, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 44)
-                }
-
-                HStack {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .accessibilityIdentifier("backButton")
-
-                    Text("Moves: \(tallyMovesDisplay ?? gameState.movesRemaining)")
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
-                        .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.7 : 1.0) : 1.0)
-                        .scaleEffect(moveCounterScale)
-                        .overlay(
-                            Color.white
-                                .opacity(moveCounterFlash ? 0.6 : 0)
-                                .blendMode(.sourceAtop)
-                                .allowsHitTesting(false)
-                        )
-                        .overlay(
-                            Color(red: 1.0, green: 0.84, blue: 0.0)
-                                .opacity(moveCounterGoldFlash ? 0.7 : 0)
-                                .blendMode(.sourceAtop)
-                                .allowsHitTesting(false)
-                        )
-                        .accessibilityIdentifier("moveCounter")
-                        .onChange(of: gameState.movesRemaining) { newValue in
-                            moveCounterFlash = true
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
-                                moveCounterScale = 1.2
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                                    moveCounterScale = 1.0
-                                }
-                                withAnimation(.easeOut(duration: 0.15)) {
-                                    moveCounterFlash = false
-                                }
-                            }
-                            // MARK: P14-T12 Urgency pulse for critical moves
-                            if newValue <= 2 {
-                                withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
-                                    moveCounterPulse = true
-                                }
-                            } else if newValue <= 5 {
-                                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-                                    moveCounterPulse = true
-                                }
-                            } else {
-                                moveCounterPulse = false
-                            }
-                        }
-
-                    if !isDailyChallenge {
-                        Text("Lv. \(currentLevelNumber)")
-                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                // BUG-12: Revamped minimal HUD
+                VStack(spacing: 4) {
+                    if isDailyChallenge, let dateStr = dailyChallengeDate {
+                        Text(dateStr)
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
-                            .accessibilityIdentifier("levelLabel")
+                            .frame(maxWidth: .infinity)
                     }
 
-                    // MARK: P14-T3 Score counter
-                    Text("\(gameState.scoreState.totalScore)")
-                        .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
-                        .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
-                        .scaleEffect(scoreCounterScale)
-                        .overlay(
-                            Color(red: 1.0, green: 0.84, blue: 0.0)
-                                .opacity(scoreCounterFlash ? 0.6 : 0)
-                                .blendMode(.sourceAtop)
-                                .allowsHitTesting(false)
-                        )
-                        .accessibilityIdentifier("scoreCounter")
-                        .onChange(of: gameState.scoreState.totalScore) { _ in
-                            scoreCounterFlash = true
-                            withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
-                                scoreCounterScale = 1.3
+                    HStack(alignment: .center, spacing: 0) {
+                        // Left: back + level number
+                        HStack(spacing: 8) {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.7))
                             }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                    scoreCounterScale = 1.0
-                                }
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    scoreCounterFlash = false
-                                }
+                            .accessibilityIdentifier("backButton")
+
+                            if !isDailyChallenge {
+                                Text("Lv. \(currentLevelNumber)")
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.55))
+                                    .accessibilityIdentifier("levelLabel")
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Spacer()
+                        // Center: moves remaining (icon + count)
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(moveCounterColor.opacity(0.8))
 
-                    // MARK: P12-T3 Hint button
-                    Button(action: {
-                        watchAdForHint()
-                    }) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(hintColor != nil ? hintColor!.lightColor : .white.opacity(0.7))
+                            Text("\(tallyMovesDisplay ?? gameState.movesRemaining)")
+                                .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
+                                .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
+                                .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.65 : 1.0) : 1.0)
+                                .scaleEffect(moveCounterScale)
+                                .overlay(
+                                    Color.white
+                                        .opacity(moveCounterFlash ? 0.6 : 0)
+                                        .blendMode(.sourceAtop)
+                                        .allowsHitTesting(false)
+                                )
+                                .overlay(
+                                    Color(red: 1.0, green: 0.84, blue: 0.0)
+                                        .opacity(moveCounterGoldFlash ? 0.7 : 0)
+                                        .blendMode(.sourceAtop)
+                                        .allowsHitTesting(false)
+                                )
+                                .accessibilityIdentifier("moveCounter")
+                                .onChange(of: gameState.movesRemaining) { newValue in
+                                    moveCounterFlash = true
+                                    withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                                        moveCounterScale = 1.2
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                        withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                                            moveCounterScale = 1.0
+                                        }
+                                        withAnimation(.easeOut(duration: 0.15)) {
+                                            moveCounterFlash = false
+                                        }
+                                    }
+                                    if newValue <= 2 {
+                                        withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
+                                            moveCounterPulse = true
+                                        }
+                                    } else if newValue <= 5 {
+                                        withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                                            moveCounterPulse = true
+                                        }
+                                    } else {
+                                        moveCounterPulse = false
+                                    }
+                                }
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        // Right: score + hint + settings + restart
+                        HStack(spacing: 12) {
+                            // Score
+                            Text("\(gameState.scoreState.totalScore)")
+                                .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                                .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                                .scaleEffect(scoreCounterScale)
+                                .overlay(
+                                    Color(red: 1.0, green: 0.84, blue: 0.0)
+                                        .opacity(scoreCounterFlash ? 0.6 : 0)
+                                        .blendMode(.sourceAtop)
+                                        .allowsHitTesting(false)
+                                )
+                                .accessibilityIdentifier("scoreCounter")
+                                .onChange(of: gameState.scoreState.totalScore) { _ in
+                                    scoreCounterFlash = true
+                                    withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                                        scoreCounterScale = 1.3
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                            scoreCounterScale = 1.0
+                                        }
+                                        withAnimation(.easeOut(duration: 0.2)) {
+                                            scoreCounterFlash = false
+                                        }
+                                    }
+                                }
+
+                            // BUG-11: Hint button — question mark, gold pulse, count badge
+                            if hintsRemaining > 0 {
+                                Button(action: { showHint() }) {
+                                    ZStack(alignment: .topTrailing) {
+                                        Image(systemName: "questionmark.circle.fill")
+                                            .font(.system(size: 20, weight: .semibold))
+                                            .foregroundColor(hintColor != nil || hintPulsing
+                                                ? Color(red: 1.0, green: 0.84, blue: 0.0)
+                                                : .white.opacity(0.7))
+                                            .shadow(color: hintPulsing ? Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.8) : .clear, radius: 6)
+                                        Text("\(hintsRemaining)")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                            .frame(width: 13, height: 13)
+                                            .background(Circle().fill(Color(red: 1.0, green: 0.84, blue: 0.0)))
+                                            .offset(x: 4, y: -4)
+                                    }
+                                }
+                                .accessibilityIdentifier("hintButton")
+                                .disabled(gameState.gameStatus != .playing)
+                            }
+
+                            Button(action: { showSettings = true }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("settingsButton")
+
+                            Button(action: { resetGame() }) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("restartButton")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    .accessibilityIdentifier("hintButton")
-                    .disabled(gameState.gameStatus != .playing)
-
-                    Button(action: {
-                        showSettings = true
-                    }) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .accessibilityIdentifier("settingsButton")
-
-                    Button(action: {
-                        resetGame()
-                    }) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    .accessibilityIdentifier("restartButton")
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 60)
+                .padding(.horizontal, 18)
+                .padding(.top, 56)
 
                 Spacer()
 
@@ -705,8 +730,61 @@ struct GameView: View {
                 SettingsView()
                     .transition(.scale.combined(with: .opacity))
             }
+
+            // BUG-12: Level intro splash — "Level N / N moves"
+            if showLevelIntro && !isDailyChallenge {
+                levelIntroSplash
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: showSettings)
+        .onAppear {
+            if !isDailyChallenge {
+                showLevelIntroAnimation()
+            }
+        }
+    }
+
+    // MARK: - BUG-12 Level Intro Splash
+
+    private var levelIntroSplash: some View {
+        ZStack {
+            Color.black.opacity(0.55)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            VStack(spacing: 10) {
+                Text("Level \(currentLevelNumber)")
+                    .font(.system(size: 52, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.7))
+                    Text("\(currentLevelData.moveBudget) moves")
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            .opacity(levelIntroOpacity)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func showLevelIntroAnimation() {
+        showLevelIntro = true
+        levelIntroOpacity = 0
+        withAnimation(.easeIn(duration: 0.3)) {
+            levelIntroOpacity = 1.0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            withAnimation(.easeOut(duration: 0.4)) {
+                levelIntroOpacity = 0
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                showLevelIntro = false
+            }
+        }
     }
 
     /// Number of unflooded cells if ≤2 (for "Almost!" mechanic), 0 otherwise.
@@ -915,6 +993,9 @@ struct GameView: View {
     }
 
     private func showHint() {
+        guard hintsRemaining > 0, gameState.gameStatus == .playing else { return }
+        hintsRemaining -= 1
+
         // Use greedy solver to find best next color
         let currentColor = gameState.board.cells[0][0]
         let colors = Array(GameColor.allCases.prefix(currentLevelData.colorCount))
@@ -929,10 +1010,12 @@ struct GameView: View {
                 bestColor = color
             }
         }
-        // Highlight the hint color briefly
+        // Highlight the hint color with gold pulse for 2s
         hintColor = bestColor
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        hintPulsing = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             hintColor = nil
+            hintPulsing = false
         }
     }
 
@@ -987,6 +1070,8 @@ struct GameView: View {
         currentLevelNumber = nextNumber
         currentLevelData = data
         ProgressStore.shared.updateCurrentLevel(nextNumber)
+        // Reset hints for new level
+        hintsRemaining = 3
 
         // Build new board (must use generateBoard(from:) to preserve obstacles)
         let newBoard = FloodBoard.generateBoard(from: data)
@@ -994,6 +1079,10 @@ struct GameView: View {
         // Transition animation: scatter out old cells, then scale in new ones
         scene.transitionToNewBoard(newBoard) {
             gameState.reset(board: newBoard, totalMoves: data.moveBudget)
+            // Show level intro after board appears
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                showLevelIntroAnimation()
+            }
         }
     }
 
@@ -1006,11 +1095,16 @@ struct GameView: View {
         starScales = [0, 0, 0]
         isNewBest = false
         tallyMovesDisplay = nil
+        hintColor = nil
+        hintsRemaining = 3
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
         let board = FloodBoard.generateBoard(from: currentLevelData)
         gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)
+        if !isDailyChallenge {
+            showLevelIntroAnimation()
+        }
     }
 }
 
