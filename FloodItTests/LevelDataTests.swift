@@ -173,4 +173,39 @@ final class LevelDataTests: XCTestCase {
             XCTAssertEqual(level.colorCount, 5, "Level \(i) should have 5 colors")
         }
     }
+
+    // MARK: - P18-T5: Levels 21-30 stones + shaped boards
+
+    func testLevels21To30HaveStones() {
+        for i in 21...30 {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+            let config = level.obstacleConfig!
+            XCTAssertGreaterThanOrEqual(config.stonePositions.count, 2,
+                "Level \(i) should have at least 2 stones")
+            XCTAssertLessThanOrEqual(config.stonePositions.count, 4,
+                "Level \(i) should have at most 4 stones")
+        }
+    }
+
+    func testLevels21To30AllSolvableWithStones() {
+        for i in 21...30 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) with stones should be solvable: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
+
+    func testSomeLevels21To30HaveShapedBoards() {
+        // Levels 23, 25, 27, 29 should have void positions
+        let shapedLevels = [23, 25, 27, 29]
+        for i in shapedLevels {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+            XCTAssertFalse(level.obstacleConfig!.voidPositions.isEmpty,
+                "Level \(i) should have void positions for shaped board")
+        }
+    }
 }

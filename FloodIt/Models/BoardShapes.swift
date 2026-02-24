@@ -2,6 +2,7 @@ import Foundation
 
 /// Helper functions that generate void masks for non-rectangular board shapes.
 /// Each function returns an array of CellPositions that should be marked as void.
+/// All shapes preserve (0,0) and ensure connectivity from origin to the main shape.
 struct BoardShapes {
 
     /// Rectangular board — no voids.
@@ -18,7 +19,7 @@ struct BoardShapes {
                 voids.append(CellPosition(row: row, col: col))
             }
         }
-        return voids
+        return ensureConnectivity(voids, gridSize: gridSize)
     }
 
     /// Donut: removes center cells to create a hollow ring.
@@ -30,7 +31,7 @@ struct BoardShapes {
                 voids.append(CellPosition(row: row, col: col))
             }
         }
-        return voids
+        return ensureConnectivity(voids, gridSize: gridSize)
     }
 
     /// Diamond: removes corners to create a diamond shape.
@@ -45,7 +46,7 @@ struct BoardShapes {
                 }
             }
         }
-        return voids
+        return ensureConnectivity(voids, gridSize: gridSize)
     }
 
     /// Cross / plus shape: removes the four corner quadrants.
@@ -61,7 +62,7 @@ struct BoardShapes {
                 }
             }
         }
-        return voids
+        return ensureConnectivity(voids, gridSize: gridSize)
     }
 
     /// Heart shape: rounded top with a pointed bottom.
@@ -93,6 +94,58 @@ struct BoardShapes {
                 }
             }
         }
-        return voids
+        return ensureConnectivity(voids, gridSize: gridSize)
+    }
+
+    /// Ensures origin (0,0) is not void and is connected to the main shape body.
+    /// Clears a corridor along row 0 if needed to bridge the origin to the shape.
+    private static func ensureConnectivity(_ voids: [CellPosition], gridSize: Int) -> [CellPosition] {
+        var voidSet = Set(voids)
+
+        // Always protect origin
+        voidSet.remove(CellPosition(row: 0, col: 0))
+
+        // Check if origin can reach all non-void cells
+        let totalNonVoid = gridSize * gridSize - voidSet.count
+        var reachable = floodReachableCount(from: CellPosition(row: 0, col: 0), voidSet: voidSet, gridSize: gridSize)
+
+        if reachable < totalNonVoid {
+            // Clear a corridor along row 0 until connected
+            for col in 1..<gridSize {
+                voidSet.remove(CellPosition(row: 0, col: col))
+                let newTotal = gridSize * gridSize - voidSet.count
+                reachable = floodReachableCount(from: CellPosition(row: 0, col: 0), voidSet: voidSet, gridSize: gridSize)
+                if reachable >= newTotal { break }
+            }
+        }
+
+        // Final safety: also try col 0 if still disconnected
+        let finalTotal = gridSize * gridSize - voidSet.count
+        reachable = floodReachableCount(from: CellPosition(row: 0, col: 0), voidSet: voidSet, gridSize: gridSize)
+        if reachable < finalTotal {
+            for row in 1..<gridSize {
+                voidSet.remove(CellPosition(row: row, col: 0))
+            }
+        }
+
+        return voids.filter { voidSet.contains($0) }
+    }
+
+    /// Counts how many non-void cells are reachable from a start position via 4-directional BFS.
+    private static func floodReachableCount(from start: CellPosition, voidSet: Set<CellPosition>, gridSize: Int) -> Int {
+        guard !voidSet.contains(start) else { return 0 }
+        var visited = Set<CellPosition>([start])
+        var queue = [start]
+        while !queue.isEmpty {
+            let current = queue.removeFirst()
+            for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
+                let next = CellPosition(row: current.row + dr, col: current.col + dc)
+                guard next.row >= 0, next.row < gridSize, next.col >= 0, next.col < gridSize else { continue }
+                guard !voidSet.contains(next), !visited.contains(next) else { continue }
+                visited.insert(next)
+                queue.append(next)
+            }
+        }
+        return visited.count
     }
 }

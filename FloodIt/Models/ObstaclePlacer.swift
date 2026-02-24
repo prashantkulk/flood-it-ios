@@ -60,9 +60,8 @@ struct ObstaclePlacer {
             for col in 0..<gridSize {
                 let pos = CellPosition(row: row, col: col)
                 if voidSet.contains(pos) { continue }
-                // Keep (0,0) and its immediate neighbors clear for flood start
+                // Keep (0,0) clear for flood start
                 if row == 0 && col == 0 { continue }
-                if row <= 1 && col <= 1 { continue }
                 available.append(pos)
             }
         }

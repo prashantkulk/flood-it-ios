@@ -107,8 +107,9 @@ struct LevelStore {
                 levelData = generateOnboardingLevel(id: i, seed: seed, tier: tier)
             case 6...20:
                 levelData = generateEasyLevel(id: i, seed: seed, tier: tier)
+            case 21...30:
+                levelData = generateStoneLevels(id: i, seed: seed, tier: tier)
             default:
-                // Placeholder for T5-T9: standard 9x9, difficulty-scaled
                 levelData = generateStandardLevel(id: i, seed: seed, tier: tier, extraMoves: extraMovesForLevel(i))
             }
 
@@ -157,6 +158,30 @@ struct LevelStore {
             optimalMoves: optimalMoves, moveBudget: optimalMoves + extraMoves, tier: tier,
             obstacleConfig: obstacleConfig
         )
+    }
+
+    private static func generateStoneLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        let gridSize = 9
+        let colorCount = 5
+        let extraMoves = 6  // still generous
+
+        // Some levels use shaped boards (L-shape or diamond)
+        var voids: [CellPosition] = []
+        switch id {
+        case 23, 27: voids = BoardShapes.lShape(gridSize: gridSize)
+        case 25, 29: voids = BoardShapes.diamond(gridSize: gridSize)
+        default: break
+        }
+
+        // 2-4 stones, increasing as we progress
+        let stoneCount = id <= 24 ? 2 : (id <= 27 ? 3 : 4)
+
+        let request = ObstaclePlacer.PlacementRequest(
+            stoneCount: stoneCount,
+            voidPositions: voids
+        )
+        let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
+        return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
     }
 
     private static func extraMovesForLevel(_ i: Int) -> Int {
