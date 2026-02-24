@@ -3,6 +3,7 @@ import UIKit
 
 class GameScene: SKScene {
     private var cellNodes: [[FloodCellNode]] = []
+    private var wallNodes: [SKShapeNode] = []
     private var board: FloodBoard?
     private let gridPadding: CGFloat = 16
     private var gridGap: CGFloat = 4
@@ -1668,8 +1669,54 @@ class GameScene: SKScene {
             cellNodes.append(rowNodes)
         }
 
+        renderWalls(board: board, cellSize: cellSize, originX: originX, originY: originY)
+
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor, animated: false)
         updateParticleColor(for: floodColor)
+    }
+
+    // MARK: - Wall Rendering
+
+    private func renderWalls(board: FloodBoard, cellSize: CGFloat, originX: CGFloat, originY: CGFloat) {
+        wallNodes.forEach { $0.removeFromParent() }
+        wallNodes.removeAll()
+
+        let n = board.gridSize
+
+        // Only draw south and east walls to avoid duplicates
+        for wall in board.walls {
+            let pos = wall.position
+            guard pos.row >= 0, pos.row < n, pos.col >= 0, pos.col < n else { continue }
+            guard wall.direction == .south || wall.direction == .east else { continue }
+
+            let cellX = originX + CGFloat(pos.col) * (cellSize + gridGap) + cellSize / 2
+            let cellY = originY + CGFloat(n - 1 - pos.row) * (cellSize + gridGap) + cellSize / 2
+
+            let path = UIBezierPath()
+            let halfCell = cellSize / 2
+
+            switch wall.direction {
+            case .south:
+                let lineY = cellY - halfCell - gridGap / 2
+                path.move(to: CGPoint(x: cellX - halfCell, y: lineY))
+                path.addLine(to: CGPoint(x: cellX + halfCell, y: lineY))
+            case .east:
+                let lineX = cellX + halfCell + gridGap / 2
+                path.move(to: CGPoint(x: lineX, y: cellY - halfCell))
+                path.addLine(to: CGPoint(x: lineX, y: cellY + halfCell))
+            default:
+                continue
+            }
+
+            let wallLine = SKShapeNode(path: path.cgPath)
+            wallLine.strokeColor = UIColor(red: 0.1, green: 0.1, blue: 0.1, alpha: 0.70)
+            wallLine.lineWidth = 2
+            wallLine.zPosition = 5
+            wallLine.lineCap = .round
+            wallLine.name = "wall"
+            addChild(wallLine)
+            wallNodes.append(wallLine)
+        }
     }
 }
