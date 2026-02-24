@@ -239,30 +239,40 @@ struct LevelStore {
     private static func generateWallPortalLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
         let gridSize = 9
         let colorCount = 5
-        let extraMoves = 3  // strategic thinking needed
 
-        // Walls increase, portals introduced mid-range
+        // Breather at level 56 and 62
+        let isBreather = id == 56 || id == 62
+
+        let extraMoves: Int
         let wallCount: Int
         let portalPairCount: Int
         let stoneCount: Int
 
-        switch id {
-        case 51...54:  // walls only
-            wallCount = id - 49  // 2-5 walls
+        if isBreather {
+            extraMoves = 5
+            wallCount = 1
             portalPairCount = 0
-            stoneCount = 1
-        case 55...58:  // portals introduced
-            wallCount = 2
-            portalPairCount = 1
-            stoneCount = 1
-        case 59...62:  // walls + portals combined
-            wallCount = 3
-            portalPairCount = 1
-            stoneCount = 2
-        default:       // 63-65: heavier combinations
-            wallCount = 4
-            portalPairCount = 2
-            stoneCount = 2
+            stoneCount = 0
+        } else {
+            extraMoves = 3
+            switch id {
+            case 51...54:  // walls only
+                wallCount = id - 49  // 2-5 walls
+                portalPairCount = 0
+                stoneCount = 1
+            case 55, 57, 58:  // portals introduced
+                wallCount = 2
+                portalPairCount = 1
+                stoneCount = 1
+            case 59...61:  // walls + portals combined
+                wallCount = 3
+                portalPairCount = 1
+                stoneCount = 2
+            default:       // 63-65: heavier combinations
+                wallCount = 4
+                portalPairCount = 2
+                stoneCount = 2
+            }
         }
 
         let request = ObstaclePlacer.PlacementRequest(

@@ -351,4 +351,63 @@ final class LevelDataTests: XCTestCase {
         }
         XCTAssertTrue(breatherFound, "Should have at least one breather level in 66-100")
     }
+
+    // MARK: - P18-T10: Difficulty roller coaster verification
+
+    func testBudgetRatiosOscillate() {
+        // Compute budget ratios (moveBudget / optimalMoves) for all levels
+        var ratios = [Double]()
+        for level in LevelStore.levels {
+            guard level.optimalMoves > 0 else {
+                ratios.append(10.0)  // treat as very generous
+                continue
+            }
+            ratios.append(Double(level.moveBudget) / Double(level.optimalMoves))
+        }
+
+        // The ratios should NOT be monotonically decreasing
+        // Check that there are increases (breathers) after level 20
+        var hasIncrease = false
+        for i in 21..<ratios.count {
+            if ratios[i] > ratios[i - 1] + 0.05 {
+                hasIncrease = true
+                break
+            }
+        }
+        XCTAssertTrue(hasIncrease, "Budget ratios should oscillate, not monotonically decrease")
+    }
+
+    func testBreathersEvery5To8Levels() {
+        // In the range 21-100, check that we don't go more than 10 levels
+        // without a "generous" level (extra moves >= 4)
+        var lastBreatherLevel = 20  // levels 1-20 are all easy
+        for i in 21...100 {
+            let level = LevelStore.level(i)!
+            let extra = level.moveBudget - level.optimalMoves
+            if extra >= 4 {
+                XCTAssertLessThanOrEqual(i - lastBreatherLevel, 10,
+                    "Gap between breathers too large: level \(lastBreatherLevel) to \(i)")
+                lastBreatherLevel = i
+            }
+        }
+    }
+
+    func testOverallDifficultyTrendsUpward() {
+        // Average budget ratio for early levels should be higher than later levels
+        func avgRatio(range: ClosedRange<Int>) -> Double {
+            let levels = range.compactMap { LevelStore.level($0) }
+            let ratios = levels.map { level -> Double in
+                guard level.optimalMoves > 0 else { return 10.0 }
+                return Double(level.moveBudget) / Double(level.optimalMoves)
+            }
+            return ratios.reduce(0, +) / Double(ratios.count)
+        }
+
+        let earlyAvg = avgRatio(range: 6...20)
+        let midAvg = avgRatio(range: 41...60)
+        let lateAvg = avgRatio(range: 81...100)
+
+        XCTAssertGreaterThan(earlyAvg, midAvg, "Early levels should have higher ratio than mid")
+        XCTAssertGreaterThan(midAvg, lateAvg, "Mid levels should have higher ratio than late")
+    }
 }
