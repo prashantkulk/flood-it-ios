@@ -111,6 +111,8 @@ struct LevelStore {
                 levelData = generateStoneLevels(id: i, seed: seed, tier: tier)
             case 31...40:
                 levelData = generateIceLevels(id: i, seed: seed, tier: tier)
+            case 41...50:
+                levelData = generateCountdownLevels(id: i, seed: seed, tier: tier)
             default:
                 levelData = generateStandardLevel(id: i, seed: seed, tier: tier, extraMoves: extraMovesForLevel(i))
             }
@@ -201,6 +203,30 @@ struct LevelStore {
             stoneCount: stoneCount,
             iceCount: iceCount,
             iceLayers: iceLayers
+        )
+        let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
+        return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
+    }
+
+    private static func generateCountdownLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        let gridSize = 9
+        let colorCount = 5
+
+        // Level 50 is a boss level — tighter budget, more countdowns
+        let isBoss = id == 50
+        let extraMoves = isBoss ? 2 : 4
+        let countdownCount = isBoss ? 3 : (id <= 44 ? 1 : 2)
+        let countdownMoves = isBoss ? 3 : (id <= 44 ? 5 : 4)
+        // Some stones and ice carry over
+        let stoneCount = id >= 45 ? 2 : 1
+        let iceCount = id >= 47 ? 1 : 0
+
+        let request = ObstaclePlacer.PlacementRequest(
+            stoneCount: stoneCount,
+            iceCount: iceCount,
+            iceLayers: 1,
+            countdownCount: countdownCount,
+            countdownMoves: countdownMoves
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)

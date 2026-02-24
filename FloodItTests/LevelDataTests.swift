@@ -238,4 +238,37 @@ final class LevelDataTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(extra, 4, "Level \(i) should have moderate budget (at least +4)")
         }
     }
+
+    // MARK: - P18-T7: Levels 41-50 countdown cells + boss
+
+    func testLevels41To50HaveCountdowns() {
+        for i in 41...50 {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+            let config = level.obstacleConfig!
+            XCTAssertGreaterThanOrEqual(config.countdownPositions.count, 1,
+                "Level \(i) should have at least 1 countdown cell")
+        }
+    }
+
+    func testLevels41To50AllSolvable() {
+        for i in 41...50 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) with countdowns should be solvable: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
+
+    func testLevel50IsBoss() {
+        let level = LevelStore.level(50)!
+        let config = level.obstacleConfig!
+        // Boss should have more countdowns
+        XCTAssertGreaterThanOrEqual(config.countdownPositions.count, 3,
+            "Level 50 boss should have at least 3 countdowns")
+        // Tighter budget
+        let extra = level.moveBudget - level.optimalMoves
+        XCTAssertLessThanOrEqual(extra, 2, "Level 50 boss should have tight budget")
+    }
 }
