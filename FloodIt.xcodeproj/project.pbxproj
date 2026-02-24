@@ -15,6 +15,7 @@
 		123C48D2892084D90CCDE2E5 /* StoreManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACCD9B10C09C675B2A9D12A2 /* StoreManager.swift */; };
 		1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5730F9880C43BF08564B0E3 /* CellTextureCache.swift */; };
 		220CB0646734DA42BC84BCCE /* DailyChallengeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CE9BB81570F98D327BC353 /* DailyChallengeTests.swift */; };
+		27D9922461C82316CA3156FF /* ObstaclePlacer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EF523E31CD9E50BFAEA708 /* ObstaclePlacer.swift */; };
 		3214D389B8DAA9974B3F3C36 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27D4261953DA06F6DF911BC /* ThemeManager.swift */; };
 		33E3B4690AF8FA56690B49D2 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */; };
 		480368159FC370700AD5FE95 /* BoardShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A319DAB18B69311FA1B7DF /* BoardShapes.swift */; };
@@ -26,6 +27,7 @@
 		63BD1A70E8275D6B6DF597DC /* FloodBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */; };
 		6E5DBDA0099F7B8CC0F18D03 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D644E95C012DE27B3421D2F /* ShareSheet.swift */; };
 		70BBC76CA2CDA578FE54520E /* BoardShapesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21782E0414D92ABAD93F00F /* BoardShapesTests.swift */; };
+		741578B37B8F917D4DC46F47 /* ObstaclePlacerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C6A2F1B246A43D4B74445D4 /* ObstaclePlacerTests.swift */; };
 		789247DFCED267B3B202542E /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB80E331B185113565138406 /* GameView.swift */; };
 		8F536518BAE4D03ACF1A4A47 /* ScoreState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E27D48B6DDAA69F4D252552 /* ScoreState.swift */; };
 		909F15B81AC07D03410DA982 /* LevelData.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F80A4171FD713980C7A0D /* LevelData.swift */; };
@@ -71,6 +73,7 @@
 		04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallengeEntryView.swift; sourceTree = "<group>"; };
 		0949DB350DDAD64B75A49A5B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		09A319DAB18B69311FA1B7DF /* BoardShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardShapes.swift; sourceTree = "<group>"; };
+		0C6A2F1B246A43D4B74445D4 /* ObstaclePlacerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObstaclePlacerTests.swift; sourceTree = "<group>"; };
 		0CE93DC3A7D71C6BDA619A60 /* FloodIt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FloodIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18AAFE9C94D2F0C50860E7CD /* ShareCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardRenderer.swift; sourceTree = "<group>"; };
 		1C7FFD832E1A263F11BFEFEB /* StarRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRating.swift; sourceTree = "<group>"; };
@@ -101,6 +104,7 @@
 		A84625815686C15462112C98 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		ACCD9B10C09C675B2A9D12A2 /* StoreManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreManager.swift; sourceTree = "<group>"; };
 		AE183B198EB44E0E383BE400 /* LevelSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelSelectView.swift; sourceTree = "<group>"; };
+		B9EF523E31CD9E50BFAEA708 /* ObstaclePlacer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObstaclePlacer.swift; sourceTree = "<group>"; };
 		BB80E331B185113565138406 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
 		C00855996CA885A0EF8DAD4F /* FloodItUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodItUITests.swift; sourceTree = "<group>"; };
 		C760E6F7ACEAB69A77F5DA1E /* DailyChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallenge.swift; sourceTree = "<group>"; };
@@ -192,6 +196,7 @@
 				DA548063A2EC30039D99EA8B /* GameState.swift */,
 				EF8F80A4171FD713980C7A0D /* LevelData.swift */,
 				3EEE7F2DEAD2AA109B452863 /* LevelGenerator.swift */,
+				B9EF523E31CD9E50BFAEA708 /* ObstaclePlacer.swift */,
 				75947AB6CBA0A5DE0A53E532 /* ProgressStore.swift */,
 				9E27D48B6DDAA69F4D252552 /* ScoreState.swift */,
 				1C7FFD832E1A263F11BFEFEB /* StarRating.swift */,
@@ -211,6 +216,7 @@
 				579F7662A95924876B7DA014 /* GameStateTests.swift */,
 				59573EBC83D60DD6AC557035 /* LevelDataTests.swift */,
 				8FEF9B99BB3FC771463633EA /* LevelGeneratorTests.swift */,
+				0C6A2F1B246A43D4B74445D4 /* ObstaclePlacerTests.swift */,
 				2A15290DF1E98AB1E5BDE43C /* ScoreStateTests.swift */,
 			);
 			path = FloodItTests;
@@ -342,6 +348,7 @@
 				B614E50F83534D84FE93F68C /* GameStateTests.swift in Sources */,
 				095D4A20C9A725BDE61AA04D /* LevelDataTests.swift in Sources */,
 				D5C623DBF10F2F678F579EFF /* LevelGeneratorTests.swift in Sources */,
+				741578B37B8F917D4DC46F47 /* ObstaclePlacerTests.swift in Sources */,
 				5ED2945C51FD70C86DA143E6 /* ScoreStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -369,6 +376,7 @@
 				909F15B81AC07D03410DA982 /* LevelData.swift in Sources */,
 				A7D5A6530466DBB52D2BFCEE /* LevelGenerator.swift in Sources */,
 				5C367BF1E4999A08A80DC78E /* LevelSelectView.swift in Sources */,
+				27D9922461C82316CA3156FF /* ObstaclePlacer.swift in Sources */,
 				5F8B677E76B3A5DE9A348396 /* ProgressStore.swift in Sources */,
 				8F536518BAE4D03ACF1A4A47 /* ScoreState.swift in Sources */,
 				B3C818B20A27B3CE5641E4DB /* SettingsView.swift in Sources */,
