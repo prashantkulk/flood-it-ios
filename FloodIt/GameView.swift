@@ -168,13 +168,25 @@ struct GameView: View {
             }
 
             VStack {
-                // BUG-12: Revamped minimal HUD
-                VStack(spacing: 4) {
+                // BUG-9/BUG-12: HUD with dynamic safe area inset
+                VStack(spacing: 0) {
+                    // BUG-9: Daily challenge date header — full-width, clearly separated
                     if isDailyChallenge, let dateStr = dailyChallengeDate {
-                        Text(dateStr)
-                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.5))
-                            .frame(maxWidth: .infinity)
+                        HStack {
+                            Spacer()
+                            HStack(spacing: 6) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text(dateStr)
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            }
+                            .foregroundColor(.white.opacity(0.65))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(Color.white.opacity(0.08)))
+                            Spacer()
+                        }
+                        .padding(.bottom, 6)
                     }
 
                     HStack(alignment: .center, spacing: 0) {
@@ -317,7 +329,7 @@ struct GameView: View {
                     }
                 }
                 .padding(.horizontal, 18)
-                .padding(.top, 56)
+                .padding(.top, 8)
 
                 Spacer()
 
