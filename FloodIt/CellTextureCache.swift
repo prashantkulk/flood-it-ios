@@ -116,6 +116,36 @@ class CellTextureCache {
         return tex
     }
 
+    func voidGradient(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
+        let key = "void_grad_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let light = UIColor(red: 0.10, green: 0.10, blue: 0.18, alpha: 1.0)
+        let dark = UIColor(red: 0.04, green: 0.04, blue: 0.09, alpha: 1.0)
+        let tex = SKTexture(image: Self.drawGradient(light: light, dark: dark, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
+    func countdownGradient(size: CGSize, cornerRadius: CGFloat, urgency: Int) -> SKTexture {
+        let key = "countdown_grad_\(urgency)_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let (light, dark): (UIColor, UIColor)
+        switch urgency {
+        case 1:
+            light = UIColor(red: 0.90, green: 0.25, blue: 0.15, alpha: 1.0)
+            dark  = UIColor(red: 0.55, green: 0.10, blue: 0.05, alpha: 1.0)
+        case 2:
+            light = UIColor(red: 0.85, green: 0.50, blue: 0.10, alpha: 1.0)
+            dark  = UIColor(red: 0.55, green: 0.28, blue: 0.05, alpha: 1.0)
+        default:
+            light = UIColor(red: 0.45, green: 0.43, blue: 0.40, alpha: 1.0)
+            dark  = UIColor(red: 0.25, green: 0.23, blue: 0.20, alpha: 1.0)
+        }
+        let tex = SKTexture(image: Self.drawGradient(light: light, dark: dark, size: size, cornerRadius: cornerRadius))
+        cache[key] = tex
+        return tex
+    }
+
     // MARK: - Renderers
 
     private static func drawHighlight(size: CGSize, cornerRadius: CGFloat) -> UIImage {

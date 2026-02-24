@@ -117,7 +117,7 @@ final class FloodCellNode: SKNode {
         highlightNode.size = sz
     }
 
-    /// Configure this cell as a stone block: gray gradient, no glow, no gloss (matte).
+    /// Configure this cell as a stone block: gray gradient, X mark to show it's impassable.
     func configureAsStone() {
         isStone = true
         let sz = CGSize(width: cellSize, height: cellSize)
@@ -129,6 +129,21 @@ final class FloodCellNode: SKNode {
         glossNode.isHidden = true
         highlightNode.alpha = 0.15
         bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.10)
+
+        // X mark — communicates "blocked / impassable"
+        let margin = cellSize * 0.25
+        let xPath = UIBezierPath()
+        xPath.move(to: CGPoint(x: -cellSize / 2 + margin, y:  cellSize / 2 - margin))
+        xPath.addLine(to: CGPoint(x:  cellSize / 2 - margin, y: -cellSize / 2 + margin))
+        xPath.move(to: CGPoint(x:  cellSize / 2 - margin, y:  cellSize / 2 - margin))
+        xPath.addLine(to: CGPoint(x: -cellSize / 2 + margin, y: -cellSize / 2 + margin))
+        let xNode = SKShapeNode(path: xPath.cgPath)
+        xNode.strokeColor = UIColor.white.withAlphaComponent(0.28)
+        xNode.lineWidth = max(1.5, cellSize * 0.055)
+        xNode.lineCap = .round
+        xNode.zPosition = 4
+        xNode.name = "stoneMark"
+        addChild(xNode)
     }
 
     /// Configure this cell with an ice overlay. 2 layers = thicker/more opaque, 1 = thinner.
@@ -143,6 +158,41 @@ final class FloodCellNode: SKNode {
         overlay.name = "iceOverlay"
         addChild(overlay)
         iceOverlayNode = overlay
+
+        // Snowflake crystal lines — makes "frozen" immediately recognisable
+        addIceCrystal(layers: layers)
+    }
+
+    private func addIceCrystal(layers: Int) {
+        children.filter { $0.name == "iceCrystal" }.forEach { $0.removeFromParent() }
+        let crystalPath = UIBezierPath()
+        let r = cellSize * 0.28
+        let branches = 6
+        for i in 0..<branches {
+            let angle = CGFloat(i) * (.pi / CGFloat(branches))
+            let dx = r * cos(angle)
+            let dy = r * sin(angle)
+            crystalPath.move(to: CGPoint(x: -dx, y: -dy))
+            crystalPath.addLine(to: CGPoint(x: dx, y: dy))
+            // Small tick marks at 60% along each arm
+            let arm: CGFloat = 0.55
+            for sign: CGFloat in [-1, 1] {
+                let mx = arm * dx
+                let my = arm * dy
+                let perpAngle = angle + .pi / 2
+                let tx = mx + sign * r * 0.18 * cos(perpAngle)
+                let ty = my + sign * r * 0.18 * sin(perpAngle)
+                crystalPath.move(to: CGPoint(x: mx, y: my))
+                crystalPath.addLine(to: CGPoint(x: tx, y: ty))
+            }
+        }
+        let crystalNode = SKShapeNode(path: crystalPath.cgPath)
+        crystalNode.strokeColor = UIColor.white.withAlphaComponent(layers >= 2 ? 0.65 : 0.45)
+        crystalNode.lineWidth = 1.5
+        crystalNode.lineCap = .round
+        crystalNode.zPosition = 4.5
+        crystalNode.name = "iceCrystal"
+        addChild(crystalNode)
     }
 
     /// Update ice layers with crack animation when a layer is removed.
@@ -151,7 +201,7 @@ final class FloodCellNode: SKNode {
         iceLayers = newLayers
 
         if newLayers <= 0 {
-            // Fully cracked — dissolve overlay
+            // Fully cracked — dissolve overlay and crystal
             playCrackAnimation()
             SoundManager.shared.playCrack()
             iceOverlayNode?.run(SKAction.sequence([
@@ -159,11 +209,15 @@ final class FloodCellNode: SKNode {
                 SKAction.removeFromParent()
             ]))
             iceOverlayNode = nil
+            children.filter { $0.name == "iceCrystal" }.forEach {
+                $0.run(SKAction.sequence([SKAction.fadeOut(withDuration: 0.3), SKAction.removeFromParent()]))
+            }
         } else {
-            // Layer removed — update texture + crack
+            // Layer removed — update texture + crack + update crystal opacity
             let sz = CGSize(width: cellSize, height: cellSize)
             let cornerRadius = cellSize * cornerFraction
             iceOverlayNode?.texture = CellTextureCache.shared.iceOverlay(size: sz, cornerRadius: cornerRadius, layers: newLayers)
+            addIceCrystal(layers: newLayers)
             playCrackAnimation()
             SoundManager.shared.playCrack()
         }
@@ -193,23 +247,54 @@ final class FloodCellNode: SKNode {
         ]))
     }
 
-    /// Configure this cell with a countdown number overlay.
+    /// Configure this cell with a countdown number overlay and urgency-colored body.
     func configureAsCountdown(movesLeft: Int) {
         countdownValue = movesLeft
+        applyCountdownStyle(movesLeft: movesLeft)
+
+        // Bomb/timer icon above the number
+        let iconLabel = SKLabelNode(text: movesLeft <= 2 ? "💣" : "⏱")
+        iconLabel.fontSize = cellSize * 0.28
+        iconLabel.verticalAlignmentMode = .center
+        iconLabel.horizontalAlignmentMode = .center
+        iconLabel.position = CGPoint(x: 0, y: cellSize * 0.14)
+        iconLabel.zPosition = 4
+        iconLabel.name = "countdownIcon"
+        addChild(iconLabel)
+
         let label = SKLabelNode(text: "\(movesLeft)")
-        label.fontName = "AvenirNext-Bold"
-        label.fontSize = cellSize * 0.45
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = cellSize * 0.35
         label.fontColor = .white
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
+        label.position = CGPoint(x: 0, y: -cellSize * 0.14)
         label.zPosition = 4
         label.name = "countdownLabel"
         addChild(label)
         countdownLabel = label
 
-        if movesLeft == 1 {
+        if movesLeft <= 2 {
             startCountdownPulse()
         }
+    }
+
+    private func applyCountdownStyle(movesLeft: Int) {
+        let sz = CGSize(width: cellSize, height: cellSize)
+        let cornerRadius = cellSize * cornerFraction
+        let urgency = min(movesLeft, 3)
+        bodyNode.texture = CellTextureCache.shared.countdownGradient(size: sz, cornerRadius: cornerRadius, urgency: urgency)
+        shadowNode.texture = CellTextureCache.shared.stoneShadow(size: sz, cornerRadius: cornerRadius)
+        glowNode.alpha = movesLeft <= 2 ? 0.5 : 0.15
+        if movesLeft <= 2 {
+            // Reddish glow
+            let glowSize = CGSize(width: cellSize * 1.45, height: cellSize * 1.45)
+            glowNode.texture = CellTextureCache.shared.glow(
+                for: .coral, size: glowSize)
+        }
+        highlightNode.alpha = 0.2
+        glossNode.isHidden = movesLeft <= 2
+        bevelNode.strokeColor = UIColor(red: 1.0, green: 0.4, blue: 0.2, alpha: 0.25)
     }
 
     /// Update countdown number, animating changes.
@@ -220,9 +305,15 @@ final class FloodCellNode: SKNode {
         if newValue <= 0 {
             countdownLabel?.removeFromParent()
             countdownLabel = nil
+            children.filter { $0.name == "countdownIcon" }.forEach { $0.removeFromParent() }
         } else {
             countdownLabel?.text = "\(newValue)"
-            if newValue == 1 {
+            applyCountdownStyle(movesLeft: newValue)
+            // Update icon
+            if let icon = children.first(where: { $0.name == "countdownIcon" }) as? SKLabelNode {
+                icon.text = newValue <= 2 ? "💣" : "⏱"
+            }
+            if newValue <= 2 {
                 startCountdownPulse()
             } else {
                 stopCountdownPulse()
@@ -230,12 +321,13 @@ final class FloodCellNode: SKNode {
         }
     }
 
-    /// Remove the countdown label (for defused or exploded cells).
+    /// Remove the countdown label and icon (for defused or exploded cells).
     func removeCountdownLabel() {
         countdownLabel?.removeAllActions()
         countdownLabel?.removeFromParent()
         countdownLabel = nil
         countdownValue = 0
+        children.filter { $0.name == "countdownIcon" }.forEach { $0.removeFromParent() }
     }
 
     private func startCountdownPulse() {
@@ -256,7 +348,7 @@ final class FloodCellNode: SKNode {
         countdownLabel?.setScale(1.0)
     }
 
-    /// Configure this cell as a portal with a swirling vortex overlay.
+    /// Configure this cell as a portal with a swirling vortex and pulsing colored ring.
     func configureAsPortal(pairId: Int) {
         portalPairId = pairId
         let vortexSize = CGSize(width: cellSize * 0.7, height: cellSize * 0.7)
@@ -272,9 +364,30 @@ final class FloodCellNode: SKNode {
         // Continuous rotation
         let rotate = SKAction.rotate(byAngle: 2 * .pi, duration: 3.0)
         vortexNode.run(SKAction.repeatForever(rotate), withKey: "portalRotate")
+
+        // Pulsing colored border ring — communicates "this cell is connected to another"
+        let ringColor = CellTextureCache.portalColor(for: pairId)
+        let cornerRadius = cellSize * cornerFraction
+        let inset: CGFloat = 2
+        let ringRect = CGRect(x: -cellSize / 2 + inset, y: -cellSize / 2 + inset,
+                              width: cellSize - inset * 2, height: cellSize - inset * 2)
+        let ringPath = UIBezierPath(roundedRect: ringRect, cornerRadius: cornerRadius)
+        let ringNode = SKShapeNode(path: ringPath.cgPath)
+        ringNode.fillColor = .clear
+        ringNode.strokeColor = ringColor.withAlphaComponent(0.85)
+        ringNode.lineWidth = 2.0
+        ringNode.zPosition = 4.5
+        ringNode.name = "portalRing"
+        addChild(ringNode)
+
+        let fadeIn  = SKAction.fadeAlpha(to: 1.0, duration: 0.7)
+        let fadeOut = SKAction.fadeAlpha(to: 0.25, duration: 0.7)
+        fadeIn.timingMode  = .easeInEaseOut
+        fadeOut.timingMode = .easeInEaseOut
+        ringNode.run(SKAction.repeatForever(SKAction.sequence([fadeIn, fadeOut])), withKey: "portalPulse")
     }
 
-    /// Configure this cell as a bonus tile with golden glow and multiplier text.
+    /// Configure this cell as a bonus tile with golden glow, star icon, and multiplier text.
     func configureAsBonus(multiplier: Int) {
         bonusMultiplier = multiplier
 
@@ -296,17 +409,42 @@ final class FloodCellNode: SKNode {
         pulseDown.timingMode = .easeInEaseOut
         goldGlow.run(SKAction.repeatForever(SKAction.sequence([pulseUp, pulseDown])), withKey: "bonusPulse")
 
-        // Gold multiplier text
+        // 5-pointed star above the label
+        let starPath = makeStarPath(points: 5, outerRadius: cellSize * 0.20, innerRadius: cellSize * 0.09)
+        let starNode = SKShapeNode(path: starPath)
+        starNode.fillColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        starNode.strokeColor = SKColor(red: 1.0, green: 0.96, blue: 0.55, alpha: 0.7)
+        starNode.lineWidth = 0.5
+        starNode.position = CGPoint(x: 0, y: cellSize * 0.18)
+        starNode.zPosition = 4
+        starNode.name = "bonusStar"
+        addChild(starNode)
+
+        // Gold multiplier text below the star
         let label = SKLabelNode(text: "x\(multiplier)")
         label.fontName = "AvenirNext-Heavy"
-        label.fontSize = cellSize * 0.38
+        label.fontSize = cellSize * 0.32
         label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
+        label.position = CGPoint(x: 0, y: -cellSize * 0.14)
         label.zPosition = 4
         label.name = "bonusLabel"
         addChild(label)
         bonusLabel = label
+    }
+
+    private func makeStarPath(points: Int, outerRadius: CGFloat, innerRadius: CGFloat) -> CGPath {
+        let path = UIBezierPath()
+        let total = points * 2
+        for i in 0..<total {
+            let angle = CGFloat(i) * (.pi / CGFloat(points)) - .pi / 2
+            let r = i.isMultiple(of: 2) ? outerRadius : innerRadius
+            let pt = CGPoint(x: r * cos(angle), y: r * sin(angle))
+            if i == 0 { path.move(to: pt) } else { path.addLine(to: pt) }
+        }
+        path.close()
+        return path.cgPath
     }
 
     /// Remove bonus overlay (when absorbed).
@@ -317,13 +455,21 @@ final class FloodCellNode: SKNode {
         bonusGlowNode?.removeFromParent()
         bonusGlowNode = nil
         bonusMultiplier = 0
+        children.filter { $0.name == "bonusStar" }.forEach { $0.removeFromParent() }
     }
 
-    /// Configure this cell as a void: completely hidden so the dark background shows through.
+    /// Configure this cell as a void: dark recessed tile so the board shape is clear.
     func configureAsVoid() {
         isVoid = true
-        isHidden = true
-        alpha = 0
+        let sz = CGSize(width: cellSize, height: cellSize)
+        let cornerRadius = cellSize * cornerFraction
+        bodyNode.texture = CellTextureCache.shared.voidGradient(size: sz, cornerRadius: cornerRadius)
+        shadowNode.alpha = 0
+        glowNode.alpha = 0
+        highlightNode.alpha = 0
+        glossNode.isHidden = true
+        bevelNode.strokeColor = UIColor.white.withAlphaComponent(0.06)
+        alpha = 0.7
     }
 
     /// Smoothly crossfade from old color to new color over given duration.
