@@ -138,4 +138,39 @@ final class LevelDataTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - P18-T4: Levels 1-20 onboarding + easy breathers
+
+    func testLevels6To20NoObstacles() {
+        for i in 6...20 {
+            let level = LevelStore.level(i)!
+            XCTAssertNil(level.obstacleConfig, "Level \(i) should have no obstacles")
+        }
+    }
+
+    func testLevels6To20GenerousBudgets() {
+        for i in 6...20 {
+            let level = LevelStore.level(i)!
+            let extra = level.moveBudget - level.optimalMoves
+            XCTAssertGreaterThanOrEqual(extra, 6, "Level \(i) should have generous budget (at least +6)")
+        }
+    }
+
+    func testLevels6To20AllSolvable() {
+        for i in 6...20 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) should be solvable")
+        }
+    }
+
+    func testLevels6To20Are9x9With5Colors() {
+        for i in 6...20 {
+            let level = LevelStore.level(i)!
+            XCTAssertEqual(level.gridSize, 9, "Level \(i) should be 9x9")
+            XCTAssertEqual(level.colorCount, 5, "Level \(i) should have 5 colors")
+        }
+    }
 }

@@ -89,63 +89,83 @@ struct LevelStore {
         (9, 5, 25),   // Level 5
     ]
 
+    /// Deterministic seed for a given level number.
+    static func seed(for levelNumber: Int) -> UInt64 {
+        UInt64(levelNumber * 31 + 7)
+    }
+
     private static func generateAllLevels() -> [LevelData] {
         var result = [LevelData]()
 
         for i in 1...100 {
-            let seed = UInt64(i * 31 + 7)  // deterministic seed per level
+            let seed = Self.seed(for: i)
             let tier: LevelData.Tier = i <= 50 ? .splash : .current
 
-            // Onboarding: levels 1-5 have special configs
-            if i <= onboardingConfigs.count {
-                let config = onboardingConfigs[i - 1]
-                let colors = Array(GameColor.allCases.prefix(config.colorCount))
-                let board = FloodBoard.generateBoard(size: config.gridSize, colors: colors, seed: seed)
-                let optimalMoves = FloodSolver.solveMoveCount(board: board)
-
-                result.append(LevelData(
-                    id: i,
-                    seed: seed,
-                    gridSize: config.gridSize,
-                    colorCount: config.colorCount,
-                    optimalMoves: optimalMoves,
-                    moveBudget: config.moveBudget,
-                    tier: tier
-                ))
-                continue
-            }
-
-            let gridSize = 9
-            let colorCount = 5
-            let colors = Array(GameColor.allCases.prefix(colorCount))
-
-            let board = FloodBoard.generateBoard(size: gridSize, colors: colors, seed: seed)
-            let optimalMoves = FloodSolver.solveMoveCount(board: board)
-
-            // Difficulty scaling: easier levels get more extra moves
-            let extraMoves: Int
+            let levelData: LevelData
             switch i {
-            case 6...10:  extraMoves = 8   // easy
-            case 11...30: extraMoves = 6
-            case 31...50: extraMoves = 4   // medium
-            case 51...70: extraMoves = 3
-            case 71...90: extraMoves = 2   // hard
-            default:      extraMoves = 1   // expert-ish
+            case 1...5:
+                levelData = generateOnboardingLevel(id: i, seed: seed, tier: tier)
+            case 6...20:
+                levelData = generateEasyLevel(id: i, seed: seed, tier: tier)
+            default:
+                // Placeholder for T5-T9: standard 9x9, difficulty-scaled
+                levelData = generateStandardLevel(id: i, seed: seed, tier: tier, extraMoves: extraMovesForLevel(i))
             }
 
-            let moveBudget = optimalMoves + extraMoves
-
-            result.append(LevelData(
-                id: i,
-                seed: seed,
-                gridSize: gridSize,
-                colorCount: colorCount,
-                optimalMoves: optimalMoves,
-                moveBudget: moveBudget,
-                tier: tier
-            ))
+            result.append(levelData)
         }
 
         return result
+    }
+
+    private static func generateOnboardingLevel(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        let config = onboardingConfigs[id - 1]
+        let colors = Array(GameColor.allCases.prefix(config.colorCount))
+        let board = FloodBoard.generateBoard(size: config.gridSize, colors: colors, seed: seed)
+        let optimalMoves = FloodSolver.solveMoveCount(board: board)
+        return LevelData(
+            id: id, seed: seed, gridSize: config.gridSize, colorCount: config.colorCount,
+            optimalMoves: optimalMoves, moveBudget: config.moveBudget, tier: tier
+        )
+    }
+
+    private static func generateEasyLevel(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        // Levels 6-20: standard 9x9, 5 colors, no obstacles, generous budget
+        let gridSize = 9
+        let colorCount = 5
+        let colors = Array(GameColor.allCases.prefix(colorCount))
+        let board = FloodBoard.generateBoard(size: gridSize, colors: colors, seed: seed)
+        let optimalMoves = FloodSolver.solveMoveCount(board: board)
+        let extraMoves = id <= 10 ? 8 : 6  // very generous
+        return LevelData(
+            id: id, seed: seed, gridSize: gridSize, colorCount: colorCount,
+            optimalMoves: optimalMoves, moveBudget: optimalMoves + extraMoves, tier: tier
+        )
+    }
+
+    private static func generateStandardLevel(id: Int, seed: UInt64, tier: LevelData.Tier, extraMoves: Int, obstacleConfig: ObstacleConfig? = nil) -> LevelData {
+        let gridSize = 9
+        let colorCount = 5
+        let levelData = LevelData(
+            id: id, seed: seed, gridSize: gridSize, colorCount: colorCount,
+            optimalMoves: 0, moveBudget: 0, tier: tier, obstacleConfig: obstacleConfig
+        )
+        let board = FloodBoard.generateBoard(from: levelData)
+        let optimalMoves = FloodSolver.solveMoveCount(board: board)
+        return LevelData(
+            id: id, seed: seed, gridSize: gridSize, colorCount: colorCount,
+            optimalMoves: optimalMoves, moveBudget: optimalMoves + extraMoves, tier: tier,
+            obstacleConfig: obstacleConfig
+        )
+    }
+
+    private static func extraMovesForLevel(_ i: Int) -> Int {
+        switch i {
+        case 21...30: return 6
+        case 31...50: return 4
+        case 51...70: return 3
+        case 71...90: return 2
+        default:      return 1
+        }
     }
 }
