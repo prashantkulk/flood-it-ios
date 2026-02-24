@@ -77,6 +77,11 @@ struct GameView: View {
                             }
                         }
                     }
+                    scene.onPerfectBonus = {
+                        DispatchQueue.main.async {
+                            gameState.scoreState.applyPerfectBonus()
+                        }
+                    }
                     scene.onWinAnimationComplete = {
                         DispatchQueue.main.async {
                             tallyMovesDisplay = nil
@@ -667,6 +672,9 @@ struct GameView: View {
             let movesAfterWin = gameState.movesRemaining - 1
             scene.tallyTickCount = movesAfterWin
             tallyMovesDisplay = movesAfterWin
+            // Perfect badge: optimal+1 or fewer (3 stars)
+            let movesMadeAfterWin = gameState.movesMade + 1
+            scene.showPerfectBadge = movesMadeAfterWin <= gameState.optimalMoves + 1
         }
 
         let prevCombo = gameState.comboCount
@@ -880,6 +888,7 @@ struct GameView: View {
         starScales = [0, 0, 0]
         tallyMovesDisplay = nil
         scene.tallyTickCount = 0
+        scene.showPerfectBadge = false
 
         // Update level tracking
         currentLevelNumber = nextNumber
@@ -904,6 +913,7 @@ struct GameView: View {
         starScales = [0, 0, 0]
         tallyMovesDisplay = nil
         scene.tallyTickCount = 0
+        scene.showPerfectBadge = false
         let board = FloodBoard.generateBoard(from: currentLevelData)
         gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)

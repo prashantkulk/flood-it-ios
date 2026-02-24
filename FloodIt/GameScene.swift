@@ -608,23 +608,38 @@ class GameScene: SKScene {
     /// Number of tally ticks to run (set by GameView before win animation).
     var tallyTickCount: Int = 0
 
-    /// Runs the full completion rush sequence: pulse → shimmer → confetti → score tally.
+    /// Callback invoked when perfect bonus is applied (so SwiftUI can update score).
+    var onPerfectBonus: (() -> Void)?
+
+    /// Whether the perfect bonus badge should be shown after tally.
+    var showPerfectBadge: Bool = false
+
+    /// Runs the full completion rush sequence: pulse → shimmer → confetti → score tally → perfect badge.
     private func runCompletionRush(completion: @escaping () -> Void) {
         completionRushPulse { [weak self] in
             self?.completionRushShimmer {
                 self?.completionRushConfetti()
                 // Run score tally after confetti starts
                 let ticks = self?.tallyTickCount ?? 0
+                let afterTally: () -> Void = { [weak self] in
+                    // Show perfect badge if applicable
+                    if self?.showPerfectBadge == true {
+                        self?.showPerfectClearBadge {
+                            completion()
+                        }
+                    } else {
+                        completion()
+                    }
+                }
                 if ticks > 0 {
-                    // Brief pause before tally starts
                     self?.run(SKAction.sequence([
                         SKAction.wait(forDuration: 0.4),
                         SKAction.run {
-                            self?.runScoreTally(tickCount: ticks, completion: completion)
+                            self?.runScoreTally(tickCount: ticks, completion: afterTally)
                         }
                     ]), withKey: "tallyDelay")
                 } else {
-                    completion()
+                    afterTally()
                 }
             }
         }
@@ -950,6 +965,76 @@ class GameScene: SKScene {
                 cellNodes[row][col].run(SKAction.scale(to: 1.0, duration: 0.15))
             }
         }
+    }
+
+    /// Show '+500 PERFECT' badge: gold text with spring scale 0→1.2→1.0, gold burst behind.
+    private func showPerfectClearBadge(completion: @escaping () -> Void) {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2 + 60)
+
+        let label = SKLabelNode(text: "+500 PERFECT")
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = 36
+        label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        label.position = center
+        label.zPosition = 25
+        label.alpha = 0
+        label.setScale(0)
+        label.name = "perfectBadge"
+        addChild(label)
+
+        // Gold particle burst behind
+        let burstAction = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            for _ in 0..<12 {
+                let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 3...6))
+                dot.fillColor = SKColor(red: 1.0, green: CGFloat.random(in: 0.7...0.9), blue: 0.0, alpha: 1.0)
+                dot.strokeColor = .clear
+                dot.position = center
+                dot.zPosition = 24
+                dot.alpha = 0.9
+                dot.blendMode = .add
+                dot.name = "perfectBurst"
+                self.addChild(dot)
+
+                let angle = CGFloat.random(in: 0...(2 * .pi))
+                let dist = CGFloat.random(in: 30...80)
+                let move = SKAction.moveBy(x: cos(angle) * dist, y: sin(angle) * dist, duration: 0.5)
+                move.timingMode = .easeOut
+                dot.run(SKAction.sequence([
+                    SKAction.group([move, SKAction.fadeOut(withDuration: 0.5)]),
+                    SKAction.removeFromParent()
+                ]))
+            }
+        }
+
+        // Spring scale: 0 → 1.2 → 1.0
+        let scaleUp = SKAction.scale(to: 1.2, duration: 0.2)
+        scaleUp.timingMode = .easeOut
+        let settle = SKAction.scale(to: 1.0, duration: 0.15)
+        settle.timingMode = .easeInEaseOut
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.15)
+
+        // Apply perfect bonus
+        let applyBonus = SKAction.run { [weak self] in
+            self?.onPerfectBonus?()
+        }
+
+        // Hold and fade out
+        let hold = SKAction.wait(forDuration: 1.2)
+        let moveUp = SKAction.moveBy(x: 0, y: 40, duration: 0.4)
+        moveUp.timingMode = .easeIn
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+
+        label.run(SKAction.sequence([
+            SKAction.group([scaleUp, fadeIn]),
+            burstAction,
+            applyBonus,
+            settle,
+            hold,
+            SKAction.group([moveUp, fadeOut]),
+            SKAction.removeFromParent(),
+            SKAction.run { completion() }
+        ]))
     }
 
     // MARK: - Ripple Ring Effect
