@@ -15,6 +15,7 @@ class ProgressStore: ObservableObject {
     static let shared = ProgressStore()
 
     private static let starsKey = "progress_levelStars"
+    private static let scoresKey = "progress_levelScores"
     private static let lastPlayDateKey = "progress_lastPlayDate"
     private static let currentStreakKey = "progress_currentStreak"
     private static let longestStreakKey = "progress_longestStreak"
@@ -22,6 +23,9 @@ class ProgressStore: ObservableObject {
 
     /// Best star rating per level (level ID → stars 0-3)
     @Published private(set) var levelStars: [Int: Int]
+
+    /// Best score per level (level ID → score)
+    @Published private(set) var levelScores: [Int: Int]
 
     /// Daily play streak
     @Published private(set) var currentStreak: Int
@@ -37,6 +41,13 @@ class ProgressStore: ObservableObject {
             self.levelStars = decoded
         } else {
             self.levelStars = [:]
+        }
+
+        if let data = UserDefaults.standard.data(forKey: Self.scoresKey),
+           let decoded = try? JSONDecoder().decode([Int: Int].self, from: data) {
+            self.levelScores = decoded
+        } else {
+            self.levelScores = [:]
         }
 
         if let data = UserDefaults.standard.data(forKey: Self.dailyResultsKey),
@@ -73,6 +84,21 @@ class ProgressStore: ObservableObject {
         guard stars > current else { return }
         levelStars[levelId] = stars
         saveStars()
+    }
+
+    /// Returns the best score for a level (0 if never completed).
+    func bestScore(for levelId: Int) -> Int {
+        levelScores[levelId] ?? 0
+    }
+
+    /// Update best score for a level. Returns true if this is a new best.
+    @discardableResult
+    func updateScore(for levelId: Int, score: Int) -> Bool {
+        let current = bestScore(for: levelId)
+        guard score > current else { return false }
+        levelScores[levelId] = score
+        saveScores()
+        return true
     }
 
     /// Record that the player played today. Call on level completion.
@@ -137,6 +163,12 @@ class ProgressStore: ObservableObject {
     private func saveDailyResults() {
         if let data = try? JSONEncoder().encode(dailyResults) {
             UserDefaults.standard.set(data, forKey: Self.dailyResultsKey)
+        }
+    }
+
+    private func saveScores() {
+        if let data = try? JSONEncoder().encode(levelScores) {
+            UserDefaults.standard.set(data, forKey: Self.scoresKey)
         }
     }
 

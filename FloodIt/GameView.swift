@@ -20,6 +20,7 @@ struct GameView: View {
     @State private var showLoseCard: Bool = false
     @State private var loseCardOffset: CGFloat = 600
     @State private var tallyMovesDisplay: Int? = nil
+    @State private var isNewBest: Bool = false
     @State private var showSettings: Bool = false
     @State private var showShareSheet: Bool = false
     @State private var hintColor: GameColor? = nil
@@ -103,6 +104,7 @@ struct GameView: View {
                                 ProgressStore.shared.saveDailyResult(result)
                             } else {
                                 ProgressStore.shared.updateStars(for: currentLevelNumber, stars: stars)
+                                isNewBest = ProgressStore.shared.updateScore(for: currentLevelNumber, score: gameState.scoreState.totalScore)
                             }
                             ProgressStore.shared.recordPlay()
                             for i in 0..<stars {
@@ -499,26 +501,38 @@ struct GameView: View {
                     .ignoresSafeArea()
                     .transition(.opacity)
 
-                VStack(spacing: 20) {
+                VStack(spacing: 16) {
                     Text("Solved!")
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.8))
 
-                    // Moves info
-                    HStack(spacing: 4) {
-                        Text("\(gameState.movesMade)")
-                            .font(.system(size: 48, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                        Text("/ \(gameState.totalMoves)")
-                            .font(.system(size: 24, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.6))
-                            .offset(y: 8)
+                    // Hero: Final score in large gold text
+                    Text("\(gameState.scoreState.totalScore)")
+                        .font(.system(size: 52, weight: .heavy, design: .rounded).monospacedDigit())
+                        .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                        .shadow(color: Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.4), radius: 8, x: 0, y: 0)
+
+                    // NEW BEST badge
+                    if isNewBest && !isDailyChallenge {
+                        Text("NEW BEST!")
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 4)
+                            .background(Color(red: 1.0, green: 0.84, blue: 0.0))
+                            .clipShape(Capsule())
+                            .offset(y: -6)
                     }
 
-                    Text("moves")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.5))
-                        .offset(y: -10)
+                    // Moves used / budget
+                    HStack(spacing: 4) {
+                        Text("\(gameState.movesMade)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("/ \(gameState.totalMoves) moves")
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
 
                     // Star rating with staggered animation
                     HStack(spacing: 8) {
@@ -530,7 +544,16 @@ struct GameView: View {
                                 .scaleEffect(index < stars ? starScales[index] : 1.0)
                         }
                     }
-                    .padding(.vertical, 4)
+
+                    // Best score (for replays)
+                    if !isDailyChallenge {
+                        let best = ProgressStore.shared.bestScore(for: currentLevelNumber)
+                        if best > 0 {
+                            Text("Best: \(best)")
+                                .font(.system(size: 13, weight: .medium, design: .rounded).monospacedDigit())
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                    }
 
                     // Buttons
                     VStack(spacing: 12) {
@@ -585,7 +608,7 @@ struct GameView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
                 }
                 .padding(.vertical, 32)
                 .padding(.horizontal, 24)
@@ -886,6 +909,7 @@ struct GameView: View {
         winCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
+        isNewBest = false
         tallyMovesDisplay = nil
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
@@ -911,6 +935,7 @@ struct GameView: View {
         loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
+        isNewBest = false
         tallyMovesDisplay = nil
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
