@@ -749,8 +749,8 @@ struct GameView: View {
             }
         }
 
-        // Combo audio
-        if gameState.comboCount >= 3 {
+        // Combo audio (matches score multiplier which activates at comboCount >= 2)
+        if gameState.comboCount >= 2 {
             // x2+ reverb plip
             SoundManager.shared.playComboPlip(frequency: 440 + Double(gameState.comboCount) * 30)
             // x3+ bass throb
@@ -795,8 +795,8 @@ struct GameView: View {
             }
         }
 
-        // Update combo visuals
-        if gameState.comboCount >= 3 {
+        // Update combo visuals (matches score multiplier which activates at comboCount >= 2)
+        if gameState.comboCount >= 2 {
             let intensity = gameState.comboCount >= 4 ? 2 : 1
             scene.showComboGlow(board: gameState.board, intensity: intensity)
             // x3+ sparks
@@ -936,9 +936,8 @@ struct GameView: View {
         currentLevelNumber = nextNumber
         currentLevelData = data
 
-        // Build new board
-        let colors = Array(GameColor.allCases.prefix(data.colorCount))
-        let newBoard = FloodBoard.generateBoard(size: data.gridSize, colors: colors, seed: data.seed)
+        // Build new board (must use generateBoard(from:) to preserve obstacles)
+        let newBoard = FloodBoard.generateBoard(from: data)
 
         // Transition animation: scatter out old cells, then scale in new ones
         scene.transitionToNewBoard(newBoard) {

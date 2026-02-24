@@ -111,13 +111,12 @@ final class StoreManager: ObservableObject {
         let productID = StoreManager.removeAdsProductID
         return Task.detached { [weak self] in
             for await result in Transaction.updates {
-                if let transaction = try? result.payloadValue,
-                   transaction.productID == productID {
-                    await MainActor.run { [weak self] in
-                        self?.applyAdFree()
-                    }
-                    await transaction.finish()
+                guard case .verified(let transaction) = result,
+                      transaction.productID == productID else { continue }
+                await MainActor.run { [weak self] in
+                    self?.applyAdFree()
                 }
+                await transaction.finish()
             }
         }
     }

@@ -446,14 +446,18 @@ final class SoundManager {
             let buf = ablPointer[0]
             let data = buf.mData!.assumingMemoryBound(to: Float.self)
 
+            // Copy shared state at start of render cycle to avoid data races
+            let enabled = self.ambientEnabled
+            let targetVol = self.ambientTargetVolume
+            let rate = self.sampleRate
+
             // Smooth volume transitions
-            let targetVol = self.ambientEnabled ? self.ambientTargetVolume : 0
-            let vol = self.ambientVolume + (targetVol - self.ambientVolume) * 0.001
+            let vol = self.ambientVolume + ((enabled ? targetVol : 0) - self.ambientVolume) * 0.001
 
             for frame in 0..<Int(frameCount) {
                 var sample: Float = 0
                 for (idx, freq) in freqs.enumerated() {
-                    phases[idx] += 2 * .pi * freq / self.sampleRate
+                    phases[idx] += 2 * .pi * freq / rate
                     if phases[idx] > 2 * .pi { phases[idx] -= 2 * .pi }
                     // Slow amplitude modulation
                     let modRate = 0.15 + Double(idx) * 0.05

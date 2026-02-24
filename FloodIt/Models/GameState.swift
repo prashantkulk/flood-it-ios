@@ -124,15 +124,16 @@ class GameState: ObservableObject {
         return FloodResult(waves: initialWaves, cascadeWaves: cascadeWaves, previousColors: previousColors, cascadeCount: cascadeCount, bonusMultiplier: bonusMultiplier)
     }
 
-    /// Returns the number of cells not in the flood region.
+    /// Returns the number of playable cells not in the flood region.
     var unfloodedCellCount: Int {
-        let total = board.gridSize * board.gridSize
+        let total = board.playableCellCount
         return total - board.floodRegion.count
     }
 
-    /// Flood completion percentage (0.0 - 1.0).
+    /// Flood completion percentage (0.0 - 1.0), counting only playable cells.
     var floodCompletionPercentage: Double {
-        let total = Double(board.gridSize * board.gridSize)
+        let total = Double(board.playableCellCount)
+        guard total > 0 else { return 1.0 }
         return Double(board.floodRegion.count) / total
     }
 

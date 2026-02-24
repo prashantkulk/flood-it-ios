@@ -56,6 +56,22 @@ struct FloodBoard {
         return walls.contains(Wall(position: position, direction: direction))
     }
 
+    /// Number of playable cells (excludes voids and stones).
+    var playableCellCount: Int {
+        var count = 0
+        for row in 0..<gridSize {
+            for col in 0..<gridSize {
+                switch cellTypes[row][col] {
+                case .void, .stone:
+                    break
+                default:
+                    count += 1
+                }
+            }
+        }
+        return count
+    }
+
     /// Returns true if the cell is playable (not void, not stone for flood purposes).
     func isPlayable(at position: CellPosition) -> Bool {
         let type = cellTypes[position.row][position.col]
