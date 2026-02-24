@@ -383,6 +383,17 @@ final class FloodCellNode: SKNode {
         ]))
     }
 
+    /// Desaturate the cell to grayscale over the given duration.
+    /// Colorizes body, shadow, and glow toward gray while reducing glow/gloss.
+    func desaturate(duration: TimeInterval = 0.5) {
+        let grayColor = UIColor(white: 0.35, alpha: 1.0)
+        bodyNode.run(SKAction.colorize(with: grayColor, colorBlendFactor: 0.85, duration: duration), withKey: "desat")
+        shadowNode.run(SKAction.colorize(with: .darkGray, colorBlendFactor: 0.9, duration: duration), withKey: "desatShadow")
+        glowNode.run(SKAction.fadeAlpha(to: 0.1, duration: duration), withKey: "desatGlow")
+        glossNode.run(SKAction.fadeAlpha(to: 0.1, duration: duration), withKey: "desatGloss")
+        highlightNode.run(SKAction.fadeAlpha(to: 0.05, duration: duration), withKey: "desatHighlight")
+    }
+
     /// Remove any lingering crossfade overlays (used when snapping animation).
     func removeCrossfadeOverlays() {
         children.filter { $0.name?.hasPrefix("crossfade") == true }.forEach { $0.removeFromParent() }

@@ -882,7 +882,7 @@ class GameScene: SKScene {
     /// Callback invoked after the lose animation sequence finishes.
     var onLoseAnimationComplete: (() -> Void)?
 
-    /// Lose animation: non-flooded cells fade to 40%, then board shakes.
+    /// Lose animation: non-flooded cells desaturate to grayscale over 0.5s, then board shakes.
     func animateLose() {
         guard let board = board else {
             onLoseAnimationComplete?()
@@ -891,13 +891,14 @@ class GameScene: SKScene {
 
         let floodRegion = board.floodRegion
 
-        // Phase 1: Fade non-flooded cells to 40%
+        // Phase 1: Desaturate non-flooded cells to grayscale, fade to 50%
         for row in 0..<board.gridSize {
             for col in 0..<board.gridSize {
                 guard row < cellNodes.count, col < cellNodes[row].count else { continue }
                 let pos = CellPosition(row: row, col: col)
                 if !floodRegion.contains(pos) {
-                    cellNodes[row][col].run(SKAction.fadeAlpha(to: 0.4, duration: 0.3), withKey: "loseFade")
+                    cellNodes[row][col].desaturate(duration: 0.5)
+                    cellNodes[row][col].run(SKAction.fadeAlpha(to: 0.5, duration: 0.5), withKey: "loseFade")
                 }
             }
         }
@@ -916,7 +917,7 @@ class GameScene: SKScene {
 
         // Apply shake to all cell nodes via a container approach (move each node)
         run(SKAction.sequence([
-            SKAction.wait(forDuration: 0.3),  // Wait for fade
+            SKAction.wait(forDuration: 0.5),  // Wait for desaturation
             SKAction.run { [weak self] in
                 guard let self = self else { return }
                 for row in self.cellNodes {
