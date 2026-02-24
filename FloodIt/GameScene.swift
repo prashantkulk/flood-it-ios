@@ -644,6 +644,7 @@ class GameScene: SKScene {
                 let pos = CGPoint(x: 80, y: self.size.height - 80)
                 self.spawnTallyText(at: pos)
                 SoundManager.shared.playPlip(frequency: 880 + Double(i) * 40)
+                self.spawnTallyCoins()
                 self.onTallyTick?()
             })
             if i < tickCount - 1 {
@@ -677,6 +678,53 @@ class GameScene: SKScene {
             SKAction.group([moveUp, SKAction.sequence([SKAction.wait(forDuration: 0.4), fadeOut])]),
             SKAction.removeFromParent()
         ]))
+    }
+
+    /// Spawn 3-4 gold coin sprites that rain from the top with gravity arc.
+    private func spawnTallyCoins() {
+        let count = Int.random(in: 3...4)
+        for _ in 0..<count {
+            let coinSize = CGFloat.random(in: 6...10)
+            let coin = SKShapeNode(ellipseOf: CGSize(width: coinSize, height: coinSize * 0.8))
+            coin.fillColor = SKColor(red: 1.0, green: CGFloat.random(in: 0.75...0.9), blue: 0.0, alpha: 1.0)
+            coin.strokeColor = SKColor(red: 0.85, green: 0.65, blue: 0.0, alpha: 0.6)
+            coin.lineWidth = 1
+            coin.glowWidth = 2
+            coin.position = CGPoint(
+                x: CGFloat.random(in: size.width * 0.15...size.width * 0.85),
+                y: size.height + 10
+            )
+            coin.zPosition = 15
+            coin.name = "tallyCoin"
+            addChild(coin)
+
+            // Physics-like arc: horizontal drift + gravity
+            let vx = CGFloat.random(in: -60...60)
+            let vy = CGFloat.random(in: -20...40)
+            let gravity: CGFloat = -350
+            let lifetime: TimeInterval = 1.5
+            let steps = 45
+            let dt = lifetime / Double(steps)
+
+            var actions: [SKAction] = []
+            var curVy = vy
+            for _ in 0..<steps {
+                let dx = vx * CGFloat(dt)
+                let dy = curVy * CGFloat(dt)
+                actions.append(SKAction.moveBy(x: dx, y: dy, duration: dt))
+                curVy += gravity * CGFloat(dt)
+            }
+
+            let moveSeq = SKAction.sequence(actions)
+            let spin = SKAction.rotate(byAngle: CGFloat.random(in: -6...6), duration: lifetime)
+            let fadeOut = SKAction.sequence([
+                SKAction.wait(forDuration: lifetime * 0.65),
+                SKAction.fadeOut(withDuration: lifetime * 0.35)
+            ])
+
+            let group = SKAction.group([moveSeq, spin, fadeOut])
+            coin.run(SKAction.sequence([group, SKAction.removeFromParent()]))
+        }
     }
 
     /// Phase 1: All cells scale to 1.15x then back to 1.0x over 400ms + chord swell.
