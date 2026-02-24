@@ -31,8 +31,7 @@ final class LevelDataTests: XCTestCase {
 
     func testAllLevelsAreSolvable() {
         for level in LevelStore.levels {
-            let colors = Array(GameColor.allCases.prefix(level.colorCount))
-            let board = FloodBoard.generateBoard(size: level.gridSize, colors: colors, seed: level.seed)
+            let board = FloodBoard.generateBoard(from: level)
             let solverMoves = FloodSolver.solveMoveCount(board: board)
             XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
                 "Level \(level.id) not solvable: solver needs \(solverMoves) moves, budget is \(level.moveBudget)")
@@ -80,11 +79,63 @@ final class LevelDataTests: XCTestCase {
     func testOnboardingLevelsAreSolvable() {
         for i in 1...5 {
             let level = LevelStore.level(i)!
-            let colors = Array(GameColor.allCases.prefix(level.colorCount))
-            let board = FloodBoard.generateBoard(size: level.gridSize, colors: colors, seed: level.seed)
+            let board = FloodBoard.generateBoard(from: level)
             let solverMoves = FloodSolver.solveMoveCount(board: board)
             XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
                 "Onboarding level \(i) not solvable within budget")
+        }
+    }
+
+    // MARK: - P18-T1: Obstacle config
+
+    func testObstacleConfigDefaultsToNil() {
+        // Existing levels without obstacles should have nil config
+        let level = LevelStore.level(1)!
+        XCTAssertNil(level.obstacleConfig)
+    }
+
+    func testObstacleConfigIsEmpty() {
+        let config = ObstacleConfig()
+        XCTAssertTrue(config.isEmpty)
+    }
+
+    func testObstacleConfigWithStones() {
+        var config = ObstacleConfig()
+        config.stonePositions = [CellPosition(row: 2, col: 3)]
+        XCTAssertFalse(config.isEmpty)
+    }
+
+    func testGenerateBoardFromLevelDataWithObstacles() {
+        let config = ObstacleConfig(
+            stonePositions: [CellPosition(row: 4, col: 4)],
+            icePositions: [ObstacleConfig.IcePlacement(position: CellPosition(row: 3, col: 3), layers: 2)],
+            countdownPositions: [ObstacleConfig.CountdownPlacement(position: CellPosition(row: 5, col: 5), movesLeft: 3)],
+            wallEdges: [ObstacleConfig.WallEdgePlacement(position: CellPosition(row: 2, col: 2), direction: .east)],
+            portalPairs: [ObstacleConfig.PortalPairPlacement(position1: CellPosition(row: 1, col: 1), position2: CellPosition(row: 7, col: 7), pairId: 0)],
+            bonusPositions: [ObstacleConfig.BonusPlacement(position: CellPosition(row: 6, col: 6), multiplier: 2)],
+            voidPositions: [CellPosition(row: 8, col: 8)]
+        )
+        let levelData = LevelData(id: 999, seed: 42, gridSize: 9, colorCount: 5, optimalMoves: 10, moveBudget: 15, tier: .splash, obstacleConfig: config)
+        let board = FloodBoard.generateBoard(from: levelData)
+
+        XCTAssertEqual(board.cellType(atRow: 4, col: 4), .stone)
+        XCTAssertEqual(board.cellType(atRow: 3, col: 3), .ice(layers: 2))
+        XCTAssertEqual(board.cellType(atRow: 5, col: 5), .countdown(movesLeft: 3))
+        XCTAssertEqual(board.cellType(atRow: 1, col: 1), .portal(pairId: 0))
+        XCTAssertEqual(board.cellType(atRow: 7, col: 7), .portal(pairId: 0))
+        XCTAssertEqual(board.cellType(atRow: 6, col: 6), .bonus(multiplier: 2))
+        XCTAssertEqual(board.cellType(atRow: 8, col: 8), .void)
+        XCTAssertTrue(board.hasWall(at: CellPosition(row: 2, col: 2), direction: .east))
+    }
+
+    func testGenerateBoardFromLevelDataWithoutObstacles() {
+        let levelData = LevelData(id: 1, seed: 38, gridSize: 9, colorCount: 5, optimalMoves: 10, moveBudget: 15, tier: .splash)
+        let board = FloodBoard.generateBoard(from: levelData)
+        // All cells should be normal
+        for row in 0..<9 {
+            for col in 0..<9 {
+                XCTAssertEqual(board.cellType(atRow: row, col: col), .normal)
+            }
         }
     }
 }

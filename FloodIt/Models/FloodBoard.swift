@@ -255,6 +255,66 @@ struct FloodBoard {
         return waves
     }
 
+    /// Generates a board from LevelData, applying obstacle config if present.
+    static func generateBoard(from levelData: LevelData) -> FloodBoard {
+        let colors = Array(GameColor.allCases.prefix(levelData.colorCount))
+        var board = generateBoard(size: levelData.gridSize, colors: colors, seed: levelData.seed)
+
+        guard let config = levelData.obstacleConfig, !config.isEmpty else {
+            return board
+        }
+
+        // Apply void mask
+        for pos in config.voidPositions {
+            guard pos.row >= 0, pos.row < board.gridSize, pos.col >= 0, pos.col < board.gridSize else { continue }
+            board.setCellType(.void, atRow: pos.row, col: pos.col)
+        }
+
+        // Apply stones
+        for pos in config.stonePositions {
+            guard pos.row >= 0, pos.row < board.gridSize, pos.col >= 0, pos.col < board.gridSize else { continue }
+            board.setCellType(.stone, atRow: pos.row, col: pos.col)
+        }
+
+        // Apply ice
+        for ice in config.icePositions {
+            let pos = ice.position
+            guard pos.row >= 0, pos.row < board.gridSize, pos.col >= 0, pos.col < board.gridSize else { continue }
+            board.setCellType(.ice(layers: ice.layers), atRow: pos.row, col: pos.col)
+        }
+
+        // Apply countdowns
+        for cd in config.countdownPositions {
+            let pos = cd.position
+            guard pos.row >= 0, pos.row < board.gridSize, pos.col >= 0, pos.col < board.gridSize else { continue }
+            board.setCellType(.countdown(movesLeft: cd.movesLeft), atRow: pos.row, col: pos.col)
+        }
+
+        // Apply portals
+        for portal in config.portalPairs {
+            let p1 = portal.position1
+            let p2 = portal.position2
+            guard p1.row >= 0, p1.row < board.gridSize, p1.col >= 0, p1.col < board.gridSize,
+                  p2.row >= 0, p2.row < board.gridSize, p2.col >= 0, p2.col < board.gridSize else { continue }
+            board.setCellType(.portal(pairId: portal.pairId), atRow: p1.row, col: p1.col)
+            board.setCellType(.portal(pairId: portal.pairId), atRow: p2.row, col: p2.col)
+        }
+
+        // Apply bonus tiles
+        for bonus in config.bonusPositions {
+            let pos = bonus.position
+            guard pos.row >= 0, pos.row < board.gridSize, pos.col >= 0, pos.col < board.gridSize else { continue }
+            board.setCellType(.bonus(multiplier: bonus.multiplier), atRow: pos.row, col: pos.col)
+        }
+
+        // Apply walls
+        for wall in config.wallEdges {
+            board.addWall(at: wall.position, direction: wall.direction)
+        }
+
+        return board
+    }
+
     /// Generates a board with random colors using a seeded random number generator.
     /// Same seed always produces the same board.
     static func generateBoard(size: Int, colors: [GameColor] = GameColor.allCases, seed: UInt64) -> FloodBoard {
@@ -366,7 +426,7 @@ struct FloodBoard {
 }
 
 /// A hashable position on the grid.
-struct CellPosition: Hashable {
+struct CellPosition: Hashable, Codable {
     let row: Int
     let col: Int
 }

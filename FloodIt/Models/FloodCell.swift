@@ -19,7 +19,7 @@ enum CellType: Equatable {
 }
 
 /// Cardinal directions for wall edges between cells.
-enum Direction: Hashable, CaseIterable {
+enum Direction: Hashable, CaseIterable, Codable {
     case north, south, east, west
 
     /// The opposite direction.

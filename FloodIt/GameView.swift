@@ -32,8 +32,7 @@ struct GameView: View {
         _currentLevelNumber = State(initialValue: levelNumber)
         let data = LevelStore.level(levelNumber) ?? LevelStore.levels[0]
         _currentLevelData = State(initialValue: data)
-        let colors = Array(GameColor.allCases.prefix(data.colorCount))
-        let board = FloodBoard.generateBoard(size: data.gridSize, colors: colors, seed: data.seed)
+        let board = FloodBoard.generateBoard(from: data)
         _gameState = StateObject(wrappedValue: GameState(board: board, totalMoves: data.moveBudget))
 
         let gameScene = GameScene(size: UIScreen.main.bounds.size)
@@ -887,8 +886,7 @@ struct GameView: View {
         loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
-        let colors = Array(GameColor.allCases.prefix(currentLevelData.colorCount))
-        let board = FloodBoard.generateBoard(size: currentLevelData.gridSize, colors: colors, seed: currentLevelData.seed)
+        let board = FloodBoard.generateBoard(from: currentLevelData)
         gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)
     }

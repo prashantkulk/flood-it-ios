@@ -1,5 +1,48 @@
 import Foundation
 
+/// Configuration for obstacles placed on a level board.
+struct ObstacleConfig: Codable, Equatable {
+    var stonePositions: [CellPosition] = []
+    var icePositions: [IcePlacement] = []
+    var countdownPositions: [CountdownPlacement] = []
+    var wallEdges: [WallEdgePlacement] = []
+    var portalPairs: [PortalPairPlacement] = []
+    var bonusPositions: [BonusPlacement] = []
+    var voidPositions: [CellPosition] = []
+
+    var isEmpty: Bool {
+        stonePositions.isEmpty && icePositions.isEmpty && countdownPositions.isEmpty
+            && wallEdges.isEmpty && portalPairs.isEmpty && bonusPositions.isEmpty
+            && voidPositions.isEmpty
+    }
+
+    struct IcePlacement: Codable, Equatable {
+        let position: CellPosition
+        let layers: Int
+    }
+
+    struct CountdownPlacement: Codable, Equatable {
+        let position: CellPosition
+        let movesLeft: Int
+    }
+
+    struct WallEdgePlacement: Codable, Equatable {
+        let position: CellPosition
+        let direction: Direction
+    }
+
+    struct PortalPairPlacement: Codable, Equatable {
+        let position1: CellPosition
+        let position2: CellPosition
+        let pairId: Int
+    }
+
+    struct BonusPlacement: Codable, Equatable {
+        let position: CellPosition
+        let multiplier: Int
+    }
+}
+
 /// Metadata for a single level in the game.
 struct LevelData: Codable, Identifiable {
     let id: Int          // 1-based level number
@@ -9,6 +52,18 @@ struct LevelData: Codable, Identifiable {
     let optimalMoves: Int
     let moveBudget: Int
     let tier: Tier
+    let obstacleConfig: ObstacleConfig?
+
+    init(id: Int, seed: UInt64, gridSize: Int, colorCount: Int, optimalMoves: Int, moveBudget: Int, tier: Tier, obstacleConfig: ObstacleConfig? = nil) {
+        self.id = id
+        self.seed = seed
+        self.gridSize = gridSize
+        self.colorCount = colorCount
+        self.optimalMoves = optimalMoves
+        self.moveBudget = moveBudget
+        self.tier = tier
+        self.obstacleConfig = obstacleConfig
+    }
 
     enum Tier: String, Codable {
         case splash   // Levels 1-50
