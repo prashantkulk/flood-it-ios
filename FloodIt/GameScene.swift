@@ -211,6 +211,16 @@ class GameScene: SKScene {
     private var isAnimating = false
     private var pendingFlood: (() -> Void)?
 
+    /// Cancel all win/lose completion animations (call before level transition).
+    func cancelLevelAnimations() {
+        removeAction(forKey: "floodCompletion")
+        removeAction(forKey: "scoreTally")
+        removeAction(forKey: "tallyDelay")
+        isAnimating = false
+        // Remove visual effects from completion rush
+        children.filter { $0.name == "rippleRing" || $0.name == "sparkle" || $0.name == "tallyText" || $0.name == "confettiDot" }.forEach { $0.removeFromParent() }
+    }
+
     /// Immediately finish any running flood animation.
     func snapAnimationToEnd() {
         guard isAnimating else { return }

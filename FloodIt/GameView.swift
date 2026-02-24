@@ -967,6 +967,9 @@ struct GameView: View {
     }
 
     private func performLevelTransition(to nextNumber: Int, data: LevelData) {
+        // Cancel any pending win/lose animations to prevent stale callbacks from firing
+        scene.cancelLevelAnimations()
+
         // Dismiss win card
         showWinCard = false
         winCardOffset = 600
@@ -974,12 +977,14 @@ struct GameView: View {
         starScales = [0, 0, 0]
         isNewBest = false
         tallyMovesDisplay = nil
+        hintColor = nil
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
 
         // Update level tracking
         currentLevelNumber = nextNumber
         currentLevelData = data
+        ProgressStore.shared.updateCurrentLevel(nextNumber)
 
         // Build new board (must use generateBoard(from:) to preserve obstacles)
         let newBoard = FloodBoard.generateBoard(from: data)

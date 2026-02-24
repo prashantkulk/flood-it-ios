@@ -394,4 +394,86 @@ final class GameStateTests: XCTestCase {
         // Combo count should be >= 1 if cells were absorbed
         XCTAssertGreaterThanOrEqual(combo1, 0)
     }
+
+    // MARK: - BUG-7: Level Transition Tests
+
+    func testLevelTransitionProducesValidBoard() {
+        // Advancing from level 1 to level 2 should produce a valid playable board
+        guard let level1 = LevelStore.level(1), let level2 = LevelStore.level(2) else {
+            XCTFail("Levels 1 and 2 must exist")
+            return
+        }
+        let board1 = FloodBoard.generateBoard(from: level1)
+        XCTAssertTrue(board1.isPlayable(at: CellPosition(row: 0, col: 0)), "Level 1 (0,0) must be playable")
+
+        let state = GameState(board: board1, totalMoves: level1.moveBudget)
+        XCTAssertEqual(state.gameStatus, .playing)
+
+        // Simulate what performLevelTransition does: generate next board and reset
+        let board2 = FloodBoard.generateBoard(from: level2)
+        XCTAssertEqual(board2.gridSize, level2.gridSize)
+        XCTAssertTrue(board2.isPlayable(at: CellPosition(row: 0, col: 0)), "Level 2 (0,0) must be playable")
+
+        state.reset(board: board2, totalMoves: level2.moveBudget)
+        XCTAssertEqual(state.movesRemaining, level2.moveBudget)
+        XCTAssertEqual(state.movesMade, 0)
+        XCTAssertEqual(state.gameStatus, .playing)
+        XCTAssertEqual(state.comboCount, 0)
+    }
+
+    func testLevelTransitionPreservesObstaclesOnNewBoard() {
+        // Level 25 has stones — transition to it should have stones
+        guard let data25 = LevelStore.level(25) else {
+            XCTFail("Level 25 must exist")
+            return
+        }
+        let board = FloodBoard.generateBoard(from: data25)
+        XCTAssertEqual(board.gridSize, data25.gridSize)
+        if let config = data25.obstacleConfig, !config.stonePositions.isEmpty {
+            for pos in config.stonePositions {
+                XCTAssertFalse(board.isPlayable(at: pos), "Stone at \(pos) should not be playable")
+            }
+        }
+    }
+
+    func testNoLevelBeyond100() {
+        // advanceToNextLevel should gracefully handle level 100 → 101
+        XCTAssertNil(LevelStore.level(101), "Level 101 should not exist")
+        XCTAssertNil(LevelStore.level(0), "Level 0 should not exist")
+        XCTAssertNil(LevelStore.level(-1), "Level -1 should not exist")
+        XCTAssertNotNil(LevelStore.level(100), "Level 100 must exist")
+    }
+
+    func testLevelResetClearsState() {
+        // Reset should clear score, combo, history
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .coral, .amber],
+            [.emerald, .amber, .coral],
+        ]
+        let board = FloodBoard(gridSize: 3, cells: cells)
+        let state = GameState(board: board, totalMoves: 10)
+        state.performFlood(color: .amber)  // Top-left is coral so this is a valid move
+        XCTAssertGreaterThan(state.movesMade, 0)
+
+        let board2 = FloodBoard.generateBoard(size: 5, seed: 100)
+        state.reset(board: board2, totalMoves: 15)
+        XCTAssertEqual(state.movesMade, 0)
+        XCTAssertEqual(state.movesRemaining, 15)
+        XCTAssertEqual(state.comboCount, 0)
+        XCTAssertEqual(state.colorHistory, [])
+        XCTAssertEqual(state.scoreState.totalScore, 0)
+    }
+
+    func testProgressStoreCurrentLevelAdvances() {
+        // currentLevel only moves forward
+        let store = ProgressStore()
+        let initial = store.currentLevel
+        // Advance to a higher level
+        store.updateCurrentLevel(initial + 5)
+        XCTAssertEqual(store.currentLevel, initial + 5)
+        // Should not go back
+        store.updateCurrentLevel(initial + 2)
+        XCTAssertEqual(store.currentLevel, initial + 5, "currentLevel should not go backward")
+    }
 }

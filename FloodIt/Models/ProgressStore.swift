@@ -20,12 +20,16 @@ class ProgressStore: ObservableObject {
     private static let currentStreakKey = "progress_currentStreak"
     private static let longestStreakKey = "progress_longestStreak"
     private static let dailyResultsKey = "progress_dailyResults"
+    private static let currentLevelKey = "progress_currentLevel"
 
     /// Best star rating per level (level ID → stars 0-3)
     @Published private(set) var levelStars: [Int: Int]
 
     /// Best score per level (level ID → score)
     @Published private(set) var levelScores: [Int: Int]
+
+    /// The highest level the player has unlocked/reached (1-based, minimum 1).
+    @Published private(set) var currentLevel: Int
 
     /// Daily play streak
     @Published private(set) var currentStreak: Int
@@ -42,6 +46,9 @@ class ProgressStore: ObservableObject {
         } else {
             self.levelStars = [:]
         }
+
+        let saved = UserDefaults.standard.integer(forKey: Self.currentLevelKey)
+        self.currentLevel = saved >= 1 ? saved : 1
 
         if let data = UserDefaults.standard.data(forKey: Self.scoresKey),
            let decoded = try? JSONDecoder().decode([Int: Int].self, from: data) {
@@ -76,6 +83,14 @@ class ProgressStore: ObservableObject {
     /// Total stars earned across all levels.
     var totalStars: Int {
         levelStars.values.reduce(0, +)
+    }
+
+    /// Advance the current level pointer (only moves forward, never back).
+    func updateCurrentLevel(_ level: Int) {
+        guard level > currentLevel else { return }
+        let clamped = min(level, LevelStore.levels.count)
+        currentLevel = clamped
+        UserDefaults.standard.set(clamped, forKey: Self.currentLevelKey)
     }
 
     /// Update star rating for a level if the new rating is better than saved.
