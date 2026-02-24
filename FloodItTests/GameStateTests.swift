@@ -169,4 +169,69 @@ final class GameStateTests: XCTestCase {
         state.performFlood(color: .coral) // Should be ignored
         XCTAssertEqual(state.movesMade, 1) // No additional move
     }
+
+    // MARK: - P20-T5: Bug fix verification — playable cell counting
+
+    func testUnfloodedCellCountExcludesVoids() {
+        // 3x3 board with one void at (2,2)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        board.setCellType(.void, atRow: 2, col: 2)
+        let state = GameState(board: board, totalMoves: 20)
+        // Playable cells = 8 (9 - 1 void). Flood region starts with just (0,0) = 1 cell.
+        XCTAssertEqual(state.unfloodedCellCount, 7) // 8 - 1
+    }
+
+    func testUnfloodedCellCountExcludesStones() {
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        board.setCellType(.stone, atRow: 1, col: 1)
+        board.setCellType(.stone, atRow: 2, col: 2)
+        let state = GameState(board: board, totalMoves: 20)
+        // Playable = 7 (9 - 2 stones). Flood region = 1.
+        XCTAssertEqual(state.unfloodedCellCount, 6) // 7 - 1
+    }
+
+    func testFloodCompletionPercentageWithVoids() {
+        // All playable cells same color → 100% completion
+        let cells: [[GameColor]] = [
+            [.coral, .coral, .coral],
+            [.coral, .coral, .coral],
+            [.coral, .coral, .coral],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        board.setCellType(.void, atRow: 2, col: 2)
+        board.setCellType(.void, atRow: 2, col: 1)
+        let state = GameState(board: board, totalMoves: 20)
+        // All 7 playable cells are coral and connected → 100%
+        XCTAssertEqual(state.floodCompletionPercentage, 1.0, accuracy: 0.001)
+        XCTAssertEqual(state.unfloodedCellCount, 0)
+    }
+
+    func testFloodCompletionOnShapedBoard() {
+        // 3x3 board, flood 1 cell out of 5 playable (4 voids)
+        let cells: [[GameColor]] = [
+            [.coral, .amber, .emerald],
+            [.amber, .emerald, .sapphire],
+            [.emerald, .sapphire, .violet],
+        ]
+        var board = FloodBoard(gridSize: 3, cells: cells)
+        board.setCellType(.void, atRow: 0, col: 2)
+        board.setCellType(.void, atRow: 1, col: 2)
+        board.setCellType(.void, atRow: 2, col: 0)
+        board.setCellType(.void, atRow: 2, col: 1)
+        board.setCellType(.void, atRow: 2, col: 2)
+        let state = GameState(board: board, totalMoves: 20)
+        // Playable = 4 cells. Flood region at start = 1 (just (0,0)).
+        XCTAssertEqual(board.playableCellCount, 4)
+        XCTAssertEqual(state.floodCompletionPercentage, 0.25, accuracy: 0.001)
+    }
 }

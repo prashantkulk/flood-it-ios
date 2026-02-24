@@ -1376,4 +1376,34 @@ final class FloodBoardTests: XCTestCase {
             }
         }
     }
+
+    // MARK: - P20-T5: playableCellCount
+
+    func testPlayableCellCountPlainBoard() {
+        let board = FloodBoard(gridSize: 5)
+        XCTAssertEqual(board.playableCellCount, 25)
+    }
+
+    func testPlayableCellCountWithVoids() {
+        var board = FloodBoard(gridSize: 3)
+        board.setCellType(.void, atRow: 0, col: 2)
+        board.setCellType(.void, atRow: 1, col: 2)
+        board.setCellType(.void, atRow: 2, col: 2)
+        XCTAssertEqual(board.playableCellCount, 6)
+    }
+
+    func testPlayableCellCountWithStones() {
+        var board = FloodBoard(gridSize: 3)
+        board.setCellType(.stone, atRow: 1, col: 1)
+        XCTAssertEqual(board.playableCellCount, 8)
+    }
+
+    func testPlayableCellCountWithMixedTypes() {
+        var board = FloodBoard(gridSize: 3)
+        board.setCellType(.void, atRow: 0, col: 2)
+        board.setCellType(.stone, atRow: 1, col: 1)
+        board.setCellType(.ice(layers: 2), atRow: 2, col: 0) // ice is playable
+        board.setCellType(.countdown(movesLeft: 3), atRow: 2, col: 2) // countdown is playable
+        XCTAssertEqual(board.playableCellCount, 7) // 9 - 1 void - 1 stone
+    }
 }
