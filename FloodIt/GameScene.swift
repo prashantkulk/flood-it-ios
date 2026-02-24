@@ -602,15 +602,81 @@ class GameScene: SKScene {
 
     // MARK: - Completion Rush
 
-    /// Runs the full completion rush sequence: pulse → shimmer → confetti.
+    /// Callback invoked for each tally tick (so SwiftUI can update score/moves).
+    var onTallyTick: (() -> Void)?
+
+    /// Number of tally ticks to run (set by GameView before win animation).
+    var tallyTickCount: Int = 0
+
+    /// Runs the full completion rush sequence: pulse → shimmer → confetti → score tally.
     private func runCompletionRush(completion: @escaping () -> Void) {
         completionRushPulse { [weak self] in
             self?.completionRushShimmer {
                 self?.completionRushConfetti()
-                // Don't wait for confetti to finish — signal completion for overlay
-                completion()
+                // Run score tally after confetti starts
+                let ticks = self?.tallyTickCount ?? 0
+                if ticks > 0 {
+                    // Brief pause before tally starts
+                    self?.run(SKAction.sequence([
+                        SKAction.wait(forDuration: 0.4),
+                        SKAction.run {
+                            self?.runScoreTally(tickCount: ticks, completion: completion)
+                        }
+                    ]), withKey: "tallyDelay")
+                } else {
+                    completion()
+                }
             }
         }
+    }
+
+    /// Runs the score tally: remaining moves tick down, +50 floats up each tick.
+    private func runScoreTally(tickCount: Int, completion: @escaping () -> Void) {
+        guard tickCount > 0 else { completion(); return }
+
+        let tickDelay: TimeInterval = 0.3
+        var actions: [SKAction] = []
+
+        for i in 0..<tickCount {
+            actions.append(SKAction.run { [weak self] in
+                guard let self = self else { return }
+                // Spawn floating +50 text near top-left (where move counter is)
+                let pos = CGPoint(x: 80, y: self.size.height - 80)
+                self.spawnTallyText(at: pos)
+                SoundManager.shared.playPlip(frequency: 880 + Double(i) * 40)
+                self.onTallyTick?()
+            })
+            if i < tickCount - 1 {
+                actions.append(SKAction.wait(forDuration: tickDelay))
+            }
+        }
+
+        actions.append(SKAction.wait(forDuration: 0.4))
+        actions.append(SKAction.run { completion() })
+        run(SKAction.sequence(actions), withKey: "scoreTally")
+    }
+
+    /// Spawn floating '+50' gold text that rises and fades.
+    private func spawnTallyText(at position: CGPoint) {
+        let label = SKLabelNode(text: "+50")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 22
+        label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        label.position = position
+        label.zPosition = 20
+        label.alpha = 0
+        label.name = "tallyText"
+        addChild(label)
+
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.08)
+        let moveUp = SKAction.moveBy(x: 0, y: 50, duration: 0.6)
+        moveUp.timingMode = .easeOut
+        let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+        label.run(SKAction.sequence([
+            fadeIn,
+            SKAction.group([moveUp, SKAction.sequence([SKAction.wait(forDuration: 0.4), fadeOut])]),
+            SKAction.removeFromParent()
+        ]))
     }
 
     /// Phase 1: All cells scale to 1.15x then back to 1.0x over 400ms + chord swell.

@@ -19,6 +19,7 @@ struct GameView: View {
     @State private var starScales: [CGFloat] = [0, 0, 0]
     @State private var showLoseCard: Bool = false
     @State private var loseCardOffset: CGFloat = 600
+    @State private var tallyMovesDisplay: Int? = nil
     @State private var showSettings: Bool = false
     @State private var showShareSheet: Bool = false
     @State private var hintColor: GameColor? = nil
@@ -68,8 +69,17 @@ struct GameView: View {
                 .ignoresSafeArea()
                 .onAppear {
                     SoundManager.shared.startAmbient()
+                    scene.onTallyTick = {
+                        DispatchQueue.main.async {
+                            gameState.scoreState.applyTallyTick()
+                            if let current = tallyMovesDisplay, current > 0 {
+                                tallyMovesDisplay = current - 1
+                            }
+                        }
+                    }
                     scene.onWinAnimationComplete = {
                         DispatchQueue.main.async {
+                            tallyMovesDisplay = nil
                             showWinCard = true
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                                 winCardOffset = 0
@@ -148,9 +158,9 @@ struct GameView: View {
                 }
 
                 HStack {
-                    Text("Moves: \(gameState.movesRemaining)")
+                    Text("Moves: \(tallyMovesDisplay ?? gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundColor(moveCounterColor)
+                        .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
                         .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.7 : 1.0) : 1.0)
                         .scaleEffect(moveCounterScale)
                         .overlay(
@@ -653,6 +663,10 @@ struct GameView: View {
         let willComplete = gameState.board.wouldComplete(color: color)
         if willComplete {
             isWinningMove = true
+            // Set up tally: after this move, movesRemaining will be decremented by 1
+            let movesAfterWin = gameState.movesRemaining - 1
+            scene.tallyTickCount = movesAfterWin
+            tallyMovesDisplay = movesAfterWin
         }
 
         let prevCombo = gameState.comboCount
@@ -864,6 +878,8 @@ struct GameView: View {
         winCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
+        tallyMovesDisplay = nil
+        scene.tallyTickCount = 0
 
         // Update level tracking
         currentLevelNumber = nextNumber
@@ -886,6 +902,8 @@ struct GameView: View {
         loseCardOffset = 600
         isWinningMove = false
         starScales = [0, 0, 0]
+        tallyMovesDisplay = nil
+        scene.tallyTickCount = 0
         let board = FloodBoard.generateBoard(from: currentLevelData)
         gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)

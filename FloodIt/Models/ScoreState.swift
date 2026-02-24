@@ -6,6 +6,11 @@ class ScoreState: ObservableObject {
     @Published private(set) var lastMoveScore: Int = 0
     @Published private(set) var lastCellsAbsorbed: Int = 0
 
+    /// Pending tally ticks (one per remaining move, 50 pts each). Set by recordEndBonus, consumed by applyTallyTick.
+    private(set) var pendingTallyTicks: Int = 0
+    /// Whether the perfect bonus (+500) is pending.
+    private(set) var hasPerfectBonus: Bool = false
+
     /// Calculate score for a single move.
     /// Formula: base = cellsAbsorbed * 20, then * comboMultiplier * cascadeMultiplier.
     func calculateMoveScore(cellsAbsorbed: Int, comboMultiplier: Double = 1.0, cascadeMultiplier: Double = 1.0) -> Int {
@@ -31,10 +36,26 @@ class ScoreState: ObservableObject {
         totalScore += score
     }
 
-    /// Record end-of-game bonus.
+    /// Prepare end-of-game bonus for tally animation. Does NOT add to totalScore immediately.
     func recordEndBonus(movesRemaining: Int, isOptimalPlusOne: Bool) {
-        let bonus = calculateEndBonus(movesRemaining: movesRemaining, isOptimalPlusOne: isOptimalPlusOne)
-        totalScore += bonus
+        pendingTallyTicks = movesRemaining
+        hasPerfectBonus = isOptimalPlusOne
+    }
+
+    /// Apply one tally tick (+50 points). Returns true if more ticks remain.
+    @discardableResult
+    func applyTallyTick() -> Bool {
+        guard pendingTallyTicks > 0 else { return false }
+        totalScore += 50
+        pendingTallyTicks -= 1
+        return pendingTallyTicks > 0
+    }
+
+    /// Apply the perfect clear bonus (+500 points).
+    func applyPerfectBonus() {
+        guard hasPerfectBonus else { return }
+        totalScore += 500
+        hasPerfectBonus = false
     }
 
     /// Reset all scoring state for a new game.
@@ -42,5 +63,7 @@ class ScoreState: ObservableObject {
         totalScore = 0
         lastMoveScore = 0
         lastCellsAbsorbed = 0
+        pendingTallyTicks = 0
+        hasPerfectBonus = false
     }
 }
