@@ -271,4 +271,39 @@ final class LevelDataTests: XCTestCase {
         let extra = level.moveBudget - level.optimalMoves
         XCTAssertLessThanOrEqual(extra, 2, "Level 50 boss should have tight budget")
     }
+
+    // MARK: - P18-T8: Levels 51-65 walls + portals
+
+    func testLevels51To65HaveWallsOrPortals() {
+        for i in 51...65 {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+            let config = level.obstacleConfig!
+            let hasTopology = !config.wallEdges.isEmpty || !config.portalPairs.isEmpty
+            XCTAssertTrue(hasTopology, "Level \(i) should have walls or portals")
+        }
+    }
+
+    func testLevels51To65AllSolvable() {
+        for i in 51...65 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) should be solvable: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
+
+    func testPortalsIntroducedInLevel55Plus() {
+        // Levels 55+ should have portals
+        var portalFound = false
+        for i in 55...65 {
+            let level = LevelStore.level(i)!
+            if let config = level.obstacleConfig, !config.portalPairs.isEmpty {
+                portalFound = true
+                break
+            }
+        }
+        XCTAssertTrue(portalFound, "Portals should appear in levels 55-65")
+    }
 }

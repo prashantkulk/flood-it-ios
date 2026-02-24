@@ -113,6 +113,8 @@ struct LevelStore {
                 levelData = generateIceLevels(id: i, seed: seed, tier: tier)
             case 41...50:
                 levelData = generateCountdownLevels(id: i, seed: seed, tier: tier)
+            case 51...65:
+                levelData = generateWallPortalLevels(id: i, seed: seed, tier: tier)
             default:
                 levelData = generateStandardLevel(id: i, seed: seed, tier: tier, extraMoves: extraMovesForLevel(i))
             }
@@ -227,6 +229,44 @@ struct LevelStore {
             iceLayers: 1,
             countdownCount: countdownCount,
             countdownMoves: countdownMoves
+        )
+        let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
+        return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
+    }
+
+    private static func generateWallPortalLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
+        let gridSize = 9
+        let colorCount = 5
+        let extraMoves = 3  // strategic thinking needed
+
+        // Walls increase, portals introduced mid-range
+        let wallCount: Int
+        let portalPairCount: Int
+        let stoneCount: Int
+
+        switch id {
+        case 51...54:  // walls only
+            wallCount = id - 49  // 2-5 walls
+            portalPairCount = 0
+            stoneCount = 1
+        case 55...58:  // portals introduced
+            wallCount = 2
+            portalPairCount = 1
+            stoneCount = 1
+        case 59...62:  // walls + portals combined
+            wallCount = 3
+            portalPairCount = 1
+            stoneCount = 2
+        default:       // 63-65: heavier combinations
+            wallCount = 4
+            portalPairCount = 2
+            stoneCount = 2
+        }
+
+        let request = ObstaclePlacer.PlacementRequest(
+            stoneCount: stoneCount,
+            wallCount: wallCount,
+            portalPairCount: portalPairCount
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
