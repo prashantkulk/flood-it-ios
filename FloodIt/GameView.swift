@@ -70,6 +70,11 @@ struct GameView: View {
                 .ignoresSafeArea()
                 .onAppear {
                     SoundManager.shared.startAmbient()
+                    lightHaptic.prepare()
+                    mediumHaptic.prepare()
+                    heavyHaptic.prepare()
+                    rigidHaptic.prepare()
+                    warningHaptic.prepare()
                     scene.onTallyTick = {
                         DispatchQueue.main.async {
                             gameState.scoreState.applyTallyTick()
@@ -165,6 +170,15 @@ struct GameView: View {
                 }
 
                 HStack {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .accessibilityIdentifier("backButton")
+
                     Text("Moves: \(tallyMovesDisplay ?? gameState.movesRemaining)")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
                         .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
@@ -209,6 +223,13 @@ struct GameView: View {
                                 moveCounterPulse = false
                             }
                         }
+
+                    if !isDailyChallenge {
+                        Text("Lv. \(currentLevelNumber)")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                            .accessibilityIdentifier("levelLabel")
+                    }
 
                     // MARK: P14-T3 Score counter
                     Text("\(gameState.scoreState.totalScore)")
@@ -320,6 +341,7 @@ struct GameView: View {
                         }
                         .buttonStyle(OrbPressStyle())
                         .accessibilityIdentifier("colorButton_\(color.rawValue)")
+                        .disabled(gameState.gameStatus != .playing || isWinningMove)
                     }
                 }
                 .padding(.bottom, 40)
@@ -589,7 +611,7 @@ struct GameView: View {
                                     .foregroundColor(.white.opacity(0.7))
                             }
                             .accessibilityIdentifier("doneButton")
-                        } else {
+                        } else if LevelStore.level(currentLevelNumber + 1) != nil {
                             Button(action: {
                                 advanceToNextLevel()
                             }) {
@@ -602,6 +624,29 @@ struct GameView: View {
                                     .clipShape(Capsule())
                             }
                             .accessibilityIdentifier("nextButton")
+
+                            Button(action: {
+                                resetGame()
+                            }) {
+                                Text("Replay")
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .accessibilityIdentifier("replayButton")
+                        } else {
+                            // Final level — no next level available
+                            Button(action: {
+                                dismiss()
+                            }) {
+                                Text("Done")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .accessibilityIdentifier("doneButton")
 
                             Button(action: {
                                 resetGame()
