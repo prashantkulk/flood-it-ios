@@ -64,7 +64,7 @@ final class SoundManager {
             try session.setCategory(.ambient, mode: .default)
             try session.setActive(true)
         } catch {
-            print("SoundManager: Audio session setup failed: \(error)")
+            // Audio session setup failed — silent fallback
         }
 
         NotificationCenter.default.addObserver(
@@ -93,7 +93,7 @@ final class SoundManager {
         do {
             try engine.start()
         } catch {
-            print("SoundManager: Engine start failed: \(error)")
+            // Engine start failed — silent fallback
         }
     }
 
