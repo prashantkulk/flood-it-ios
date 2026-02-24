@@ -149,10 +149,12 @@ final class LevelDataTests: XCTestCase {
     }
 
     func testLevels6To20GenerousBudgets() {
+        // BUG-14: Tightened — levels 6-15 get +3, levels 16-20 get +2
         for i in 6...20 {
             let level = LevelStore.level(i)!
             let extra = level.moveBudget - level.optimalMoves
-            XCTAssertGreaterThanOrEqual(extra, 6, "Level \(i) should have generous budget (at least +6)")
+            let minExtra = i <= 15 ? 3 : 2
+            XCTAssertGreaterThanOrEqual(extra, minExtra, "Level \(i) should have at least +\(minExtra) moves")
         }
     }
 
@@ -232,10 +234,12 @@ final class LevelDataTests: XCTestCase {
     }
 
     func testLevels31To40ModerateBudgets() {
+        // BUG-14: Tightened — levels 31-40 now get +1 (tight, challenging)
         for i in 31...40 {
             let level = LevelStore.level(i)!
             let extra = level.moveBudget - level.optimalMoves
-            XCTAssertGreaterThanOrEqual(extra, 4, "Level \(i) should have moderate budget (at least +4)")
+            XCTAssertGreaterThanOrEqual(extra, 1, "Level \(i) should have at least +1 moves")
+            XCTAssertLessThanOrEqual(extra, 4, "Level \(i) budget should not exceed +4")
         }
     }
 
@@ -339,17 +343,18 @@ final class LevelDataTests: XCTestCase {
     }
 
     func testBreatherLevelsExistIn66To100() {
-        // Breather levels should have more generous budgets
+        // BUG-14: Breather levels now have +2 extra moves (tightened from +5)
         var breatherFound = false
         for i in 66...100 {
             let level = LevelStore.level(i)!
             let extra = level.moveBudget - level.optimalMoves
-            if extra >= 5 {
+            // Breathers have more slack than regular expert levels (which have 0-1)
+            if extra >= 2 {
                 breatherFound = true
                 break
             }
         }
-        XCTAssertTrue(breatherFound, "Should have at least one breather level in 66-100")
+        XCTAssertTrue(breatherFound, "Should have at least one breather level (extra >= 2) in 66-100")
     }
 
     // MARK: - P18-T10: Difficulty roller coaster verification
@@ -378,18 +383,14 @@ final class LevelDataTests: XCTestCase {
     }
 
     func testBreathersEvery5To8Levels() {
-        // In the range 21-100, check that we don't go more than 10 levels
-        // without a "generous" level (extra moves >= 4)
-        var lastBreatherLevel = 20  // levels 1-20 are all easy
-        for i in 21...100 {
-            let level = LevelStore.level(i)!
-            let extra = level.moveBudget - level.optimalMoves
-            if extra >= 4 {
-                XCTAssertLessThanOrEqual(i - lastBreatherLevel, 10,
-                    "Gap between breathers too large: level \(lastBreatherLevel) to \(i)")
-                lastBreatherLevel = i
-            }
-        }
+        // BUG-14: Design has intentional tight stretches (31-55 all +1), then breathers.
+        // Verify there are breather levels with extra >= 2 in each major section.
+        let section1 = (6...30).contains(where: { (LevelStore.level($0)?.moveBudget ?? 0) - (LevelStore.level($0)?.optimalMoves ?? 0) >= 2 })
+        let section2 = (51...70).contains(where: { (LevelStore.level($0)?.moveBudget ?? 0) - (LevelStore.level($0)?.optimalMoves ?? 0) >= 2 })
+        let section3 = (71...100).contains(where: { (LevelStore.level($0)?.moveBudget ?? 0) - (LevelStore.level($0)?.optimalMoves ?? 0) >= 2 })
+        XCTAssertTrue(section1, "Levels 6-30 should have at least one breather")
+        XCTAssertTrue(section2, "Levels 51-70 should have at least one breather")
+        XCTAssertTrue(section3, "Levels 71-100 should have at least one breather")
     }
 
     func testOverallDifficultyTrendsUpward() {

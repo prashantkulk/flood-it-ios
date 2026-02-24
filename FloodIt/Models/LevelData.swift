@@ -80,13 +80,13 @@ struct LevelStore {
         return levels[number - 1]
     }
 
-    /// Onboarding configs for levels 1-5: (gridSize, colorCount, moveBudget)
-    private static let onboardingConfigs: [(gridSize: Int, colorCount: Int, moveBudget: Int)] = [
-        (3, 3, 10),   // Level 1: trivial
-        (4, 3, 12),   // Level 2
-        (5, 4, 15),   // Level 3
-        (7, 4, 20),   // Level 4
-        (9, 5, 25),   // Level 5
+    /// Onboarding configs for levels 1-5: (gridSize, colorCount) — budget computed as optimal + 5
+    private static let onboardingConfigs: [(gridSize: Int, colorCount: Int)] = [
+        (3, 3),   // Level 1: trivial
+        (4, 3),   // Level 2
+        (5, 4),   // Level 3
+        (7, 4),   // Level 4
+        (9, 5),   // Level 5
     ]
 
     /// Deterministic seed for a given level number.
@@ -132,17 +132,20 @@ struct LevelStore {
         let colors = Array(GameColor.allCases.prefix(config.colorCount))
         let board = FloodBoard.generateBoard(size: config.gridSize, colors: colors, seed: seed)
         let optimalMoves = FloodSolver.solveMoveCount(board: board)
+        // BUG-14: Onboarding budget = optimal + 5 (tight enough to feel earned)
+        let budget = optimalMoves + 5
         return LevelData(
             id: id, seed: seed, gridSize: config.gridSize, colorCount: config.colorCount,
-            optimalMoves: optimalMoves, moveBudget: config.moveBudget, tier: tier
+            optimalMoves: optimalMoves, moveBudget: budget, tier: tier
         )
     }
 
     private static func generateEasyLevel(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
-        // Levels 6-20: standard 9x9, 5 colors, no obstacles, generous budget
+        // Levels 6-20: standard 9x9, 5 colors, no obstacles
+        // BUG-14: Tighter budgets — levels 6-15 get +3, levels 16-20 get +2
         let gridSize = 9
         let colorCount = 5
-        let extraMoves = id <= 10 ? 8 : 6  // very generous
+        let extraMoves = id <= 15 ? 3 : 2
 
         let bonus = bonusForLevel(id)
         if bonus.count > 0 {
@@ -179,7 +182,8 @@ struct LevelStore {
     private static func generateStoneLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
         let gridSize = 9
         let colorCount = 5
-        let extraMoves = 6  // still generous
+        // BUG-14: Levels 21-30 → +2 extra moves
+        let extraMoves = 2
 
         // Some levels use shaped boards (L-shape or diamond)
         var voids: [CellPosition] = []
@@ -206,7 +210,8 @@ struct LevelStore {
     private static func generateIceLevels(id: Int, seed: UInt64, tier: LevelData.Tier) -> LevelData {
         let gridSize = 9
         let colorCount = 5
-        let extraMoves = 4  // moderate budget
+        // BUG-14: Levels 31-40 → +1 extra move
+        let extraMoves = 1
 
         // Ice layers: 1 for early, 2 for later levels
         let iceLayers = id <= 35 ? 1 : 2
@@ -230,9 +235,10 @@ struct LevelStore {
         let gridSize = 9
         let colorCount = 5
 
-        // Level 50 is a boss level — tighter budget, more countdowns
+        // Level 50 is a boss level — tightest budget
+        // BUG-14: Levels 41-50 → +1 (boss stays at 0)
         let isBoss = id == 50
-        let extraMoves = isBoss ? 2 : 4
+        let extraMoves = isBoss ? 0 : 1
         let countdownCount = isBoss ? 3 : (id <= 44 ? 1 : 2)
         let countdownMoves = isBoss ? 3 : (id <= 44 ? 5 : 4)
         // Some stones and ice carry over
@@ -266,12 +272,14 @@ struct LevelStore {
         let stoneCount: Int
 
         if isBreather {
-            extraMoves = 5
+            // BUG-14: Breather levels 51-65 → +2 (down from +5)
+            extraMoves = 2
             wallCount = 1
             portalPairCount = 0
             stoneCount = 0
         } else {
-            extraMoves = 3
+            // BUG-14: Levels 51-65 → +1 extra move
+            extraMoves = 1
             switch id {
             case 51...54:  // walls only
                 wallCount = id - 49  // 2-5 walls
@@ -334,8 +342,8 @@ struct LevelStore {
             portalPairCount = 2
             voids = BoardShapes.donut(gridSize: gridSize)
         } else if isBreather {
-            // Breather levels — fewer obstacles, generous budget
-            extraMoves = 5
+            // BUG-14: Breather levels → +2 (down from +5)
+            extraMoves = 2
             stoneCount = 1
             iceCount = 0
             iceLayers = 1
@@ -345,12 +353,12 @@ struct LevelStore {
             portalPairCount = 0
         } else {
             // Progressive difficulty with sawtooth
+            // BUG-14: Expert levels 66-100 → 0 or +1 only
             let difficulty = (id - 66) / 5  // 0-6 difficulty bands
             let withinBand = (id - 66) % 5  // position within band
 
-            // Budget oscillates: tighter for mid-band, relaxes slightly at band edges
-            let baseBudget = max(1, 3 - difficulty / 2)
-            extraMoves = withinBand == 0 ? baseBudget + 1 : baseBudget
+            // Budget: sawtooth between 0 and 1. Band entry = 1, others = 0
+            extraMoves = withinBand == 0 ? 1 : 0
 
             // Obstacle counts ramp up across bands
             stoneCount = min(4, 1 + difficulty / 2)
@@ -414,12 +422,13 @@ struct LevelStore {
     }
 
     private static func extraMovesForLevel(_ i: Int) -> Int {
+        // BUG-14: Tightened across all ranges
         switch i {
-        case 21...30: return 6
-        case 31...50: return 4
-        case 51...70: return 3
-        case 71...90: return 2
-        default:      return 1
+        case 21...30: return 2
+        case 31...50: return 1
+        case 51...70: return 1
+        case 71...90: return 0
+        default:      return 0
         }
     }
 }
