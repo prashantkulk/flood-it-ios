@@ -479,10 +479,15 @@ class GameScene: SKScene {
             }
         }
 
-        // Large cluster particle burst: 5+ cells absorbed → sparkle burst
+        // Large cluster particle burst: 5+ cells absorbed → sparkle burst + edge cell bounce
         let totalAbsorbed = waves.flatMap { $0 }.count
         if totalAbsorbed >= 5 {
             spawnParticleBurst(for: waves, color: newColor)
+            // Edge cells of new flood region bounce — celebrating the big flood
+            let bounceDelay = (waveDelays.last ?? 0) + 0.12
+            DispatchQueue.main.asyncAfter(deadline: .now() + bounceDelay) { [weak self] in
+                self?.bounceFloodEdgeCells()
+            }
         }
 
         // Cascade gets extra particle bursts per round + bass swell for long chains
@@ -624,35 +629,53 @@ class GameScene: SKScene {
     /// Whether the perfect bonus badge should be shown after tally.
     var showPerfectBadge: Bool = false
 
-    /// Runs the full completion rush sequence: pulse → shimmer → confetti → score tally → perfect badge.
+    /// Runs the full completion rush sequence:
+    /// white flash → dramatic pause → pulse → stadium wave → shimmer → confetti → score tally → perfect badge.
     private func runCompletionRush(completion: @escaping () -> Void) {
-        completionRushPulse { [weak self] in
-            self?.completionRushShimmer {
-                self?.completionRushConfetti()
-                // Run score tally after confetti starts
-                let ticks = self?.tallyTickCount ?? 0
-                let afterTally: () -> Void = { [weak self] in
-                    // Show perfect badge if applicable
-                    if self?.showPerfectBadge == true {
-                        self?.showPerfectClearBadge {
-                            completion()
+        // White flash overlay — dramatic moment before celebration
+        let flash = SKSpriteNode(color: .white, size: CGSize(width: size.width * 3, height: size.height * 3))
+        flash.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        flash.zPosition = 50
+        flash.alpha = 0
+        flash.name = "completionFlash"
+        addChild(flash)
+
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.05),
+            SKAction.run {
+                flash.run(SKAction.sequence([
+                    SKAction.fadeAlpha(to: 0.90, duration: 0.07),
+                    SKAction.fadeAlpha(to: 0.0, duration: 0.28),
+                    SKAction.removeFromParent()
+                ]))
+            },
+            SKAction.wait(forDuration: 0.30),  // dramatic pause after flash
+            SKAction.run { [weak self] in
+                self?.completionRushPulse { [weak self] in
+                    self?.completionRushStadiumWave { [weak self] in
+                        self?.completionRushShimmer { [weak self] in
+                            self?.completionRushConfetti()
+                            let ticks = self?.tallyTickCount ?? 0
+                            let afterTally: () -> Void = { [weak self] in
+                                if self?.showPerfectBadge == true {
+                                    self?.showPerfectClearBadge { completion() }
+                                } else {
+                                    completion()
+                                }
+                            }
+                            if ticks > 0 {
+                                self?.run(SKAction.sequence([
+                                    SKAction.wait(forDuration: 0.3),
+                                    SKAction.run { self?.runScoreTally(tickCount: ticks, completion: afterTally) }
+                                ]), withKey: "tallyDelay")
+                            } else {
+                                afterTally()
+                            }
                         }
-                    } else {
-                        completion()
                     }
                 }
-                if ticks > 0 {
-                    self?.run(SKAction.sequence([
-                        SKAction.wait(forDuration: 0.4),
-                        SKAction.run {
-                            self?.runScoreTally(tickCount: ticks, completion: afterTally)
-                        }
-                    ]), withKey: "tallyDelay")
-                } else {
-                    afterTally()
-                }
             }
-        }
+        ]), withKey: "completionRushStart")
     }
 
     /// Runs the score tally: remaining moves tick down, +50 floats up each tick.
@@ -803,6 +826,40 @@ class GameScene: SKScene {
         ]), withKey: "rushPulse")
     }
 
+    /// Stadium wave: cells bounce outward from center, like a crowd doing the wave.
+    private func completionRushStadiumWave(completion: @escaping () -> Void) {
+        guard let board = board else { completion(); return }
+        let n = board.gridSize
+        let cx = n / 2
+        let cy = n / 2
+        let waveDelay: TimeInterval = 0.04  // 40ms per ring
+
+        var maxDist = 0
+        for row in 0..<n {
+            for col in 0..<n {
+                guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                let dist = max(abs(row - cx), abs(col - cy))
+                if dist > maxDist { maxDist = dist }
+                let node = cellNodes[row][col]
+                let delay = Double(dist) * waveDelay
+                let wait = SKAction.wait(forDuration: delay)
+                let up = SKAction.scale(to: 1.20, duration: 0.09)
+                up.timingMode = .easeOut
+                let down = SKAction.scale(to: 0.95, duration: 0.08)
+                down.timingMode = .easeIn
+                let settle = SKAction.scale(to: 1.0, duration: 0.10)
+                settle.timingMode = .easeInEaseOut
+                node.run(SKAction.sequence([wait, up, down, settle]), withKey: "stadiumWave")
+            }
+        }
+
+        let totalDuration = Double(maxDist) * waveDelay + 0.30
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: totalDuration),
+            SKAction.run { completion() }
+        ]), withKey: "stadiumWaveComplete")
+    }
+
     /// Phase 2: Light sweep + arpeggio sound.
     private func completionRushShimmer(completion: @escaping () -> Void) {
         SoundManager.shared.playArpeggio()
@@ -837,53 +894,74 @@ class GameScene: SKScene {
         ]), withKey: "rushShimmer")
     }
 
-    /// Phase 3: Confetti burst + sparkle sound.
+    /// Phase 3: 120+ confetti + ribbon burst + sparkle sound — 3 second lifetime.
     private func completionRushConfetti() {
         SoundManager.shared.playConfettiSparkle()
-        let center = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
-        let count = Int.random(in: 60...80)
+
+        // Second wave of sparkle after 0.5s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard self != nil else { return }
+            SoundManager.shared.playConfettiSparkle()
+        }
+
+        let spawnCenter = CGPoint(x: size.width / 2, y: size.height * 0.55)
+        let count = Int.random(in: 120...140)
         let colors = GameColor.allCases
+        let lifetime: TimeInterval = 3.0
 
-        for _ in 0..<count {
+        for i in 0..<count {
             let color = colors.randomElement()!
-            let w = CGFloat.random(in: 4...8)
-            let h = CGFloat.random(in: 6...12)
-            let confetti = SKSpriteNode(color: color.skColor, size: CGSize(width: w, height: h))
-            confetti.position = center
-            confetti.zPosition = 10
-            confetti.zRotation = CGFloat.random(in: 0...(2 * .pi))
-            confetti.name = "confetti"
-            addChild(confetti)
+            let isRibbon = i % 4 == 0  // 1 in 4 is a long ribbon
 
-            // Initial velocity: shoot upward with horizontal spread
-            let vx = CGFloat.random(in: -180...180)
-            let vy = CGFloat.random(in: 200...450)
-            let gravity: CGFloat = -400
-            let lifetime: TimeInterval = 2.0
-            let steps = 60
+            // Stagger launch slightly for wave effect
+            let launchDelay = Double(i) * 0.008
+            let spawnNode: SKSpriteNode
+
+            if isRibbon {
+                let w = CGFloat.random(in: 2.5...5)
+                let h = CGFloat.random(in: 16...28)
+                spawnNode = SKSpriteNode(color: color.skColor.withAlphaComponent(0.88),
+                                        size: CGSize(width: w, height: h))
+            } else {
+                let w = CGFloat.random(in: 4...10)
+                let h = CGFloat.random(in: 5...13)
+                spawnNode = SKSpriteNode(color: color.skColor, size: CGSize(width: w, height: h))
+            }
+
+            spawnNode.position = spawnCenter
+            spawnNode.zPosition = CGFloat.random(in: 10...14)
+            spawnNode.zRotation = CGFloat.random(in: 0...(2 * .pi))
+            spawnNode.name = "confetti"
+            spawnNode.alpha = 0
+            addChild(spawnNode)
+
+            let vx = CGFloat.random(in: -220...220)
+            let vy = CGFloat.random(in: 180...500)
+            let gravity: CGFloat = -360
+            let steps = 80
             let dt = lifetime / Double(steps)
 
-            // Build path with gravity
             var actions = [SKAction]()
-            let curVx = vx
+            actions.append(SKAction.wait(forDuration: launchDelay))
+            actions.append(SKAction.fadeAlpha(to: 1.0, duration: 0.04))
             var curVy = vy
             for _ in 0..<steps {
-                let dx = curVx * CGFloat(dt)
+                let dx = vx * CGFloat(dt)
                 let dy = curVy * CGFloat(dt)
                 actions.append(SKAction.moveBy(x: dx, y: dy, duration: dt))
                 curVy += gravity * CGFloat(dt)
-                _ = curVx // horizontal stays constant
             }
 
             let moveSeq = SKAction.sequence(actions)
-            let spin = SKAction.rotate(byAngle: CGFloat.random(in: -8...8), duration: lifetime)
+            let spinSpeed = CGFloat.random(in: isRibbon ? -14...14 : -9...9)
+            let spin = SKAction.rotate(byAngle: spinSpeed, duration: lifetime)
             let fadeOut = SKAction.sequence([
-                SKAction.wait(forDuration: lifetime * 0.6),
-                SKAction.fadeOut(withDuration: lifetime * 0.4)
+                SKAction.wait(forDuration: launchDelay + lifetime * 0.65),
+                SKAction.fadeOut(withDuration: lifetime * 0.35)
             ])
 
             let group = SKAction.group([moveSeq, spin, fadeOut])
-            confetti.run(SKAction.sequence([group, SKAction.removeFromParent()]))
+            spawnNode.run(SKAction.sequence([group, SKAction.removeFromParent()]))
         }
     }
 
@@ -1048,6 +1126,87 @@ class GameScene: SKScene {
         ]))
     }
 
+    // MARK: - Fireworks (3-star celebration)
+
+    /// Public: call from SwiftUI after showing 3 stars to trigger a firework burst.
+    func triggerFireworks() {
+        let positions: [CGPoint] = [
+            CGPoint(x: size.width * 0.25, y: size.height * 0.7),
+            CGPoint(x: size.width * 0.75, y: size.height * 0.75),
+            CGPoint(x: size.width * 0.50, y: size.height * 0.60),
+            CGPoint(x: size.width * 0.18, y: size.height * 0.50),
+            CGPoint(x: size.width * 0.82, y: size.height * 0.55),
+        ]
+        for (i, pos) in positions.enumerated() {
+            let delay = Double(i) * 0.35
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: delay),
+                SKAction.run { [weak self] in self?.spawnFirework(at: pos) }
+            ]))
+        }
+    }
+
+    private func spawnFirework(at center: CGPoint) {
+        let particleCount = Int.random(in: 28...38)
+        let colors: [SKColor] = [
+            SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1),   // gold
+            SKColor(red: 1.0, green: 0.25, blue: 0.4, alpha: 1),   // rose
+            SKColor(red: 0.3, green: 0.9, blue: 1.0, alpha: 1),    // cyan
+            SKColor(red: 0.6, green: 1.0, blue: 0.3, alpha: 1),    // lime
+            SKColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1),    // white
+        ]
+        let baseColor = colors.randomElement()!
+
+        // Rocket trail flash
+        let flash = SKShapeNode(circleOfRadius: CGFloat.random(in: 8...14))
+        flash.fillColor = baseColor
+        flash.strokeColor = .clear
+        flash.position = center
+        flash.zPosition = 22
+        flash.blendMode = .add
+        addChild(flash)
+        flash.run(SKAction.sequence([
+            SKAction.scale(to: 2.5, duration: 0.07),
+            SKAction.group([SKAction.scale(to: 0.1, duration: 0.25),
+                            SKAction.fadeOut(withDuration: 0.25)]),
+            SKAction.removeFromParent()
+        ]))
+
+        // Burst particles
+        for _ in 0..<particleCount {
+            let r = CGFloat.random(in: 2...5)
+            let dot = SKShapeNode(circleOfRadius: r)
+            dot.fillColor = Bool.random() ? baseColor : colors.randomElement()!
+            dot.strokeColor = .clear
+            dot.position = center
+            dot.zPosition = CGFloat.random(in: 20...24)
+            dot.blendMode = .add
+            dot.name = "fireworkDot"
+            addChild(dot)
+
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let speed = CGFloat.random(in: 80...200)
+            let dx = cos(angle) * speed
+            let dy = sin(angle) * speed
+            let lifetime = Double.random(in: 0.6...1.1)
+
+            let move = SKAction.moveBy(x: dx, y: dy * 0.9, duration: lifetime)  // slight gravity
+            move.timingMode = .easeOut
+            let fade = SKAction.sequence([
+                SKAction.wait(forDuration: lifetime * 0.4),
+                SKAction.fadeOut(withDuration: lifetime * 0.6)
+            ])
+            let shrink = SKAction.scale(to: 0.1, duration: lifetime)
+            dot.run(SKAction.sequence([
+                SKAction.group([move, fade, shrink]),
+                SKAction.removeFromParent()
+            ]))
+        }
+
+        // Play win chime for each firework
+        SoundManager.shared.playWinChime()
+    }
+
     // MARK: - Ripple Ring Effect
 
     private func spawnRippleRing(for wave: [CellPosition], delay: TimeInterval, color: GameColor, expandScale: CGFloat = 4.0) {
@@ -1146,6 +1305,34 @@ class GameScene: SKScene {
                 SKAction.removeFromParent()
             ])
             dot.run(anim)
+        }
+    }
+
+    // MARK: - Edge Cell Bounce
+
+    /// Bounce the cells on the boundary of the current flood region — celebrating a big flood.
+    private func bounceFloodEdgeCells() {
+        guard let board = board else { return }
+        let floodSet = Set(board.floodRegion)
+        let n = board.gridSize
+        let neighbors: [(Int, Int)] = [(-1,0),(1,0),(0,-1),(0,1)]
+
+        for pos in board.floodRegion {
+            let isEdge = neighbors.contains(where: { dr, dc in
+                let nr = pos.row + dr, nc = pos.col + dc
+                return nr < 0 || nr >= n || nc < 0 || nc >= n || !floodSet.contains(CellPosition(row: nr, col: nc))
+            })
+            guard isEdge,
+                  pos.row < cellNodes.count,
+                  pos.col < cellNodes[pos.row].count else { continue }
+            let node = cellNodes[pos.row][pos.col]
+            let up = SKAction.scale(to: 1.14, duration: 0.07)
+            up.timingMode = .easeOut
+            let down = SKAction.scale(to: 0.94, duration: 0.07)
+            down.timingMode = .easeIn
+            let settle = SKAction.scale(to: 1.0, duration: 0.10)
+            settle.timingMode = .easeInEaseOut
+            node.run(SKAction.sequence([up, down, settle]), withKey: "edgeBounce")
         }
     }
 

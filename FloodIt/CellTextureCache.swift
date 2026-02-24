@@ -155,15 +155,15 @@ class CellTextureCache {
             path.addClip()
             let cs = CGColorSpaceCreateDeviceRGB()
             let colors = [
-                UIColor.white.withAlphaComponent(0.38).cgColor,
+                UIColor.white.withAlphaComponent(0.40).cgColor,
                 UIColor.white.withAlphaComponent(0.0).cgColor
             ] as CFArray
             let locs: [CGFloat] = [0, 1]
             if let g = CGGradient(colorsSpace: cs, colors: colors, locations: locs) {
-                // White-to-transparent covering top 30%
+                // Strong white-to-transparent covering top 15% only (tighter, crisper)
                 cgCtx.drawLinearGradient(g,
                     start: CGPoint(x: size.width / 2, y: size.height),
-                    end: CGPoint(x: size.width / 2, y: size.height * 0.65),
+                    end: CGPoint(x: size.width / 2, y: size.height * 0.85),
                     options: [])
             }
         }
@@ -197,8 +197,14 @@ class CellTextureCache {
             let path = UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: cornerRadius)
             path.addClip()
             let cs = CGColorSpaceCreateDeviceRGB()
-            let colors = [light.cgColor, dark.cgColor] as CFArray
-            let locs: [CGFloat] = [0, 1]
+            // Steeper 3-stop gradient: very bright top → light → dark
+            var lr: CGFloat = 0, lg: CGFloat = 0, lb: CGFloat = 0
+            light.getRed(&lr, green: &lg, blue: &lb, alpha: nil)
+            let veryLight = UIColor(red: min(1, lr * 1.35),
+                                    green: min(1, lg * 1.35),
+                                    blue:  min(1, lb * 1.35), alpha: 1)
+            let colors = [veryLight.cgColor, light.cgColor, dark.cgColor] as CFArray
+            let locs: [CGFloat] = [0, 0.32, 1]
             if let g = CGGradient(colorsSpace: cs, colors: colors, locations: locs) {
                 cgCtx.drawLinearGradient(g,
                     start: CGPoint(x: 0, y: size.height),

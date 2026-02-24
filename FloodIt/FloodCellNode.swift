@@ -50,11 +50,11 @@ final class FloodCellNode: SKNode {
         glowNode.blendMode = .add
         addChild(glowNode)
 
-        // Shadow — offset below body, color-matched
+        // Shadow — offset below body, color-matched (3px for deeper 3D depth)
         shadowNode = SKSpriteNode(color: .clear, size: sz)
         shadowNode.zPosition = -1
-        shadowNode.position = CGPoint(x: 2, y: -2)
-        shadowNode.alpha = 0.7
+        shadowNode.position = CGPoint(x: 3, y: -3)
+        shadowNode.alpha = 0.75
         addChild(shadowNode)
 
         // Body — gradient fill
@@ -79,12 +79,12 @@ final class FloodCellNode: SKNode {
         bevelNode.zPosition = 2
         addChild(bevelNode)
 
-        // Gloss dot — small white circle in top-left
-        let glossRadius = cellSize * 0.09
+        // Gloss dot — bright highlight circle in top-left (larger and brighter for 3D)
+        let glossRadius = cellSize * 0.15
         glossNode = SKShapeNode(circleOfRadius: glossRadius)
-        glossNode.fillColor = UIColor.white.withAlphaComponent(0.25)
+        glossNode.fillColor = UIColor.white.withAlphaComponent(0.40)
         glossNode.strokeColor = .clear
-        glossNode.position = CGPoint(x: -cellSize * 0.28, y: cellSize * 0.28)
+        glossNode.position = CGPoint(x: -cellSize * 0.26, y: cellSize * 0.26)
         glossNode.zPosition = 3
         addChild(glossNode)
     }

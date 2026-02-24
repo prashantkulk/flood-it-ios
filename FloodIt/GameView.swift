@@ -135,6 +135,12 @@ struct GameView: View {
                                         starScales[i] = 1.0
                                     }
                                     SoundManager.shared.playStarChime(noteIndex: i)
+                                    // 3-star: trigger fireworks on the last star
+                                    if stars == 3 && i == 2 {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                            scene.triggerFireworks()
+                                        }
+                                    }
                                 }
                             }
                         }

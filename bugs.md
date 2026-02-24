@@ -2,8 +2,8 @@
 
 ## Summary
 - **Total found:** 20
-- **Total fixed:** 15 (BUG-1 through BUG-15, excluding BUG-16 which is a design decision)
-- **Remaining open ideas:** BUG-16 (daily combo scoring), BUG-17 (sound overhaul), BUG-18 (ambient sound), BUG-19 (3D cells), BUG-20 (celebration)
+- **Total fixed:** 19 (BUG-1 through BUG-20, excluding BUG-16 which is a design decision)
+- **Remaining open ideas:** BUG-16 (daily combo scoring)
 
 ---
 
@@ -118,11 +118,11 @@
 - Take inspiration from Candy Crush Saga and other top-rated casual games for sound design
 - Consider using pre-recorded high-quality sound samples instead of pure synthesis
 - Every interaction should sound satisfying and premium
-**Status:** OPEN
+**Status:** FIXED — Added AVAudioUnitReverb (smallRoom, 18% wet) in signal chain. playPlip now layers sine + triangle + transient click. playWinChime upgraded to Cmaj7 (C4+E4+G4+B4) with harmonic body. playChordSwell uses full Cmaj7 + triangle. playArpeggio plays 7 rising notes (C4→G5) with harmonics. playConfettiSparkle plays 16 notes across C5–C7. playCascadeWhoosh escalates per round with noise+sine+triangle + bass stab at round 2+. playCascadeBassSwell adds triangle growl layer.
 
 ### BUG-18: Weird background ambient sound always playing — feels like a bug [HIGH]
 **Description:** There's a constant background ambient sound that plays whenever the app is open. It sounds unintentional/buggy rather than atmospheric. Either fix it to sound intentional and pleasant, or remove it entirely. If keeping ambient audio, it should be subtle, beautiful, and clearly part of the game's atmosphere — not a droning noise.
-**Status:** OPEN
+**Status:** FIXED — Default disabled (ambientEnabled = false); max volume lowered to 0.15 (was 0.4); fixed buzzy AM by replacing `phases[idx] * modRate` (was ~10–20 Hz tremolo) with separate lfoPhases array advancing at 0.07–0.11 Hz (slow breathing); added one-pole low-pass filter (1200 Hz cutoff) for warmth; volume ramps per-sample to avoid zipper noise.
 
 ### BUG-19: Grid cells look 2D — need full 3D effect like Candy Crush Saga [HIGH]
 **Description:** The board cells/squares look flat and 2D despite the layered rendering. They need a much more pronounced 3D effect:
@@ -131,7 +131,7 @@
 - Add more dramatic lighting — glossier, shinier, more reflective
 - Edge cells of the flood region should "jump" or bounce after a large flood (5+ cells) — like they're celebrating
 - The overall board should look premium and modern, not flat
-**Status:** OPEN
+**Status:** FIXED — Highlight opacity 0.38→0.40, coverage narrowed to top 15% (was 35%) for crisper rim light. Body gradient uses 3-stop very-bright→light→dark (top boosted ×1.35) for steeper falloff. Shadow offset 2px→3px, alpha 0.7→0.75. Gloss dot radius ×0.09→×0.15 (≈10px), alpha 0.25→0.40. Edge cells of flood region bounce with scale 1.14→0.94→1.0 after 5+ cell floods (bounceFloodEdgeCells).
 
 ### BUG-20: Level completion celebration is weak — needs major improvement [HIGH]
 **Description:** The end-of-level celebration (sweep/confetti) is underwhelming and boring. Needs to be a genuinely exciting moment:
@@ -142,4 +142,4 @@
 - Stars should have more weight and ceremony when they appear
 - Consider fireworks, screen flash, dramatic pause before reveal
 - This is THE moment that drives "just one more level" — it must be perfect
-**Status:** OPEN
+**Status:** FIXED — runCompletionRush now opens with 90% white flash + 300ms dramatic pause. Added completionRushStadiumWave (cells bounce outward from center at 40ms/ring). Confetti upgraded to 120–140 pieces (was 60–80) with 1-in-4 long ribbons, 3s lifetime, staggered launch wave. Added spawnFirework with 28–38 burst particles + ring flash; triggerFireworks() fires 5 fireworks at 350ms intervals for 3-star completions (called from GameView after last star chime).
