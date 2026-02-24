@@ -1250,4 +1250,130 @@ final class FloodBoardTests: XCTestCase {
         // All playable cells are same color
         XCTAssertTrue(board.isComplete)
     }
+
+    // MARK: - P17-T8 Performance Test — Mixed Obstacle Board
+
+    /// Create a 15x15 board with a mix of all obstacle types and verify it can be
+    /// constructed and flood-filled without issues.
+    func testMixedObstacleBoard15x15() {
+        let n = 15
+        var rng = SeededRandomNumberGenerator(seed: 12345)
+        let colors = GameColor.allCases
+        var cells = [[GameColor]]()
+        for _ in 0..<n {
+            var row = [GameColor]()
+            for _ in 0..<n {
+                row.append(colors[Int.random(in: 0..<colors.count, using: &rng)])
+            }
+            cells.append(row)
+        }
+        var board = FloodBoard(gridSize: n, cells: cells)
+
+        // Place stones (4 cells)
+        board.setCellType(.stone, atRow: 3, col: 3)
+        board.setCellType(.stone, atRow: 3, col: 4)
+        board.setCellType(.stone, atRow: 7, col: 10)
+        board.setCellType(.stone, atRow: 12, col: 1)
+
+        // Place voids (corner cuts for shape)
+        board.setCellType(.void, atRow: 0, col: 14)
+        board.setCellType(.void, atRow: 14, col: 14)
+        board.setCellType(.void, atRow: 14, col: 0)
+
+        // Place ice (2 layers and 1 layer)
+        board.setCellType(.ice(layers: 2), atRow: 5, col: 5)
+        board.setCellType(.ice(layers: 1), atRow: 5, col: 6)
+        board.setCellType(.ice(layers: 2), atRow: 10, col: 10)
+
+        // Place countdowns
+        board.setCellType(.countdown(movesLeft: 5), atRow: 2, col: 8)
+        board.setCellType(.countdown(movesLeft: 3), atRow: 8, col: 2)
+
+        // Place portal pairs
+        board.setCellType(.portal(pairId: 0), atRow: 1, col: 1)
+        board.setCellType(.portal(pairId: 0), atRow: 13, col: 13)
+        board.setCellType(.portal(pairId: 1), atRow: 1, col: 13)
+        board.setCellType(.portal(pairId: 1), atRow: 13, col: 1)
+
+        // Place bonus tiles
+        board.setCellType(.bonus(multiplier: 2), atRow: 7, col: 7)
+        board.setCellType(.bonus(multiplier: 3), atRow: 11, col: 5)
+
+        // Add walls
+        board.addWall(at: CellPosition(row: 4, col: 4), direction: .south)
+        board.addWall(at: CellPosition(row: 6, col: 8), direction: .east)
+        board.addWall(at: CellPosition(row: 9, col: 3), direction: .north)
+
+        // Verify board is valid
+        XCTAssertEqual(board.gridSize, n)
+        XCTAssertEqual(board.cells.count, n)
+
+        // Verify obstacles are placed correctly
+        XCTAssertEqual(board.cellType(atRow: 3, col: 3), .stone)
+        XCTAssertEqual(board.cellType(atRow: 0, col: 14), .void)
+        XCTAssertEqual(board.cellType(atRow: 5, col: 5), .ice(layers: 2))
+        XCTAssertEqual(board.cellType(atRow: 2, col: 8), .countdown(movesLeft: 5))
+        XCTAssertEqual(board.cellType(atRow: 1, col: 1), .portal(pairId: 0))
+        XCTAssertEqual(board.cellType(atRow: 7, col: 7), .bonus(multiplier: 2))
+
+        // Verify walls exist
+        XCTAssertTrue(board.hasWall(at: CellPosition(row: 4, col: 4), direction: .south))
+        XCTAssertTrue(board.hasWall(at: CellPosition(row: 5, col: 4), direction: .north))
+
+        // Verify flood region computation works with all obstacles
+        let region = board.floodRegion
+        XCTAssertFalse(region.isEmpty, "Flood region should not be empty")
+
+        // Perform multiple floods to verify no crashes with obstacle interactions
+        var countdownRng = SeededRandomNumberGenerator(seed: 99)
+        for color in GameColor.allCases {
+            let _ = board.cellsAbsorbedBy(color: color)
+            board.flood(color: color)
+            board.tickCountdowns(using: &countdownRng)
+        }
+
+        // Board should still be valid
+        XCTAssertEqual(board.gridSize, n)
+    }
+
+    /// Performance test: measure time to construct and flood a 15x15 mixed obstacle board.
+    func testMixedObstacleBoardPerformance() {
+        measure {
+            let n = 15
+            var rng = SeededRandomNumberGenerator(seed: 54321)
+            let colors = GameColor.allCases
+            var cells = [[GameColor]]()
+            for _ in 0..<n {
+                var row = [GameColor]()
+                for _ in 0..<n {
+                    row.append(colors[Int.random(in: 0..<colors.count, using: &rng)])
+                }
+                cells.append(row)
+            }
+            var board = FloodBoard(gridSize: n, cells: cells)
+
+            // Place obstacles
+            board.setCellType(.stone, atRow: 3, col: 3)
+            board.setCellType(.void, atRow: 0, col: 14)
+            board.setCellType(.ice(layers: 2), atRow: 5, col: 5)
+            board.setCellType(.countdown(movesLeft: 3), atRow: 8, col: 2)
+            board.setCellType(.portal(pairId: 0), atRow: 1, col: 1)
+            board.setCellType(.portal(pairId: 0), atRow: 13, col: 13)
+            board.setCellType(.bonus(multiplier: 2), atRow: 7, col: 7)
+            board.addWall(at: CellPosition(row: 4, col: 4), direction: .south)
+
+            // Simulate 10 flood moves
+            var countdownRng = SeededRandomNumberGenerator(seed: 42)
+            for color in GameColor.allCases {
+                let _ = board.cellsAbsorbedBy(color: color)
+                board.flood(color: color)
+                board.tickCountdowns(using: &countdownRng)
+            }
+            for color in GameColor.allCases {
+                let _ = board.cellsAbsorbedBy(color: color)
+                board.flood(color: color)
+                board.tickCountdowns(using: &countdownRng)
+            }
+        }
+    }
 }
