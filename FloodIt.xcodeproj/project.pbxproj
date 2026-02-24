@@ -17,6 +17,7 @@
 		220CB0646734DA42BC84BCCE /* DailyChallengeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84CE9BB81570F98D327BC353 /* DailyChallengeTests.swift */; };
 		3214D389B8DAA9974B3F3C36 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F27D4261953DA06F6DF911BC /* ThemeManager.swift */; };
 		33E3B4690AF8FA56690B49D2 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3B5E71EC0897CB5385C2B0 /* ScreenshotTests.swift */; };
+		480368159FC370700AD5FE95 /* BoardShapes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09A319DAB18B69311FA1B7DF /* BoardShapes.swift */; };
 		5C367BF1E4999A08A80DC78E /* LevelSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE183B198EB44E0E383BE400 /* LevelSelectView.swift */; };
 		5ED2945C51FD70C86DA143E6 /* ScoreStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A15290DF1E98AB1E5BDE43C /* ScoreStateTests.swift */; };
 		5F2E1F18ED3951B636A79914 /* DailyChallengeEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */; };
@@ -24,6 +25,7 @@
 		63B02F230EB6B1A6F0455696 /* FloodCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF544722E8B237E330C0C0C /* FloodCell.swift */; };
 		63BD1A70E8275D6B6DF597DC /* FloodBoard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */; };
 		6E5DBDA0099F7B8CC0F18D03 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D644E95C012DE27B3421D2F /* ShareSheet.swift */; };
+		70BBC76CA2CDA578FE54520E /* BoardShapesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E21782E0414D92ABAD93F00F /* BoardShapesTests.swift */; };
 		789247DFCED267B3B202542E /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB80E331B185113565138406 /* GameView.swift */; };
 		8F536518BAE4D03ACF1A4A47 /* ScoreState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E27D48B6DDAA69F4D252552 /* ScoreState.swift */; };
 		909F15B81AC07D03410DA982 /* LevelData.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF8F80A4171FD713980C7A0D /* LevelData.swift */; };
@@ -68,6 +70,7 @@
 /* Begin PBXFileReference section */
 		04BBDD2D671FE6520307EF8C /* DailyChallengeEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallengeEntryView.swift; sourceTree = "<group>"; };
 		0949DB350DDAD64B75A49A5B /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		09A319DAB18B69311FA1B7DF /* BoardShapes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardShapes.swift; sourceTree = "<group>"; };
 		0CE93DC3A7D71C6BDA619A60 /* FloodIt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = FloodIt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		18AAFE9C94D2F0C50860E7CD /* ShareCardRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardRenderer.swift; sourceTree = "<group>"; };
 		1C7FFD832E1A263F11BFEFEB /* StarRating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarRating.swift; sourceTree = "<group>"; };
@@ -103,6 +106,7 @@
 		C760E6F7ACEAB69A77F5DA1E /* DailyChallenge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyChallenge.swift; sourceTree = "<group>"; };
 		D5730F9880C43BF08564B0E3 /* CellTextureCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellTextureCache.swift; sourceTree = "<group>"; };
 		DA548063A2EC30039D99EA8B /* GameState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameState.swift; sourceTree = "<group>"; };
+		E21782E0414D92ABAD93F00F /* BoardShapesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardShapesTests.swift; sourceTree = "<group>"; };
 		E9D5A26DEFBA3E62A57FE4C4 /* LevelPlaythroughTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelPlaythroughTests.swift; sourceTree = "<group>"; };
 		EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloodSolverTests.swift; sourceTree = "<group>"; };
 		EAE7986BBF635BBEF381E35F /* GameColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameColor.swift; sourceTree = "<group>"; };
@@ -179,6 +183,7 @@
 			isa = PBXGroup;
 			children = (
 				5B1C4F9E33BBB493212EFB67 /* AdManager.swift */,
+				09A319DAB18B69311FA1B7DF /* BoardShapes.swift */,
 				C760E6F7ACEAB69A77F5DA1E /* DailyChallenge.swift */,
 				2D5F6237A3F953C1E6A48D1E /* FloodBoard.swift */,
 				9AF544722E8B237E330C0C0C /* FloodCell.swift */,
@@ -199,6 +204,7 @@
 		DC6452F6AF72FD08C51043D5 /* FloodItTests */ = {
 			isa = PBXGroup;
 			children = (
+				E21782E0414D92ABAD93F00F /* BoardShapesTests.swift */,
 				84CE9BB81570F98D327BC353 /* DailyChallengeTests.swift */,
 				4C735C615150F4C0CA406FC9 /* FloodBoardTests.swift */,
 				EA3C21D5749B73BE0D5DAC75 /* FloodSolverTests.swift */,
@@ -329,6 +335,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				70BBC76CA2CDA578FE54520E /* BoardShapesTests.swift in Sources */,
 				220CB0646734DA42BC84BCCE /* DailyChallengeTests.swift in Sources */,
 				D695B9EE19652E21D543C1E0 /* FloodBoardTests.swift in Sources */,
 				AD085CF19CD2C55919E0A433 /* FloodSolverTests.swift in Sources */,
@@ -344,6 +351,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				04E8B76A5E951A4BA89C6E4C /* AdManager.swift in Sources */,
+				480368159FC370700AD5FE95 /* BoardShapes.swift in Sources */,
 				1CD74AE0F1771AEE3E99E55E /* CellTextureCache.swift in Sources */,
 				D3F75FD0CE7284C8004A243A /* ContentView.swift in Sources */,
 				A340ADEE53D5E5BB8B72ED12 /* DailyChallenge.swift in Sources */,
