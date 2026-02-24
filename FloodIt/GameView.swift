@@ -110,6 +110,8 @@ struct GameView: View {
                             } else {
                                 ProgressStore.shared.updateStars(for: currentLevelNumber, stars: stars)
                                 isNewBest = ProgressStore.shared.updateScore(for: currentLevelNumber, score: gameState.scoreState.totalScore)
+                                // BUG-8: Advance currentLevel pointer when level completed
+                                ProgressStore.shared.updateCurrentLevel(currentLevelNumber + 1)
                             }
                             ProgressStore.shared.recordPlay()
                             for i in 0..<stars {
