@@ -333,6 +333,29 @@ final class SoundManager {
         }
     }
 
+    /// Cha-ching: bright two-tone chime for bonus tile collection.
+    func playChaChing() {
+        guard sfxEnabled else { return }
+        // First note: high bright tone
+        playBuffer(duration: 0.15, volume: 0.22) { i, sr in
+            let t = Double(i) / sr
+            let envelope = Float(exp(-t * 18))
+            let f1 = Float(sin(2 * .pi * 1318.5 * t)) // E6
+            let f2 = Float(sin(2 * .pi * 1568.0 * t)) * 0.5 // G6
+            return (f1 + f2) * envelope
+        }
+        // Second note: even higher, slight delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            self.playBuffer(duration: 0.2, volume: 0.22) { i, sr in
+                let t = Double(i) / sr
+                let envelope = Float(exp(-t * 12))
+                let f1 = Float(sin(2 * .pi * 2093.0 * t)) // C7
+                let f2 = Float(sin(2 * .pi * 2637.0 * t)) * 0.3 // E7
+                return (f1 + f2) * envelope
+            }
+        }
+    }
+
     // MARK: - Cascade Audio
 
     /// Cascade whoosh: rising sweep, slightly longer and brighter than cluster whoosh.

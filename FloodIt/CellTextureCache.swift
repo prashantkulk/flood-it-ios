@@ -98,6 +98,15 @@ class CellTextureCache {
         return colors[pairId % colors.count]
     }
 
+    func bonusGlow(size: CGSize) -> SKTexture {
+        let key = "bonus_glow_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let color = UIColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        let tex = SKTexture(image: Self.drawGlow(color: color, size: size))
+        cache[key] = tex
+        return tex
+    }
+
     func stoneShadow(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
         let key = "stone_shadow_\(Int(size.width))"
         if let t = cache[key] { return t }

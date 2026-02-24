@@ -15,6 +15,9 @@ final class FloodCellNode: SKNode {
     private var countdownLabel: SKLabelNode?
     private(set) var portalPairId: Int = -1
     private var portalVortexNode: SKSpriteNode?
+    private(set) var bonusMultiplier: Int = 0
+    private var bonusLabel: SKLabelNode?
+    private var bonusGlowNode: SKSpriteNode?
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -269,6 +272,51 @@ final class FloodCellNode: SKNode {
         // Continuous rotation
         let rotate = SKAction.rotate(byAngle: 2 * .pi, duration: 3.0)
         vortexNode.run(SKAction.repeatForever(rotate), withKey: "portalRotate")
+    }
+
+    /// Configure this cell as a bonus tile with golden glow and multiplier text.
+    func configureAsBonus(multiplier: Int) {
+        bonusMultiplier = multiplier
+
+        // Brighter golden glow (replaces normal glow)
+        let glowSize = CGSize(width: cellSize * 1.6, height: cellSize * 1.6)
+        let goldGlow = SKSpriteNode(color: .clear, size: glowSize)
+        goldGlow.texture = CellTextureCache.shared.bonusGlow(size: glowSize)
+        goldGlow.zPosition = -2.5
+        goldGlow.alpha = 0.8
+        goldGlow.blendMode = .add
+        goldGlow.name = "bonusGlow"
+        addChild(goldGlow)
+        bonusGlowNode = goldGlow
+
+        // Pulsing glow
+        let pulseUp = SKAction.fadeAlpha(to: 0.9, duration: 0.6)
+        pulseUp.timingMode = .easeInEaseOut
+        let pulseDown = SKAction.fadeAlpha(to: 0.5, duration: 0.6)
+        pulseDown.timingMode = .easeInEaseOut
+        goldGlow.run(SKAction.repeatForever(SKAction.sequence([pulseUp, pulseDown])), withKey: "bonusPulse")
+
+        // Gold multiplier text
+        let label = SKLabelNode(text: "x\(multiplier)")
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = cellSize * 0.38
+        label.fontColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.zPosition = 4
+        label.name = "bonusLabel"
+        addChild(label)
+        bonusLabel = label
+    }
+
+    /// Remove bonus overlay (when absorbed).
+    func removeBonusOverlay() {
+        bonusLabel?.removeFromParent()
+        bonusLabel = nil
+        bonusGlowNode?.removeAllActions()
+        bonusGlowNode?.removeFromParent()
+        bonusGlowNode = nil
+        bonusMultiplier = 0
     }
 
     /// Configure this cell as a void: completely hidden so the dark background shows through.

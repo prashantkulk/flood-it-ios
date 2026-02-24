@@ -1543,6 +1543,12 @@ class GameScene: SKScene {
                     if node.iceLayers > 0 {
                         node.updateIceLayers(0)
                     }
+                    // Cell was bonus — check if absorbed
+                    if node.bonusMultiplier > 0 {
+                        node.removeBonusOverlay()
+                        spawnBonusExplosion(at: node.position)
+                        SoundManager.shared.playChaChing()
+                    }
                     // Cell was countdown — check if defused or exploded
                     if node.countdownValue > 0 {
                         let pos = CellPosition(row: row, col: col)
@@ -1663,6 +1669,8 @@ class GameScene: SKScene {
                     node.configureAsCountdown(movesLeft: movesLeft)
                 case .portal(let pairId):
                     node.configureAsPortal(pairId: pairId)
+                case .bonus(let multiplier):
+                    node.configureAsBonus(multiplier: multiplier)
                 default:
                     break
                 }
@@ -1679,6 +1687,39 @@ class GameScene: SKScene {
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor, animated: false)
         updateParticleColor(for: floodColor)
+    }
+
+    /// Gold particle explosion when a bonus tile is absorbed.
+    private func spawnBonusExplosion(at position: CGPoint) {
+        let count = 12
+        let goldColor = SKColor(red: 1.0, green: 0.84, blue: 0.0, alpha: 1.0)
+
+        for _ in 0..<count {
+            let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...5))
+            dot.fillColor = goldColor
+            dot.strokeColor = .clear
+            dot.position = position
+            dot.zPosition = 11
+            dot.alpha = 0.9
+            dot.blendMode = .add
+            dot.name = "bonusBurst"
+            addChild(dot)
+
+            let angle = CGFloat.random(in: 0...(2 * .pi))
+            let distance = CGFloat.random(in: 20...50)
+            let dx = cos(angle) * distance
+            let dy = sin(angle) * distance
+
+            let move = SKAction.moveBy(x: dx, y: dy, duration: CGFloat.random(in: 0.3...0.5))
+            move.timingMode = .easeOut
+            let fadeOut = SKAction.fadeOut(withDuration: 0.2)
+            let shrink = SKAction.scale(to: 0.2, duration: 0.4)
+
+            dot.run(SKAction.sequence([
+                SKAction.group([move, SKAction.sequence([SKAction.wait(forDuration: 0.2), fadeOut]), shrink]),
+                SKAction.removeFromParent()
+            ]))
+        }
     }
 
     // MARK: - Portal Trail
