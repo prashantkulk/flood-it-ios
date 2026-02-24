@@ -357,6 +357,9 @@ class GameScene: SKScene {
             return
         }
 
+        // Spawn portal trails for absorbed portal cells
+        spawnPortalTrails(waves: waves, board: board)
+
         isAnimating = true
 
         if isWinningMove {
@@ -1658,6 +1661,8 @@ class GameScene: SKScene {
                     node.configureAsIce(layers: layers)
                 case .countdown(let movesLeft):
                     node.configureAsCountdown(movesLeft: movesLeft)
+                case .portal(let pairId):
+                    node.configureAsPortal(pairId: pairId)
                 default:
                     break
                 }
@@ -1674,6 +1679,66 @@ class GameScene: SKScene {
         let floodColor = board.cells[0][0]
         updateBackground(for: floodColor, animated: false)
         updateParticleColor(for: floodColor)
+    }
+
+    // MARK: - Portal Trail
+
+    /// Spawn a brief particle trail from source portal to destination portal.
+    private func spawnPortalTrail(from source: CGPoint, to dest: CGPoint, pairId: Int) {
+        let color = CellTextureCache.portalColor(for: pairId)
+        let count = 5
+        for i in 0..<count {
+            let dot = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...4))
+            dot.fillColor = color
+            dot.strokeColor = .clear
+            dot.position = source
+            dot.zPosition = 8
+            dot.alpha = 0
+            dot.blendMode = .add
+            dot.name = "portalTrail"
+            addChild(dot)
+
+            let delay = Double(i) * 0.06
+            let duration = 0.4
+            let fadeIn = SKAction.fadeAlpha(to: 0.8, duration: 0.05)
+            let move = SKAction.move(to: dest, duration: duration)
+            move.timingMode = .easeInEaseOut
+            let fadeOut = SKAction.fadeOut(withDuration: 0.1)
+
+            dot.run(SKAction.sequence([
+                SKAction.wait(forDuration: delay),
+                fadeIn,
+                move,
+                fadeOut,
+                SKAction.removeFromParent()
+            ]))
+        }
+    }
+
+    /// Check waves for portal cells and spawn trails to their partners.
+    private func spawnPortalTrails(waves: [[CellPosition]], board: FloodBoard) {
+        let allAbsorbed = Set(waves.flatMap { $0 })
+        var processedPairs = Set<Int>()
+
+        for pos in allAbsorbed {
+            guard pos.row < cellNodes.count, pos.col < cellNodes[pos.row].count else { continue }
+            let node = cellNodes[pos.row][pos.col]
+            guard node.portalPairId >= 0 else { continue }
+            guard !processedPairs.contains(node.portalPairId) else { continue }
+            processedPairs.insert(node.portalPairId)
+
+            // Find partner portal
+            for row in 0..<board.gridSize {
+                for col in 0..<board.gridSize {
+                    if row == pos.row && col == pos.col { continue }
+                    if case .portal(let otherId) = board.cellType(atRow: row, col: col), otherId == node.portalPairId {
+                        guard row < cellNodes.count, col < cellNodes[row].count else { continue }
+                        let partnerNode = cellNodes[row][col]
+                        spawnPortalTrail(from: node.position, to: partnerNode.position, pairId: node.portalPairId)
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - Wall Rendering

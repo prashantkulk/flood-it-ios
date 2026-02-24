@@ -79,6 +79,25 @@ class CellTextureCache {
         return tex
     }
 
+    func portalVortex(size: CGSize, pairId: Int) -> SKTexture {
+        let key = "portal_\(pairId)_\(Int(size.width))"
+        if let t = cache[key] { return t }
+        let color = Self.portalColor(for: pairId)
+        let tex = SKTexture(image: Self.drawGlow(color: color, size: size))
+        cache[key] = tex
+        return tex
+    }
+
+    static func portalColor(for pairId: Int) -> UIColor {
+        let colors: [UIColor] = [
+            UIColor(red: 0.0, green: 0.8, blue: 1.0, alpha: 1.0),   // cyan
+            UIColor(red: 1.0, green: 0.3, blue: 0.8, alpha: 1.0),   // magenta
+            UIColor(red: 1.0, green: 0.9, blue: 0.0, alpha: 1.0),   // yellow
+            UIColor(red: 0.5, green: 1.0, blue: 0.3, alpha: 1.0),   // lime
+        ]
+        return colors[pairId % colors.count]
+    }
+
     func stoneShadow(size: CGSize, cornerRadius: CGFloat) -> SKTexture {
         let key = "stone_shadow_\(Int(size.width))"
         if let t = cache[key] { return t }

@@ -13,6 +13,8 @@ final class FloodCellNode: SKNode {
     private var iceOverlayNode: SKSpriteNode?
     private(set) var countdownValue: Int = 0
     private var countdownLabel: SKLabelNode?
+    private(set) var portalPairId: Int = -1
+    private var portalVortexNode: SKSpriteNode?
 
     // Layer nodes
     private var glowNode: SKSpriteNode!
@@ -249,6 +251,24 @@ final class FloodCellNode: SKNode {
         countdownLabel?.removeAction(forKey: "countdownPulse")
         countdownLabel?.fontColor = .white
         countdownLabel?.setScale(1.0)
+    }
+
+    /// Configure this cell as a portal with a swirling vortex overlay.
+    func configureAsPortal(pairId: Int) {
+        portalPairId = pairId
+        let vortexSize = CGSize(width: cellSize * 0.7, height: cellSize * 0.7)
+        let vortexNode = SKSpriteNode(color: .clear, size: vortexSize)
+        vortexNode.texture = CellTextureCache.shared.portalVortex(size: vortexSize, pairId: pairId)
+        vortexNode.zPosition = 3.5
+        vortexNode.alpha = 0.7
+        vortexNode.blendMode = .add
+        vortexNode.name = "portalVortex"
+        addChild(vortexNode)
+        portalVortexNode = vortexNode
+
+        // Continuous rotation
+        let rotate = SKAction.rotate(byAngle: 2 * .pi, duration: 3.0)
+        vortexNode.run(SKAction.repeatForever(rotate), withKey: "portalRotate")
     }
 
     /// Configure this cell as a void: completely hidden so the dark background shows through.
