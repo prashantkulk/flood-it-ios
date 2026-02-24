@@ -30,6 +30,13 @@ struct GameView: View {
     // BUG-12: Level intro splash
     @State private var showLevelIntro: Bool = true
     @State private var levelIntroOpacity: Double = 0
+    // BUG-15: Timer for levels 10+
+    @State private var timeRemaining: Int = 0
+    @State private var timerBudget: Int = 0   // 0 = no timer
+    @State private var timerActive: Bool = false
+    @State private var timerPulse: Bool = false
+    @State private var lostToTimer: Bool = false
+    private let timerPublisher = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     /// Whether this is a daily challenge game.
     let isDailyChallenge: Bool
     /// The daily challenge date string (shown on screen).
@@ -96,6 +103,7 @@ struct GameView: View {
                     }
                     scene.onWinAnimationComplete = {
                         DispatchQueue.main.async {
+                            timerActive = false  // BUG-15: stop timer on win
                             tallyMovesDisplay = nil
                             showWinCard = true
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
@@ -133,6 +141,7 @@ struct GameView: View {
                     }
                     scene.onLoseAnimationComplete = {
                         DispatchQueue.main.async {
+                            timerActive = false  // BUG-15: stop timer on lose
                             showLoseCard = true
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.75)) {
                                 loseCardOffset = 0
@@ -208,55 +217,71 @@ struct GameView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                        // Center: moves remaining (icon + count)
-                        HStack(spacing: 6) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(moveCounterColor.opacity(0.8))
+                        // Center: moves remaining + optional timer
+                        VStack(spacing: 2) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(moveCounterColor.opacity(0.8))
 
-                            Text("\(tallyMovesDisplay ?? gameState.movesRemaining)")
-                                .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
-                                .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
-                                .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.65 : 1.0) : 1.0)
-                                .scaleEffect(moveCounterScale)
-                                .overlay(
-                                    Color.white
-                                        .opacity(moveCounterFlash ? 0.6 : 0)
-                                        .blendMode(.sourceAtop)
-                                        .allowsHitTesting(false)
-                                )
-                                .overlay(
-                                    Color(red: 1.0, green: 0.84, blue: 0.0)
-                                        .opacity(moveCounterGoldFlash ? 0.7 : 0)
-                                        .blendMode(.sourceAtop)
-                                        .allowsHitTesting(false)
-                                )
-                                .accessibilityIdentifier("moveCounter")
-                                .onChange(of: gameState.movesRemaining) { newValue in
-                                    moveCounterFlash = true
-                                    withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
-                                        moveCounterScale = 1.2
+                                Text("\(tallyMovesDisplay ?? gameState.movesRemaining)")
+                                    .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
+                                    .foregroundColor(tallyMovesDisplay != nil ? Color(red: 1.0, green: 0.84, blue: 0.0) : moveCounterColor)
+                                    .opacity(gameState.movesRemaining <= 5 ? (moveCounterPulse ? 0.65 : 1.0) : 1.0)
+                                    .scaleEffect(moveCounterScale)
+                                    .overlay(
+                                        Color.white
+                                            .opacity(moveCounterFlash ? 0.6 : 0)
+                                            .blendMode(.sourceAtop)
+                                            .allowsHitTesting(false)
+                                    )
+                                    .overlay(
+                                        Color(red: 1.0, green: 0.84, blue: 0.0)
+                                            .opacity(moveCounterGoldFlash ? 0.7 : 0)
+                                            .blendMode(.sourceAtop)
+                                            .allowsHitTesting(false)
+                                    )
+                                    .accessibilityIdentifier("moveCounter")
+                                    .onChange(of: gameState.movesRemaining) { newValue in
+                                        moveCounterFlash = true
+                                        withAnimation(.spring(response: 0.2, dampingFraction: 0.4)) {
+                                            moveCounterScale = 1.2
+                                        }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                            withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
+                                                moveCounterScale = 1.0
+                                            }
+                                            withAnimation(.easeOut(duration: 0.15)) {
+                                                moveCounterFlash = false
+                                            }
+                                        }
+                                        if newValue <= 2 {
+                                            withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
+                                                moveCounterPulse = true
+                                            }
+                                        } else if newValue <= 5 {
+                                            withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                                                moveCounterPulse = true
+                                            }
+                                        } else {
+                                            moveCounterPulse = false
+                                        }
                                     }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                                        withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                                            moveCounterScale = 1.0
-                                        }
-                                        withAnimation(.easeOut(duration: 0.15)) {
-                                            moveCounterFlash = false
-                                        }
-                                    }
-                                    if newValue <= 2 {
-                                        withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) {
-                                            moveCounterPulse = true
-                                        }
-                                    } else if newValue <= 5 {
-                                        withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-                                            moveCounterPulse = true
-                                        }
-                                    } else {
-                                        moveCounterPulse = false
-                                    }
+                            }
+
+                            // BUG-15: Timer row (only when timer is active for this level)
+                            if timerBudget > 0 {
+                                HStack(spacing: 4) {
+                                    Image(systemName: timeRemaining <= 5 ? "timer" : "clock")
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(timerColor)
+                                    Text(timerText)
+                                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                        .foregroundColor(timerColor)
+                                        .scaleEffect(timeRemaining <= 5 && timerPulse ? 1.15 : 1.0)
                                 }
+                                .accessibilityIdentifier("timerLabel")
+                            }
                         }
                         .frame(maxWidth: .infinity)
 
@@ -514,7 +539,7 @@ struct GameView: View {
                         .padding(.top, 8)
                     } else {
                         // Standard lose overlay
-                        Text("Out of Moves")
+                        Text(lostToTimer ? "Time's Up!" : "Out of Moves")
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
 
@@ -753,6 +778,27 @@ struct GameView: View {
             if !isDailyChallenge {
                 showLevelIntroAnimation()
             }
+            setupTimer(forLevel: currentLevelNumber)
+        }
+        .onReceive(timerPublisher) { _ in
+            guard timerActive, timerBudget > 0, gameState.gameStatus == .playing else { return }
+            if timeRemaining > 1 {
+                timeRemaining -= 1
+                // Urgency pulse at ≤5s
+                if timeRemaining <= 5 {
+                    withAnimation(.easeInOut(duration: 0.2).repeatForever(autoreverses: true)) {
+                        timerPulse = true
+                    }
+                }
+            } else {
+                timeRemaining = 0
+                timerActive = false
+                lostToTimer = true
+                // Time's up — trigger loss
+                gameState.triggerTimeLoss()
+                SoundManager.shared.playLoseTone()
+                scene.animateLose()
+            }
         }
     }
 
@@ -797,6 +843,58 @@ struct GameView: View {
                 showLevelIntro = false
             }
         }
+    }
+
+    // MARK: - BUG-15 Timer
+
+    /// Returns the timer budget in seconds for the given level (0 = no timer).
+    static func timerBudgetSeconds(forLevel level: Int, isDaily: Bool) -> Int {
+        if isDaily { return 90 }
+        if level < 10 { return 0 }
+        if level <= 30 { return 120 }
+        if level <= 60 { return 90 }
+        if level <= 80 { return 75 }
+        return 60
+    }
+
+    private func setupTimer(forLevel level: Int) {
+        let budget = Self.timerBudgetSeconds(forLevel: level, isDaily: isDailyChallenge)
+        timerBudget = budget
+        if budget > 0 {
+            timeRemaining = budget
+            timerPulse = false
+            // Start timer after the level intro splash disappears (~1.8s)
+            DispatchQueue.main.asyncAfter(deadline: .now() + (isDailyChallenge ? 0 : 1.8)) {
+                timerActive = true
+            }
+        } else {
+            timerActive = false
+        }
+    }
+
+    private func resetTimer() {
+        timerActive = false
+        timerPulse = false
+        timeRemaining = timerBudget
+        if timerBudget > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + (isDailyChallenge ? 0 : 1.8)) {
+                timerActive = true
+            }
+        }
+    }
+
+    /// Colour for the timer display based on urgency.
+    private var timerColor: Color {
+        if timeRemaining <= 5 { return Color(red: 1.0, green: 0.2, blue: 0.15) }
+        if timeRemaining <= 15 { return Color(red: 1.0, green: 0.6, blue: 0.1) }
+        return Color.white.opacity(0.7)
+    }
+
+    /// Formatted MM:SS string.
+    private var timerText: String {
+        let m = timeRemaining / 60
+        let s = timeRemaining % 60
+        return m > 0 ? "\(m):\(String(format: "%02d", s))" : "\(s)"
     }
 
     /// Number of unflooded cells if ≤2 (for "Almost!" mechanic), 0 otherwise.
@@ -1084,6 +1182,10 @@ struct GameView: View {
         ProgressStore.shared.updateCurrentLevel(nextNumber)
         // Reset hints for new level
         hintsRemaining = 3
+        lostToTimer = false
+        // Reset timer for new level
+        timerActive = false
+        setupTimer(forLevel: nextNumber)
 
         // Build new board (must use generateBoard(from:) to preserve obstacles)
         let newBoard = FloodBoard.generateBoard(from: data)
@@ -1109,8 +1211,10 @@ struct GameView: View {
         tallyMovesDisplay = nil
         hintColor = nil
         hintsRemaining = 3
+        lostToTimer = false
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
+        resetTimer()
         let board = FloodBoard.generateBoard(from: currentLevelData)
         gameState.reset(board: board, totalMoves: currentLevelData.moveBudget)
         scene.configure(with: board)

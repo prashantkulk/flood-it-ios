@@ -143,4 +143,10 @@ class GameState: ObservableObject {
         totalMoves += count
         gameStatus = .playing
     }
+
+    /// Forces a time-up loss (called by the timer in GameView).
+    func triggerTimeLoss() {
+        guard gameStatus == .playing else { return }
+        gameStatus = .lost
+    }
 }
