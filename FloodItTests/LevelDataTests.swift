@@ -208,4 +208,34 @@ final class LevelDataTests: XCTestCase {
                 "Level \(i) should have void positions for shaped board")
         }
     }
+
+    // MARK: - P18-T6: Levels 31-40 ice
+
+    func testLevels31To40HaveIce() {
+        for i in 31...40 {
+            let level = LevelStore.level(i)!
+            XCTAssertNotNil(level.obstacleConfig, "Level \(i) should have obstacle config")
+            let config = level.obstacleConfig!
+            XCTAssertGreaterThanOrEqual(config.icePositions.count, 2,
+                "Level \(i) should have at least 2 ice cells")
+        }
+    }
+
+    func testLevels31To40AllSolvable() {
+        for i in 31...40 {
+            let level = LevelStore.level(i)!
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(i) with ice should be solvable: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
+
+    func testLevels31To40ModerateBudgets() {
+        for i in 31...40 {
+            let level = LevelStore.level(i)!
+            let extra = level.moveBudget - level.optimalMoves
+            XCTAssertGreaterThanOrEqual(extra, 4, "Level \(i) should have moderate budget (at least +4)")
+        }
+    }
 }
