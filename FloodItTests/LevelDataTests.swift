@@ -410,4 +410,74 @@ final class LevelDataTests: XCTestCase {
         XCTAssertGreaterThan(earlyAvg, midAvg, "Early levels should have higher ratio than mid")
         XCTAssertGreaterThan(midAvg, lateAvg, "Mid levels should have higher ratio than late")
     }
+
+    // MARK: - P18-T11: Bonus tiles scattered
+
+    func testNoBonusTilesBeforeLevel15() {
+        for i in 1...14 {
+            let level = LevelStore.level(i)!
+            if let config = level.obstacleConfig {
+                XCTAssertTrue(config.bonusPositions.isEmpty,
+                    "Level \(i) should have no bonus tiles")
+            }
+        }
+    }
+
+    func testBonusTilesExistInExpectedRange() {
+        // At least some levels in 15-100 should have bonus tiles
+        var bonusCount = 0
+        for i in 15...100 {
+            let level = LevelStore.level(i)!
+            if let config = level.obstacleConfig, !config.bonusPositions.isEmpty {
+                bonusCount += 1
+            }
+        }
+        // Expect ~30-40% of 86 levels = ~26-34 levels
+        XCTAssertGreaterThanOrEqual(bonusCount, 20,
+            "Should have bonus tiles on at least 20 levels (got \(bonusCount))")
+        XCTAssertLessThanOrEqual(bonusCount, 50,
+            "Should not have bonus tiles on more than 50 levels (got \(bonusCount))")
+    }
+
+    func testBonusTilesMoreFrequentInHarderSections() {
+        var earlyBonusCount = 0  // levels 15-50
+        var lateBonusCount = 0   // levels 51-100
+
+        for i in 15...50 {
+            let level = LevelStore.level(i)!
+            if let config = level.obstacleConfig, !config.bonusPositions.isEmpty {
+                earlyBonusCount += 1
+            }
+        }
+        for i in 51...100 {
+            let level = LevelStore.level(i)!
+            if let config = level.obstacleConfig, !config.bonusPositions.isEmpty {
+                lateBonusCount += 1
+            }
+        }
+
+        // Late section has more levels AND should have higher frequency
+        XCTAssertGreaterThanOrEqual(lateBonusCount, earlyBonusCount,
+            "Harder sections should have at least as many bonus levels (\(lateBonusCount) vs \(earlyBonusCount))")
+    }
+
+    func testBonusTilesHaveValidMultipliers() {
+        for level in LevelStore.levels {
+            guard let config = level.obstacleConfig else { continue }
+            for bonus in config.bonusPositions {
+                XCTAssertTrue(bonus.multiplier == 2 || bonus.multiplier == 3,
+                    "Level \(level.id) bonus should be x2 or x3")
+            }
+        }
+    }
+
+    func testAllLevelsStillSolvableWithBonusTiles() {
+        // Re-verify all levels are solvable now that bonus tiles have been added
+        for level in LevelStore.levels {
+            let board = FloodBoard.generateBoard(from: level)
+            let solverMoves = FloodSolver.solveMoveCount(board: board)
+            XCTAssertLessThanOrEqual(solverMoves, level.moveBudget,
+                "Level \(level.id) not solvable with bonus tiles: solver needs \(solverMoves), budget is \(level.moveBudget)")
+        }
+    }
 }

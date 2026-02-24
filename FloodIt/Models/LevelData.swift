@@ -142,10 +142,18 @@ struct LevelStore {
         // Levels 6-20: standard 9x9, 5 colors, no obstacles, generous budget
         let gridSize = 9
         let colorCount = 5
+        let extraMoves = id <= 10 ? 8 : 6  // very generous
+
+        let bonus = bonusForLevel(id)
+        if bonus.count > 0 {
+            let request = ObstaclePlacer.PlacementRequest(bonusCount: bonus.count, bonusMultiplier: bonus.multiplier)
+            let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
+            return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
+        }
+
         let colors = Array(GameColor.allCases.prefix(colorCount))
         let board = FloodBoard.generateBoard(size: gridSize, colors: colors, seed: seed)
         let optimalMoves = FloodSolver.solveMoveCount(board: board)
-        let extraMoves = id <= 10 ? 8 : 6  // very generous
         return LevelData(
             id: id, seed: seed, gridSize: gridSize, colorCount: colorCount,
             optimalMoves: optimalMoves, moveBudget: optimalMoves + extraMoves, tier: tier
@@ -183,9 +191,12 @@ struct LevelStore {
 
         // 2-4 stones, increasing as we progress
         let stoneCount = id <= 24 ? 2 : (id <= 27 ? 3 : 4)
+        let bonus = bonusForLevel(id)
 
         let request = ObstaclePlacer.PlacementRequest(
             stoneCount: stoneCount,
+            bonusCount: bonus.count,
+            bonusMultiplier: bonus.multiplier,
             voidPositions: voids
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
@@ -203,10 +214,13 @@ struct LevelStore {
         // Keep some stones too
         let stoneCount = id <= 36 ? 1 : 2
 
+        let bonus = bonusForLevel(id)
         let request = ObstaclePlacer.PlacementRequest(
             stoneCount: stoneCount,
             iceCount: iceCount,
-            iceLayers: iceLayers
+            iceLayers: iceLayers,
+            bonusCount: bonus.count,
+            bonusMultiplier: bonus.multiplier
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
@@ -225,12 +239,15 @@ struct LevelStore {
         let stoneCount = id >= 45 ? 2 : 1
         let iceCount = id >= 47 ? 1 : 0
 
+        let bonus = bonusForLevel(id)
         let request = ObstaclePlacer.PlacementRequest(
             stoneCount: stoneCount,
             iceCount: iceCount,
             iceLayers: 1,
             countdownCount: countdownCount,
-            countdownMoves: countdownMoves
+            countdownMoves: countdownMoves,
+            bonusCount: bonus.count,
+            bonusMultiplier: bonus.multiplier
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
@@ -275,10 +292,13 @@ struct LevelStore {
             }
         }
 
+        let bonus = bonusForLevel(id)
         let request = ObstaclePlacer.PlacementRequest(
             stoneCount: stoneCount,
             wallCount: wallCount,
-            portalPairCount: portalPairCount
+            portalPairCount: portalPairCount,
+            bonusCount: bonus.count,
+            bonusMultiplier: bonus.multiplier
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
@@ -352,6 +372,7 @@ struct LevelStore {
             }
         }
 
+        let bonus = bonusForLevel(id)
         let request = ObstaclePlacer.PlacementRequest(
             stoneCount: stoneCount,
             iceCount: iceCount,
@@ -360,10 +381,36 @@ struct LevelStore {
             countdownMoves: countdownMoves,
             wallCount: wallCount,
             portalPairCount: portalPairCount,
+            bonusCount: bonus.count,
+            bonusMultiplier: bonus.multiplier,
             voidPositions: voids
         )
         let config = ObstaclePlacer.placeObstacles(gridSize: gridSize, colorCount: colorCount, seed: seed, request: request)
         return generateStandardLevel(id: id, seed: seed, tier: tier, extraMoves: extraMoves, obstacleConfig: config)
+    }
+
+    /// Determines bonus tile placement for a level. Returns (count, multiplier).
+    /// ~30-40% of levels 15+ get bonus tiles, more frequent in harder sections.
+    private static func bonusForLevel(_ id: Int) -> (count: Int, multiplier: Int) {
+        guard id >= 15 else { return (0, 2) }
+        // Use seed-based determinism for which levels get bonuses
+        var rng = SeededRandomNumberGenerator(seed: UInt64(id * 17 + 3))
+        let roll = rng.next() % 100
+
+        // Harder sections get more frequent bonuses
+        let threshold: UInt64
+        switch id {
+        case 15...30: threshold = 30   // ~30%
+        case 31...50: threshold = 35
+        case 51...70: threshold = 40
+        default:      threshold = 45   // ~45% for expert levels
+        }
+
+        guard roll < threshold else { return (0, 2) }
+
+        let multiplier = id >= 70 ? 3 : 2
+        let count = id >= 80 ? 2 : 1
+        return (count, multiplier)
     }
 
     private static func extraMovesForLevel(_ i: Int) -> Int {
