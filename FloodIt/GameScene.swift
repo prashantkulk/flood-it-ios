@@ -631,16 +631,17 @@ class GameScene: SKScene {
     }
 
     /// Runs the score tally: remaining moves tick down, +50 floats up each tick.
+    /// Accelerates for 5+ ticks, capped at 2s total duration.
     private func runScoreTally(tickCount: Int, completion: @escaping () -> Void) {
         guard tickCount > 0 else { completion(); return }
 
-        let tickDelay: TimeInterval = 0.3
+        // Calculate per-tick delays with acceleration curve
+        let delays: [TimeInterval] = Self.tallyDelays(for: tickCount)
         var actions: [SKAction] = []
 
         for i in 0..<tickCount {
             actions.append(SKAction.run { [weak self] in
                 guard let self = self else { return }
-                // Spawn floating +50 text near top-left (where move counter is)
                 let pos = CGPoint(x: 80, y: self.size.height - 80)
                 self.spawnTallyText(at: pos)
                 SoundManager.shared.playPlip(frequency: 880 + Double(i) * 40)
@@ -648,13 +649,41 @@ class GameScene: SKScene {
                 self.onTallyTick?()
             })
             if i < tickCount - 1 {
-                actions.append(SKAction.wait(forDuration: tickDelay))
+                actions.append(SKAction.wait(forDuration: delays[i]))
             }
         }
 
         actions.append(SKAction.wait(forDuration: 0.4))
         actions.append(SKAction.run { completion() })
         run(SKAction.sequence(actions), withKey: "scoreTally")
+    }
+
+    /// Compute per-tick delays. For ≤4 ticks: 0.3s each. For 5+: smooth acceleration
+    /// from 0.3s down to 0.1s, capped at 2s total.
+    static func tallyDelays(for tickCount: Int) -> [TimeInterval] {
+        guard tickCount > 1 else { return [0.3] }
+
+        if tickCount <= 4 {
+            return Array(repeating: 0.3, count: tickCount)
+        }
+
+        // Smooth acceleration: lerp from 0.3 to 0.1 per tick
+        var delays: [TimeInterval] = []
+        for i in 0..<tickCount {
+            let t = Double(i) / Double(tickCount - 1) // 0.0 → 1.0
+            let delay = 0.3 - t * 0.2 // 0.3 → 0.1
+            delays.append(delay)
+        }
+
+        // Cap total at 2.0s: scale all delays proportionally if needed
+        let total = delays.reduce(0, +)
+        let maxTotal: TimeInterval = 2.0
+        if total > maxTotal {
+            let scale = maxTotal / total
+            delays = delays.map { $0 * scale }
+        }
+
+        return delays
     }
 
     /// Spawn floating '+50' gold text that rises and fades.
