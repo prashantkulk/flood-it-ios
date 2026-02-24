@@ -342,6 +342,8 @@ struct GameView: View {
                             .font(.system(size: 18, weight: .medium, design: .rounded))
                             .foregroundColor(.white.opacity(0.8))
 
+                        loseScoreSection
+
                         VStack(spacing: 12) {
                             Button(action: {
                                 watchAdForExtraMoves()
@@ -385,6 +387,8 @@ struct GameView: View {
                         Text("So Close!")
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+
+                        loseScoreSection
 
                         // Progress bar
                         VStack(spacing: 8) {
@@ -452,6 +456,8 @@ struct GameView: View {
                         Text("Out of Moves")
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
+
+                        loseScoreSection
 
                         VStack(spacing: 12) {
                             Button(action: {
@@ -665,6 +671,18 @@ struct GameView: View {
     /// Flood completion percentage rounded to integer (for near-miss lose screen).
     private var nearMissPercentage: Int {
         Int(gameState.floodCompletionPercentage * 100)
+    }
+
+    /// Score and completion percentage shown on lose cards.
+    private var loseScoreSection: some View {
+        VStack(spacing: 4) {
+            Text("Score: \(gameState.scoreState.totalScore)")
+                .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundColor(.white)
+            Text("\(nearMissPercentage)% complete")
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(0.5))
+        }
     }
 
     private var moveCounterColor: Color {
