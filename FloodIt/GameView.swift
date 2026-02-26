@@ -143,6 +143,14 @@ struct GameView: View {
                                     }
                                 }
                             }
+                            // Auto-advance to next level after 3 seconds (non-daily only)
+                            if !isDailyChallenge {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                    if showWinCard { // Still showing — user hasn't tapped anything
+                                        advanceToNextLevel()
+                                    }
+                                }
+                            }
                         }
                     }
                     scene.onLoseAnimationComplete = {
