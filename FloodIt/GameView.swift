@@ -292,11 +292,13 @@ struct GameView: View {
                         .frame(maxWidth: .infinity)
 
                         // Right: score + hint + settings + restart
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             // Score
                             Text("\(gameState.scoreState.totalScore)")
-                                .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                                .font(.system(size: 13, weight: .bold, design: .rounded).monospacedDigit())
                                 .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
+                                .fixedSize(horizontal: true, vertical: false)
+                                .lineLimit(1)
                                 .scaleEffect(scoreCounterScale)
                                 .overlay(
                                     Color(red: 1.0, green: 0.84, blue: 0.0)
