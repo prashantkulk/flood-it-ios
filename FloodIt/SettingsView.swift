@@ -49,16 +49,7 @@ struct SettingsView: View {
                     SoundManager.shared.setSFXEnabled(newValue)
                 }
 
-                // Ambient toggle
-                Toggle(isOn: $ambientEnabled) {
-                    Text("Ambient Music")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.white)
-                }
-                .tint(.white)
-                .onChange(of: ambientEnabled) { newValue in
-                    SoundManager.shared.setAmbientEnabled(newValue)
-                }
+                // Ambient music removed — was just noise
             }
 
             // Theme selector

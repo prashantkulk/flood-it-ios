@@ -82,7 +82,7 @@ struct GameView: View {
             SpriteView(scene: scene)
                 .ignoresSafeArea()
                 .onAppear {
-                    SoundManager.shared.startAmbient()
+                    // Ambient removed — was just noise
                     lightHaptic.prepare()
                     mediumHaptic.prepare()
                     heavyHaptic.prepare()
@@ -223,7 +223,7 @@ struct GameView: View {
                             .accessibilityIdentifier("backButton")
 
                             if !isDailyChallenge {
-                                Text("Lv. \(currentLevelNumber)")
+                                Text("Level \(currentLevelNumber)")
                                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                                     .foregroundColor(.white.opacity(0.55))
                                     .accessibilityIdentifier("levelLabel")
@@ -335,17 +335,17 @@ struct GameView: View {
                                 Button(action: { showHint() }) {
                                     ZStack(alignment: .topTrailing) {
                                         Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 20, weight: .semibold))
+                                            .font(.system(size: 28, weight: .semibold))
                                             .foregroundColor(hintColor != nil || hintPulsing
                                                 ? Color(red: 1.0, green: 0.84, blue: 0.0)
-                                                : .white.opacity(0.7))
+                                                : .white.opacity(0.8))
                                             .shadow(color: hintPulsing ? Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.8) : .clear, radius: 6)
                                         Text("\(hintsRemaining)")
-                                            .font(.system(size: 9, weight: .bold))
+                                            .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                            .frame(width: 13, height: 13)
+                                            .frame(width: 16, height: 16)
                                             .background(Circle().fill(Color(red: 1.0, green: 0.84, blue: 0.0)))
-                                            .offset(x: 4, y: -4)
+                                            .offset(x: 5, y: -5)
                                     }
                                 }
                                 .accessibilityIdentifier("hintButton")
@@ -354,15 +354,17 @@ struct GameView: View {
 
                             Button(action: { showSettings = true }) {
                                 Image(systemName: "gearshape.fill")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .frame(width: 44, height: 44)
                             }
                             .accessibilityIdentifier("settingsButton")
 
                             Button(action: { resetGame() }) {
                                 Image(systemName: "arrow.counterclockwise")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 26, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .frame(width: 44, height: 44)
                             }
                             .accessibilityIdentifier("restartButton")
                         }
@@ -420,6 +422,16 @@ struct GameView: View {
                             .shadow(color: color.shadowColor, radius: 8, x: 0, y: 4)
                         }
                         .buttonStyle(OrbPressStyle())
+                        .overlay(
+                            // Hint glow — golden pulsing ring on the recommended color
+                            Circle()
+                                .stroke(Color(red: 1.0, green: 0.84, blue: 0.0), lineWidth: 3)
+                                .frame(width: 56, height: 56)
+                                .scaleEffect(hintColor == color ? (hintPulsing ? 1.15 : 1.0) : 0)
+                                .opacity(hintColor == color ? 1.0 : 0)
+                                .shadow(color: Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.8), radius: 8)
+                                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: hintPulsing)
+                        )
                         .accessibilityIdentifier("colorButton_\(color.rawValue)")
                         .disabled(gameState.gameStatus != .playing || isWinningMove)
                     }
@@ -431,6 +443,7 @@ struct GameView: View {
             if showLoseCard {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
                     .transition(.opacity)
 
                 VStack(spacing: 20) {
@@ -607,6 +620,7 @@ struct GameView: View {
             if showWinCard {
                 Color.black.opacity(0.4)
                     .ignoresSafeArea()
+                    .allowsHitTesting(false)
                     .transition(.opacity)
 
                 VStack(spacing: 16) {
