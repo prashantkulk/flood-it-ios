@@ -6,6 +6,10 @@ class ScoreState: ObservableObject {
     @Published private(set) var lastMoveScore: Int = 0
     @Published private(set) var lastCellsAbsorbed: Int = 0
 
+    /// End-of-round bonus breakdown (for win card display).
+    @Published private(set) var speedBonus: Int = 0
+    @Published private(set) var comboBonus: Int = 0
+
     /// Pending tally ticks (one per remaining move, 50 pts each). Set by recordEndBonus, consumed by applyTallyTick.
     private(set) var pendingTallyTicks: Int = 0
     /// Whether the perfect bonus (+500) is pending.
@@ -36,10 +40,30 @@ class ScoreState: ObservableObject {
         totalScore += score
     }
 
-    /// Prepare end-of-game bonus for tally animation. Does NOT add to totalScore immediately.
-    func recordEndBonus(movesRemaining: Int, isOptimalPlusOne: Bool) {
+    /// Prepare end-of-game bonus for tally animation. Also calculates speed and combo bonuses.
+    func recordEndBonus(movesRemaining: Int, isOptimalPlusOne: Bool, maxCombo: Int = 0, timeTaken: TimeInterval = 0, totalMoves: Int = 0) {
         pendingTallyTicks = movesRemaining
         hasPerfectBonus = isOptimalPlusOne
+
+        // Speed bonus: up to 500 pts, scaled by move budget
+        if totalMoves > 0 {
+            let baseTime = Double(max(15, totalMoves * 3))
+            let maxTime = Double(max(60, totalMoves * 8))
+            let seconds = max(0, timeTaken)
+            if seconds < baseTime {
+                speedBonus = 500
+            } else if seconds < maxTime {
+                speedBonus = Int(500.0 * (1.0 - (seconds - baseTime) / (maxTime - baseTime)))
+            } else {
+                speedBonus = 0
+            }
+        }
+
+        // Combo bonus: 75 per max combo level
+        comboBonus = maxCombo * 75
+
+        // Add speed and combo bonuses to total immediately
+        totalScore += speedBonus + comboBonus
     }
 
     /// Apply one tally tick (+50 points). Returns true if more ticks remain.
@@ -65,5 +89,7 @@ class ScoreState: ObservableObject {
         lastCellsAbsorbed = 0
         pendingTallyTicks = 0
         hasPerfectBonus = false
+        speedBonus = 0
+        comboBonus = 0
     }
 }

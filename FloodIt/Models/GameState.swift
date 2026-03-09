@@ -14,6 +14,8 @@ class GameState: ObservableObject {
     private(set) var maxCombo: Int = 0
     /// History of colors chosen (for share card).
     private(set) var colorHistory: [GameColor] = []
+    /// Tracks when the round started for speed bonus calculation.
+    private(set) var gameStartDate: Date = Date()
     /// RNG for countdown scramble determinism.
     private var countdownRng = SeededRandomNumberGenerator(seed: 42)
 
@@ -43,6 +45,7 @@ class GameState: ObservableObject {
         self.comboCount = 0
         self.maxCombo = 0
         self.colorHistory = []
+        self.gameStartDate = Date()
         self.countdownRng = SeededRandomNumberGenerator(seed: 42)
         self.scoreState.reset()
     }
@@ -116,7 +119,8 @@ class GameState: ObservableObject {
         if board.isComplete {
             gameStatus = .won
             let isOptimalPlusOne = movesMade <= optimalMoves + 1
-            scoreState.recordEndBonus(movesRemaining: movesRemaining, isOptimalPlusOne: isOptimalPlusOne)
+            let elapsed = Date().timeIntervalSince(gameStartDate)
+            scoreState.recordEndBonus(movesRemaining: movesRemaining, isOptimalPlusOne: isOptimalPlusOne, maxCombo: maxCombo, timeTaken: elapsed, totalMoves: totalMoves)
         } else if movesRemaining <= 0 {
             gameStatus = .lost
         }

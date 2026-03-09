@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     @State private var masterVolume: Double = Double(SoundManager.shared.masterVolume)
     @State private var sfxEnabled: Bool = SoundManager.shared.sfxEnabled
-    @State private var ambientEnabled: Bool = SoundManager.shared.ambientEnabled
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var progress = ProgressStore.shared
     @StateObject private var storeManager = StoreManager.shared

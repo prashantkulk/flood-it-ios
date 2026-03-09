@@ -23,10 +23,7 @@ struct GameView: View {
     @State private var isNewBest: Bool = false
     @State private var showSettings: Bool = false
     @State private var showShareSheet: Bool = false
-    @State private var hintColor: GameColor? = nil
-    // BUG-11: Hint system — 3 per level, question mark icon, gold pulse
-    @State private var hintsRemaining: Int = 3
-    @State private var hintPulsing: Bool = false
+    // Hint state removed (BUG-11 cleanup)
     // BUG-12: Level intro splash
     @State private var showLevelIntro: Bool = true
     @State private var levelIntroOpacity: Double = 0
@@ -213,17 +210,10 @@ struct GameView: View {
                     }
 
                     HStack(alignment: .center, spacing: 0) {
-                        // Left: back + level number
+                        // Left: level number
                         HStack(spacing: 8) {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.7))
-                            }
-                            .accessibilityIdentifier("backButton")
-
                             if !isDailyChallenge {
-                                Text("Level \(currentLevelNumber)")
+                                Text("Lv.\(currentLevelNumber)")
                                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                                     .foregroundColor(.white.opacity(0.55))
                                     .accessibilityIdentifier("levelLabel")
@@ -330,28 +320,6 @@ struct GameView: View {
                                     }
                                 }
 
-                            // BUG-11: Hint button — question mark, gold pulse, count badge
-                            if hintsRemaining > 0 {
-                                Button(action: { showHint() }) {
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 28, weight: .semibold))
-                                            .foregroundColor(hintColor != nil || hintPulsing
-                                                ? Color(red: 1.0, green: 0.84, blue: 0.0)
-                                                : .white.opacity(0.8))
-                                            .shadow(color: hintPulsing ? Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.8) : .clear, radius: 6)
-                                        Text("\(hintsRemaining)")
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                            .frame(width: 16, height: 16)
-                                            .background(Circle().fill(Color(red: 1.0, green: 0.84, blue: 0.0)))
-                                            .offset(x: 5, y: -5)
-                                    }
-                                }
-                                .accessibilityIdentifier("hintButton")
-                                .disabled(gameState.gameStatus != .playing)
-                            }
-
                             Button(action: { showSettings = true }) {
                                 Image(systemName: "gearshape.fill")
                                     .font(.system(size: 26, weight: .semibold))
@@ -422,16 +390,6 @@ struct GameView: View {
                             .shadow(color: color.shadowColor, radius: 8, x: 0, y: 4)
                         }
                         .buttonStyle(OrbPressStyle())
-                        .overlay(
-                            // Hint glow — golden pulsing ring on the recommended color
-                            Circle()
-                                .stroke(Color(red: 1.0, green: 0.84, blue: 0.0), lineWidth: 3)
-                                .frame(width: 56, height: 56)
-                                .scaleEffect(hintColor == color ? (hintPulsing ? 1.15 : 1.0) : 0)
-                                .opacity(hintColor == color ? 1.0 : 0)
-                                .shadow(color: Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.8), radius: 8)
-                                .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: hintPulsing)
-                        )
                         .accessibilityIdentifier("colorButton_\(color.rawValue)")
                         .disabled(gameState.gameStatus != .playing || isWinningMove)
                     }
@@ -461,28 +419,15 @@ struct GameView: View {
 
                         VStack(spacing: 12) {
                             Button(action: {
-                                watchAdForExtraMoves()
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "play.rectangle.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("Extra Moves (+3)")
-                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                }
-                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(.white)
-                                .clipShape(Capsule())
-                            }
-                            .accessibilityIdentifier("extraMovesButton")
-
-                            Button(action: {
                                 resetGame()
                             }) {
                                 Text("Try Again")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
                             }
                             .accessibilityIdentifier("tryAgainButton")
 
@@ -530,28 +475,15 @@ struct GameView: View {
 
                         VStack(spacing: 12) {
                             Button(action: {
-                                watchAdForExtraMoves()
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "play.rectangle.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("Extra Moves (+3)")
-                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                }
-                                .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(.white)
-                                .clipShape(Capsule())
-                            }
-                            .accessibilityIdentifier("extraMovesButton")
-
-                            Button(action: {
                                 resetGame()
                             }) {
                                 Text("Try Again")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.7))
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(Color(red: 0.06, green: 0.06, blue: 0.12))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(.white)
+                                    .clipShape(Capsule())
                             }
                             .accessibilityIdentifier("tryAgainButton")
 
@@ -633,6 +565,9 @@ struct GameView: View {
                         .font(.system(size: 52, weight: .heavy, design: .rounded).monospacedDigit())
                         .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.0))
                         .shadow(color: Color(red: 1.0, green: 0.84, blue: 0.0).opacity(0.4), radius: 8, x: 0, y: 0)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
                     // NEW BEST badge
                     if isNewBest && !isDailyChallenge {
@@ -644,6 +579,30 @@ struct GameView: View {
                             .background(Color(red: 1.0, green: 0.84, blue: 0.0))
                             .clipShape(Capsule())
                             .offset(y: -6)
+                    }
+
+                    // Bonus breakdown
+                    let speed = gameState.scoreState.speedBonus
+                    let combo = gameState.scoreState.comboBonus
+                    let movesBonus = gameState.movesRemaining * 50
+                    if speed > 0 || combo > 0 || movesBonus > 0 {
+                        HStack(spacing: 12) {
+                            if speed > 0 {
+                                Label("+\(speed)", systemImage: "bolt.fill")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                            if combo > 0 {
+                                Label("+\(combo)", systemImage: "flame.fill")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                            if movesBonus > 0 {
+                                Label("+\(movesBonus)", systemImage: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
                     }
 
                     // Moves used / budget
@@ -1029,11 +988,6 @@ struct GameView: View {
             SoundManager.shared.playComboBreakTink()
         }
 
-        // Update ambient volume based on flood progress
-        let totalCells = Double(gameState.board.gridSize * gameState.board.gridSize)
-        let floodedCells = Double(gameState.board.floodRegion.count)
-        SoundManager.shared.updateAmbientVolume(floodPercentage: floodedCells / totalCells)
-
         if allWaves.isEmpty {
             scene.updateColors(from: gameState.board)
         } else {
@@ -1095,70 +1049,6 @@ struct GameView: View {
         }
     }
 
-    // MARK: - P12-T3 Rewarded video for extra moves and hints
-
-    private func watchAdForExtraMoves() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first?.rootViewController else {
-            useExtraMoves()
-            return
-        }
-        adManager.showRewardedVideo(from: rootVC) { [self] rewarded in
-            if rewarded {
-                useExtraMoves()
-            }
-        }
-    }
-
-    private func useExtraMoves() {
-        showLoseCard = false
-        loseCardOffset = 600
-        gameState.grantExtraMoves(3)
-        // Restore cell alpha and stop pulsing
-        scene.stopPulseUnfloodedCells()
-        scene.updateColors(from: gameState.board)
-    }
-
-    private func watchAdForHint() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let rootVC = windowScene.windows.first?.rootViewController else {
-            showHint()
-            return
-        }
-        adManager.showRewardedVideo(from: rootVC) { [self] rewarded in
-            if rewarded {
-                showHint()
-            }
-        }
-    }
-
-    private func showHint() {
-        guard hintsRemaining > 0, gameState.gameStatus == .playing else { return }
-        hintsRemaining -= 1
-
-        // Use greedy solver to find best next color
-        let currentColor = gameState.board.cells[0][0]
-        let colors = Array(GameColor.allCases.prefix(currentLevelData.colorCount))
-        var bestColor = colors.first(where: { $0 != currentColor }) ?? .coral
-        var bestCount = 0
-        for color in colors {
-            if color == currentColor { continue }
-            let absorbed = gameState.board.cellsAbsorbedBy(color: color)
-            let count = absorbed.flatMap { $0 }.count
-            if count > bestCount {
-                bestCount = count
-                bestColor = color
-            }
-        }
-        // Highlight the hint color with gold pulse for 2s
-        hintColor = bestColor
-        hintPulsing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            hintColor = nil
-            hintPulsing = false
-        }
-    }
-
     // MARK: - P12-T2 Pack boundary interstitial
 
     /// Pack boundaries where an interstitial ad should show (e.g., level 50 → 51).
@@ -1202,7 +1092,6 @@ struct GameView: View {
         starScales = [0, 0, 0]
         isNewBest = false
         tallyMovesDisplay = nil
-        hintColor = nil
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
 
@@ -1210,8 +1099,6 @@ struct GameView: View {
         currentLevelNumber = nextNumber
         currentLevelData = data
         ProgressStore.shared.updateCurrentLevel(nextNumber)
-        // Reset hints for new level
-        hintsRemaining = 3
         lostToTimer = false
         // Reset timer for new level
         timerActive = false
@@ -1239,8 +1126,6 @@ struct GameView: View {
         starScales = [0, 0, 0]
         isNewBest = false
         tallyMovesDisplay = nil
-        hintColor = nil
-        hintsRemaining = 3
         lostToTimer = false
         scene.tallyTickCount = 0
         scene.showPerfectBadge = false
